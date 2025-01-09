@@ -1,4 +1,5 @@
 const http = require("http");
+const albumArt = require( 'album-art' );
 
 const getTitle = (title) => {
   return title.split(" / ")[1];
@@ -62,7 +63,14 @@ function fetchAlbumDetails(cdid) {
       res.on("end", () => {
         const albumData = getAlbumData(data);
         if (albumData.title) {
-          resolve(albumData);
+          Promise.all(
+            [
+              albumArt(albumData.artist, {album: albumData.title, size: 'small'}),
+              albumArt(albumData.artist, {album: albumData.title, size: 'big'}),
+              albumArt(albumData.artist, {size: 'small'}),
+              albumArt(albumData.artist, {size: 'big'})
+            ]
+          ).then(([albumSmall, albumBig, artistSmall, artistBig]) => resolve({...albumData, art: {albumSmall, albumBig, artistSmall, artistBig}}) );
         } else {
           reject(`No data found for ${cdid}`);
         }
