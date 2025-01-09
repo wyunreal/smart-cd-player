@@ -1,4 +1,4 @@
-const { fetchAlbum } = require("../fetch-album");
+const { fetchAlbum } = require("../api/fetch-album");
 
 const artistName = process.argv[2];
 const albumName = process.argv[3];
