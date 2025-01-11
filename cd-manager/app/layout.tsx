@@ -1,7 +1,5 @@
 import * as React from "react";
 import { NextAppProvider } from "@toolpad/core/nextjs";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import type { Navigation } from "@toolpad/core/AppProvider";
 import { SessionProvider, signIn, signOut } from "next-auth/react";
@@ -9,16 +7,17 @@ import theme from "../theme";
 import { auth } from "../auth";
 import LibraryMusicIcon from "@mui/icons-material/LibraryMusic";
 import { Box } from "@mui/material";
+import { AlbumIcon, GroupsIcon } from "./icons";
 
 const NAVIGATION: Navigation = [
   {
     title: "Collection",
-    icon: <DashboardIcon />,
+    icon: <AlbumIcon />,
   },
   {
     segment: "groups",
     title: "Groups",
-    icon: <ShoppingCartIcon />,
+    icon: <GroupsIcon />,
   },
 ];
 
