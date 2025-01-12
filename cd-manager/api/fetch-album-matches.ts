@@ -1,6 +1,7 @@
-const http = require("http");
+import http from "http";
+import { CdKey } from "./types";
 
-function isTitleCase(str, allWordsStartingWithUpperCase = false) {
+const isTitleCase = (str: string, allWordsStartingWithUpperCase = false) => {
   const words = str.split(" ");
   return words.every((word, index) => {
     if (word.length === 0) return false;
@@ -14,9 +15,9 @@ function isTitleCase(str, allWordsStartingWithUpperCase = false) {
     }
     return true;
   });
-}
+};
 
-const getMatchEntries = (text) => {
+const getMatchEntries = (text: string) => {
   return text.split("\n").map((line) => {
     const [keyword, cdid, ...payload] = line.split(" ");
     if (keyword === "data") {
@@ -33,7 +34,11 @@ const getMatchEntries = (text) => {
   });
 };
 
-function fetchMatchesList(artistName, albumName, trackCount) {
+const fetchMatchesList = async (
+  artistName: string,
+  albumName: string,
+  trackCount: number
+): Promise<CdKey[]> => {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: "gnudb.gnudb.org",
@@ -61,7 +66,7 @@ function fetchMatchesList(artistName, albumName, trackCount) {
             match.album.length === albumName.length &&
             (isTitleCase(match.artist) || isTitleCase(match.artist, true))
         );
-        resolve(matches);
+        resolve(matches.filter((match) => match !== undefined) as CdKey[]);
       });
     });
 
@@ -71,8 +76,6 @@ function fetchMatchesList(artistName, albumName, trackCount) {
 
     req.end();
   });
-}
-
-module.exports = {
-  fetchMatchesList,
 };
+
+export default fetchMatchesList;

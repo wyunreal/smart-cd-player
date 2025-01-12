@@ -1,18 +1,19 @@
-import { Theme, alpha, Components } from '@mui/material/styles';
-import { svgIconClasses } from '@mui/material/SvgIcon';
-import { typographyClasses } from '@mui/material/Typography';
-import { buttonBaseClasses } from '@mui/material/ButtonBase';
-import { chipClasses } from '@mui/material/Chip';
-import { iconButtonClasses } from '@mui/material/IconButton';
-import { gray, red, green } from '../themePrimitives';
+import { Theme, alpha, Components } from "@mui/material/styles";
+import { svgIconClasses } from "@mui/material/SvgIcon";
+import { typographyClasses } from "@mui/material/Typography";
+import { buttonBaseClasses } from "@mui/material/ButtonBase";
+import { chipClasses } from "@mui/material/Chip";
+import { iconButtonClasses } from "@mui/material/IconButton";
+import { gray, red, green } from "../themePrimitives";
 
 export const dataDisplayCustomizations: Components<Theme> = {
   MuiList: {
     styleOverrides: {
       root: {
-        padding: '8px',
-        display: 'flex',
-        flexDirection: 'column',
+        marginTop: "-8px",
+        padding: "8px",
+        display: "flex",
+        flexDirection: "column",
         gap: 0,
       },
     },
@@ -20,35 +21,34 @@ export const dataDisplayCustomizations: Components<Theme> = {
   MuiListItem: {
     styleOverrides: {
       root: ({ theme }) => ({
+        height: "52px",
         [`& .${svgIconClasses.root}`]: {
-          width: '1rem',
-          height: '1rem',
           color: theme.palette.text.secondary,
         },
         [`& .${typographyClasses.root}`]: {
           fontWeight: 500,
         },
         [`& .${buttonBaseClasses.root}`]: {
-          display: 'flex',
+          display: "flex",
           gap: 8,
-          padding: '2px 8px',
+          padding: "2px 8px",
           borderRadius: theme.shape.borderRadius,
           opacity: 0.7,
-          '&.Mui-selected': {
+          "&.Mui-selected": {
             opacity: 1,
             backgroundColor: alpha(theme.palette.action.selected, 0.3),
             [`& .${svgIconClasses.root}`]: {
               color: theme.palette.text.primary,
             },
-            '&:focus-visible': {
+            "&:focus-visible": {
               backgroundColor: alpha(theme.palette.action.selected, 0.3),
             },
-            '&:hover': {
+            "&:hover": {
               backgroundColor: alpha(theme.palette.action.selected, 0.5),
             },
           },
-          '&:focus-visible': {
-            backgroundColor: 'transparent',
+          "&:focus-visible": {
+            backgroundColor: "transparent",
           },
         },
       }),
@@ -70,26 +70,26 @@ export const dataDisplayCustomizations: Components<Theme> = {
   MuiListItemIcon: {
     styleOverrides: {
       root: {
-        minWidth: 0,
-        justifyContent: 'center',
+        marginLeft: "-2px",
+        justifyContent: "center",
       },
     },
   },
   MuiChip: {
     defaultProps: {
-      size: 'small',
+      size: "small",
     },
     styleOverrides: {
       root: ({ theme }) => ({
-        border: '1px solid',
-        borderRadius: '999px',
+        border: "1px solid",
+        borderRadius: "999px",
         [`& .${chipClasses.label}`]: {
           fontWeight: 600,
         },
         variants: [
           {
             props: {
-              color: 'default',
+              color: "default",
             },
             style: {
               borderColor: gray[200],
@@ -100,7 +100,7 @@ export const dataDisplayCustomizations: Components<Theme> = {
               [`& .${chipClasses.icon}`]: {
                 color: gray[500],
               },
-              ...theme.applyStyles('dark', {
+              ...theme.applyStyles("dark", {
                 borderColor: gray[700],
                 backgroundColor: gray[800],
                 [`& .${chipClasses.label}`]: {
@@ -114,7 +114,7 @@ export const dataDisplayCustomizations: Components<Theme> = {
           },
           {
             props: {
-              color: 'success',
+              color: "success",
             },
             style: {
               borderColor: green[200],
@@ -125,7 +125,7 @@ export const dataDisplayCustomizations: Components<Theme> = {
               [`& .${chipClasses.icon}`]: {
                 color: green[500],
               },
-              ...theme.applyStyles('dark', {
+              ...theme.applyStyles("dark", {
                 borderColor: green[800],
                 backgroundColor: green[900],
                 [`& .${chipClasses.label}`]: {
@@ -139,7 +139,7 @@ export const dataDisplayCustomizations: Components<Theme> = {
           },
           {
             props: {
-              color: 'error',
+              color: "error",
             },
             style: {
               borderColor: red[100],
@@ -150,7 +150,7 @@ export const dataDisplayCustomizations: Components<Theme> = {
               [`& .${chipClasses.icon}`]: {
                 color: red[500],
               },
-              ...theme.applyStyles('dark', {
+              ...theme.applyStyles("dark", {
                 borderColor: red[800],
                 backgroundColor: red[900],
                 [`& .${chipClasses.label}`]: {
@@ -163,7 +163,7 @@ export const dataDisplayCustomizations: Components<Theme> = {
             },
           },
           {
-            props: { size: 'small' },
+            props: { size: "small" },
             style: {
               maxHeight: 20,
               [`& .${chipClasses.label}`]: {
@@ -175,7 +175,7 @@ export const dataDisplayCustomizations: Components<Theme> = {
             },
           },
           {
-            props: { size: 'medium' },
+            props: { size: "medium" },
             style: {
               [`& .${chipClasses.label}`]: {
                 fontSize: theme.typography.caption.fontSize,
@@ -189,7 +189,7 @@ export const dataDisplayCustomizations: Components<Theme> = {
   MuiTablePagination: {
     styleOverrides: {
       actions: {
-        display: 'flex',
+        display: "flex",
         gap: 8,
         marginRight: 6,
         [`& .${iconButtonClasses.root}`]: {
@@ -202,17 +202,17 @@ export const dataDisplayCustomizations: Components<Theme> = {
   },
   MuiIcon: {
     defaultProps: {
-      fontSize: 'small',
+      fontSize: "small",
     },
     styleOverrides: {
       root: {
         variants: [
           {
             props: {
-              fontSize: 'small',
+              fontSize: "small",
             },
             style: {
-              fontSize: '1rem',
+              fontSize: "1rem",
             },
           },
         ],

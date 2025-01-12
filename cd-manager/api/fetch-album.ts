@@ -1,10 +1,14 @@
-const { fetchMatchesList } = require("./fetch-album-matches");
-const { fetchAlbumDetails } = require("./fetch-album-details");
+import fetchMatchesList from "./fetch-album-matches";
+import fetchAlbumDetails from "./fetch-album-details";
+import { Cd } from "./types";
 
-function fetchAlbumData(cdidList) {
+const fetchAlbumData = async (cdidList: string[]): Promise<Cd> => {
+  if (cdidList.length === 0) {
+    return Promise.reject("Empty cd id list");
+  }
   return new Promise((resolve, reject) => {
     const cdid = cdidList.shift();
-    fetchAlbumDetails(cdid)
+    fetchAlbumDetails(cdid || "")
       .then((data) => {
         if (data) {
           resolve(data);
@@ -16,9 +20,13 @@ function fetchAlbumData(cdidList) {
       })
       .catch(() => fetchAlbumData(cdidList).then(resolve));
   });
-}
+};
 
-function fetchAlbum(artistName, albumName, trackCount) {
+const fetchAlbum = async (
+  artistName: string,
+  albumName: string,
+  trackCount: number
+): Promise<Cd> => {
   return new Promise((resolve, reject) => {
     fetchMatchesList(artistName, albumName, trackCount)
       .then((matches) => {
@@ -38,6 +46,6 @@ function fetchAlbum(artistName, albumName, trackCount) {
       })
       .catch(reject);
   });
-}
+};
 
 module.exports = { fetchAlbum };
