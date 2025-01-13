@@ -1,13 +1,15 @@
+"use server";
+
 import * as React from "react";
 import { NextAppProvider } from "@toolpad/core/nextjs";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import type { Navigation } from "@toolpad/core/AppProvider";
 import { SessionProvider, signIn, signOut } from "next-auth/react";
-import theme from "../theme";
 import { auth } from "../auth";
 import LibraryMusicIcon from "@mui/icons-material/LibraryMusic";
 import { Box } from "@mui/material";
 import { AlbumIcon, GroupsIcon } from "./icons";
+import { darkTheme, lightTheme } from "@/theme/theme";
 
 const NAVIGATION: Navigation = [
   {
@@ -36,7 +38,10 @@ export default async function RootLayout({
         <SessionProvider session={session}>
           <AppRouterCacheProvider options={{ enableCssLayer: true }}>
             <NextAppProvider
-              theme={theme}
+              theme={{
+                light: lightTheme,
+                dark: darkTheme,
+              }}
               branding={{
                 title: "Smart CD player",
                 logo: (

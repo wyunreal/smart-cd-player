@@ -5,11 +5,11 @@ import useTheme from "@mui/material/styles/useTheme";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { DialogContextProvider } from "./dialog-context";
 import { TransitionProps } from "@mui/material/transitions";
-import { DialogTitle, IconButton, Slide } from "@mui/material";
+import { AppBar, DialogTitle, IconButton, Slide } from "@mui/material";
 import { CloseIcon } from "@/app/icons";
 
 const PADDING = 32;
-const TITLE_BAR_HEIGHT = 56;
+const TITLE_BAR_HEIGHT = 64;
 
 type FullScreenDialogProps = {
   title: string;
@@ -70,33 +70,29 @@ const ResponsiveDialog = ({
                 height: height + TITLE_BAR_HEIGHT + PADDING + 16,
                 transition: "height 0.5s",
                 overflow: "hidden",
+                backgroundColor: theme.palette.section.background,
               },
-          "& .MuiDialogTitle-root": {
-            backgroundColor: theme.palette.background.paper,
-            padding: "14px 16px",
-            borderBottom: 1,
-            borderColor: theme.palette.divider,
-            height: TITLE_BAR_HEIGHT,
-          },
         }}
       >
-        <DialogTitle id="customized-dialog-title">{title}</DialogTitle>
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          sx={() => ({
-            position: "absolute",
-            right: 8,
-            top: 8,
-          })}
-        >
-          <CloseIcon />
-        </IconButton>
+        <AppBar position="relative">
+          <DialogTitle id="customized-dialog-title">{title}</DialogTitle>
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            sx={() => ({
+              position: "absolute",
+              right: 8,
+              top: 12,
+            })}
+          >
+            <CloseIcon />
+          </IconButton>
+        </AppBar>
         <Box
           sx={{
-            backgroundColor: theme.palette.background.default,
+            backgroundColor: theme.palette.section.background,
             padding: isMobile ? "16px" : `${PADDING}px`,
-            minHeight: `calc(100vh - ${TITLE_BAR_HEIGHT + 2}px)`,
+            minHeight: `calc(100vh - ${TITLE_BAR_HEIGHT}px)`,
             overflowX: "hidden",
             [theme.breakpoints.up("md")]: {
               overflow: "hidden",

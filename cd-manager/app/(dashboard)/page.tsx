@@ -3,18 +3,18 @@
 import { Button } from "@mui/material";
 import ResponsiveDialog from "../components/dialog/responsive-dialog";
 import React from "react";
+import CdForm from "../forms/cd-form";
 
 export default () => {
   const [open, setOpen] = React.useState(false);
   return (
     <>
-      Collection{" "}
       <Button
         onClick={() => {
           setOpen(true);
         }}
       >
-        Click my clith
+        Click me
       </Button>
       <ResponsiveDialog
         title="Example dialog"
@@ -23,9 +23,8 @@ export default () => {
           setOpen(false);
         }}
       >
-        Content
+        <CdForm />
       </ResponsiveDialog>
-      ;
     </>
   );
 };
