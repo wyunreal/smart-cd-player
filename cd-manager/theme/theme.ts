@@ -53,48 +53,6 @@ declare module "@mui/material/styles/createPalette" {
   }
 }
 
-export const lightTheme = getComponentsOverrides(
-  responsiveFontSizes(
-    createTheme({
-      palette: {
-        primary,
-        secondary,
-        background,
-        section,
-        navigation,
-        icon,
-        extra: extraColors,
-      },
-      typography,
-      cssVariables: { colorSchemeSelector: "class" },
-    }),
-    fontSize
-  )
-);
-
-export const darkTheme = getComponentsOverrides(
-  responsiveFontSizes(
-    createTheme({
-      palette: {
-        mode: "dark",
-        primary: darkPrimary,
-        secondary: darkSecondary,
-        background: darkBackground,
-        section: darkSection,
-        navigation: darkNavigation,
-        success: darkSuccess,
-        error: darkError,
-        text: darkText,
-        icon: darkIcon,
-        extra: extraColors,
-      },
-      typography,
-      cssVariables: { colorSchemeSelector: "class" },
-    }),
-    fontSize
-  )
-);
-
 export const theme = getComponentsOverrides(
   responsiveFontSizes(
     createTheme(

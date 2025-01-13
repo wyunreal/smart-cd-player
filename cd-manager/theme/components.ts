@@ -2,7 +2,6 @@ import { BorderRight } from "@mui/icons-material";
 import { Theme } from "@mui/material";
 
 const getComponentsOverrides = (theme: Theme) => {
-  const selectedColor = theme.palette.primary.main;
   return {
     ...theme,
     components: {
@@ -66,36 +65,17 @@ const getComponentsOverrides = (theme: Theme) => {
               minWidth: "48px",
             },
             "&.Mui-selected": {
-              backgroundColor: theme.palette.navigation.background,
-              color: selectedColor,
-              "& .MuiListItemIcon-root": {
-                color: selectedColor,
-              },
               "&:hover": {
-                color: selectedColor,
-                backgroundColor: theme.palette.navigation.background,
                 [theme.breakpoints.down("md")]: {
                   backgroundColor: "inherit",
                 },
               },
             },
             "&:hover": {
-              backgroundColor: theme.palette.navigation.background,
               [theme.breakpoints.down("md")]: {
                 backgroundColor: "inherit",
               },
             },
-            "&& .MuiTouchRipple-child": {
-              backgroundColor: theme.palette.primary.main,
-            },
-          },
-        },
-      },
-      MuiAvatar: {
-        styleOverrides: {
-          root: {
-            color: theme.palette.primary.main,
-            background: theme.palette.primary.light,
           },
         },
       },

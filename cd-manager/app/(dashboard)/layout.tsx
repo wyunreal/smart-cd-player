@@ -22,13 +22,34 @@ export default function Layout(props: { children: React.ReactNode }) {
           "& .MuiListItem-root": {
             marginBottom: 2,
           },
+          "& .Mui-selected": {
+            backgroundColor: theme.palette.navigation.background,
+            color: theme.palette.primary.main,
+            "& .MuiListItemIcon-root": {
+              color: theme.palette.primary.main,
+            },
+          },
+
+          "& .MuiListItemButton-root:hover": {
+            backgroundColor: theme.palette.navigation.background,
+            [theme.breakpoints.down("md")]: {
+              backgroundColor: "inherit",
+            },
+          },
+          "&& .MuiTouchRipple-child": {
+            backgroundColor: theme.palette.primary.main,
+          },
         },
         "& .MuiAppBar-root": {
           boxShadow:
             "0px 2px 4px -1px rgba(0,0,0,0.2),0px 4px 5px 0px rgba(0,0,0,0.14),0px 1px 10px 0px rgba(0,0,0,0.12)",
         },
         "& main": {
-          //backgroundColor: theme.palette.section.background,
+          backgroundColor: theme.palette.section.background,
+        },
+        "& .MuiAvatar-root": {
+          color: theme.palette.primary.main,
+          background: theme.palette.primary.light,
         },
       }}
     >
