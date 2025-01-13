@@ -11,7 +11,6 @@ export default function Layout(props: { children: React.ReactNode }) {
   return (
     <DashboardLayout
       slots={{
-        toolbarActions: () => null,
         toolbarAccount: ToolbarAccountOverride,
         sidebarFooter: SidebarFooterAccount,
       }}
