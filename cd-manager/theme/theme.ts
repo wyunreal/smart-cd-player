@@ -66,6 +66,7 @@ export const lightTheme = getComponentsOverrides(
         extra: extraColors,
       },
       typography,
+      cssVariables: { colorSchemeSelector: "class" },
     }),
     fontSize
   )
@@ -88,7 +89,49 @@ export const darkTheme = getComponentsOverrides(
         extra: extraColors,
       },
       typography,
+      cssVariables: { colorSchemeSelector: "class" },
     }),
+    fontSize
+  )
+);
+
+export const theme = getComponentsOverrides(
+  responsiveFontSizes(
+    createTheme(
+      {
+        colorSchemes: {
+          light: {
+            palette: {
+              mode: "light",
+              primary,
+              secondary,
+              background,
+              section,
+              navigation,
+              icon,
+              extra: extraColors,
+            },
+          },
+          dark: {
+            palette: {
+              mode: "dark",
+              primary: darkPrimary,
+              secondary: darkSecondary,
+              background: darkBackground,
+              section: darkSection,
+              navigation: darkNavigation,
+              success: darkSuccess,
+              error: darkError,
+              text: darkText,
+              icon: darkIcon,
+              extra: extraColors,
+            },
+          },
+        },
+        cssVariables: { colorSchemeSelector: "class" },
+      },
+      typography
+    ),
     fontSize
   )
 );

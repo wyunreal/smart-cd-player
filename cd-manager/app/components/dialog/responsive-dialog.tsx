@@ -70,7 +70,7 @@ const ResponsiveDialog = ({
                 height: height + TITLE_BAR_HEIGHT + PADDING + 16,
                 transition: "height 0.5s",
                 overflow: "hidden",
-                backgroundColor: theme.palette.section.background,
+                //backgroundColor: theme.palette.section.background,
               },
         }}
       >
@@ -90,7 +90,7 @@ const ResponsiveDialog = ({
         </AppBar>
         <Box
           sx={{
-            backgroundColor: theme.palette.section.background,
+            //backgroundColor: theme.palette.section.background,
             padding: isMobile ? "16px" : `${PADDING}px`,
             minHeight: `calc(100vh - ${TITLE_BAR_HEIGHT}px)`,
             overflowX: "hidden",

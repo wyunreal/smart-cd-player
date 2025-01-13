@@ -9,7 +9,8 @@ import { auth } from "../auth";
 import LibraryMusicIcon from "@mui/icons-material/LibraryMusic";
 import { Box } from "@mui/material";
 import { AlbumIcon, GroupsIcon } from "./icons";
-import { darkTheme, lightTheme } from "@/theme/theme";
+import { theme } from "@/theme/theme";
+import { cookies } from "next/headers";
 
 const NAVIGATION: Navigation = [
   {
@@ -32,16 +33,15 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
+  const cookieStore = await cookies();
+  const themeCookie = cookieStore.get("theme")?.value;
   return (
-    <html lang="en" data-toolpad-color-scheme="light">
+    <html lang="en" data-toolpad-color-scheme={themeCookie || "light"}>
       <body>
         <SessionProvider session={session}>
           <AppRouterCacheProvider options={{ enableCssLayer: true }}>
             <NextAppProvider
-              theme={{
-                light: lightTheme,
-                dark: darkTheme,
-              }}
+              theme={theme}
               branding={{
                 title: "Smart CD player",
                 logo: (
