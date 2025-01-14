@@ -11,6 +11,7 @@ import { Box } from "@mui/material";
 import { AlbumIcon, GroupsIcon } from "./icons";
 import { theme } from "@/theme/theme";
 import { cookies } from "next/headers";
+import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 
 const NAVIGATION: Navigation = [
   {
@@ -35,8 +36,13 @@ export default async function RootLayout({
   const session = await auth();
   const cookieStore = await cookies();
   const themeCookie = cookieStore.get("theme")?.value;
+  console.log("themeCookie", themeCookie);
   return (
-    <html lang="en" data-toolpad-color-scheme={themeCookie || "light"}>
+    <html
+      lang="en"
+      className={themeCookie}
+      data-toolpad-color-scheme={themeCookie}
+    >
       <body>
         <SessionProvider session={session}>
           <AppRouterCacheProvider options={{ enableCssLayer: true }}>

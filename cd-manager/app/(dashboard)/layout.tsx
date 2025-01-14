@@ -15,6 +15,7 @@ export default function Layout(props: { children: React.ReactNode }) {
       slots={{
         toolbarAccount: ToolbarAccountOverride,
         sidebarFooter: SidebarFooterAccount,
+        toolbarActions: () => null,
       }}
       sx={{
         "& .MuiDrawer-paper": {
@@ -23,21 +24,21 @@ export default function Layout(props: { children: React.ReactNode }) {
             marginBottom: 2,
           },
           "& .Mui-selected": {
-            backgroundColor: theme.palette.navigation.background,
-            color: theme.palette.primary.main,
+            backgroundColor: theme.vars.palette.navigation.background,
+            color: theme.vars.palette.primary.main,
             "& .MuiListItemIcon-root": {
-              color: theme.palette.primary.main,
+              color: theme.vars.palette.primary.main,
             },
           },
 
           "& .MuiListItemButton-root:hover": {
-            backgroundColor: theme.palette.navigation.background,
+            backgroundColor: theme.vars.palette.navigation.background,
             [theme.breakpoints.down("md")]: {
               backgroundColor: "inherit",
             },
           },
           "&& .MuiTouchRipple-child": {
-            backgroundColor: theme.palette.primary.main,
+            backgroundColor: theme.vars.palette.primary.main,
           },
         },
         "& .MuiAppBar-root": {
@@ -45,11 +46,11 @@ export default function Layout(props: { children: React.ReactNode }) {
             "0px 2px 4px -1px rgba(0,0,0,0.2),0px 4px 5px 0px rgba(0,0,0,0.14),0px 1px 10px 0px rgba(0,0,0,0.12)",
         },
         "& main": {
-          backgroundColor: theme.palette.section.background,
+          backgroundColor: theme.vars.palette.section.background,
         },
         "& .MuiAvatar-root": {
-          color: theme.palette.primary.main,
-          background: theme.palette.primary.light,
+          color: theme.vars.palette.primary.main,
+          background: theme.vars.palette.primary.light,
         },
       }}
     >

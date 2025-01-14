@@ -13,13 +13,19 @@ export default () => {
     <>
       <Button
         onClick={() => {
-          //setOpen(true);
           const newMode = mode === "light" ? "dark" : "light";
           setMode(newMode);
           document.cookie = `theme=${newMode}`;
         }}
       >
-        Click me
+        Theme
+      </Button>
+      <Button
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
+        Dialog
       </Button>
       <ResponsiveDialog
         title="Example dialog"

@@ -7,6 +7,7 @@ import { DialogContextProvider } from "./dialog-context";
 import { TransitionProps } from "@mui/material/transitions";
 import { AppBar, DialogTitle, IconButton, Slide } from "@mui/material";
 import { CloseIcon } from "@/app/icons";
+import type {} from "@mui/material/themeCssVarsAugmentation";
 
 const PADDING = 32;
 const TITLE_BAR_HEIGHT = 64;
@@ -70,7 +71,7 @@ const ResponsiveDialog = ({
                 height: height + TITLE_BAR_HEIGHT + PADDING + 16,
                 transition: "height 0.5s",
                 overflow: "hidden",
-                //backgroundColor: theme.palette.section.background,
+                backgroundColor: theme.vars.palette.section.background,
               },
         }}
       >
@@ -90,7 +91,7 @@ const ResponsiveDialog = ({
         </AppBar>
         <Box
           sx={{
-            //backgroundColor: theme.palette.section.background,
+            backgroundColor: theme.vars.palette.section.background,
             padding: isMobile ? "16px" : `${PADDING}px`,
             minHeight: `calc(100vh - ${TITLE_BAR_HEIGHT}px)`,
             overflowX: "hidden",

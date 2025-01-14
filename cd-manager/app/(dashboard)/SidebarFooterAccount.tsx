@@ -10,6 +10,7 @@ import {
   SignOutButton,
 } from "@toolpad/core/Account";
 import { SidebarFooterProps } from "@toolpad/core/DashboardLayout";
+import type {} from "@mui/material/themeCssVarsAugmentation";
 
 function AccountSidebarPreview(props: AccountPreviewProps & { mini: boolean }) {
   const { handleClick, open, mini } = props;
