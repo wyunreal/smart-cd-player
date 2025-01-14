@@ -1,10 +1,11 @@
-'use client';
-import * as React from 'react';
-import Link from '@mui/material/Link';
-import Alert from '@mui/material/Alert';
-import { SignInPage } from '@toolpad/core/SignInPage';
-import { providerMap } from '../../../auth';
-import signIn from './actions';
+"use client";
+import * as React from "react";
+import Link from "@mui/material/Link";
+import Alert from "@mui/material/Alert";
+import { SignInPage } from "@toolpad/core/SignInPage";
+import { providerMap } from "../../../auth";
+import signIn from "./actions";
+import useThemeCookie from "@/app/hooks/useThemeCookie";
 
 function ForgotPasswordLink() {
   return (
@@ -18,7 +19,7 @@ function ForgotPasswordLink() {
 
 function SignUpLink() {
   return (
-    <span style={{ fontSize: '0.8rem' }}>
+    <span style={{ fontSize: "0.8rem" }}>
       Don&apos;t have an account?&nbsp;<Link href="/auth/signup">Sign up</Link>
     </span>
   );
@@ -27,13 +28,14 @@ function SignUpLink() {
 function DemoInfo() {
   return (
     <Alert severity="info">
-      You can use <strong>toolpad-demo@mui.com</strong> with the password <strong>@demo1</strong> to
-      test
+      You can use <strong>toolpad-demo@mui.com</strong> with the password{" "}
+      <strong>@demo1</strong> to test
     </Alert>
   );
 }
 
 export default function SignIn() {
+  useThemeCookie();
   return (
     <SignInPage
       providers={providerMap}

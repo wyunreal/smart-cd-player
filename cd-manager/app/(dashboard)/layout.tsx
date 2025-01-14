@@ -6,16 +6,26 @@ import { PageContainer } from "@toolpad/core/PageContainer";
 import SidebarFooterAccount, {
   ToolbarAccountOverride,
 } from "./SidebarFooterAccount";
-import { useTheme } from "@mui/material";
+import { Button, useColorScheme, useTheme } from "@mui/material";
+import useThemeCookie from "../hooks/useThemeCookie";
 
 export default function Layout(props: { children: React.ReactNode }) {
   const theme = useTheme();
+  const { mode, setMode } = useThemeCookie();
   return (
     <DashboardLayout
       slots={{
         toolbarAccount: ToolbarAccountOverride,
         sidebarFooter: SidebarFooterAccount,
-        toolbarActions: () => null,
+        toolbarActions: () => (
+          <Button
+            onClick={() => {
+              setMode(mode === "light" ? "dark" : "light");
+            }}
+          >
+            Theme
+          </Button>
+        ),
       }}
       sx={{
         "& .MuiDrawer-paper": {
