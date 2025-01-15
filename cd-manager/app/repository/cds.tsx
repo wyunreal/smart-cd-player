@@ -1,12 +1,10 @@
-"use server";
-
-import { getCdCollection } from "@/api/cd-collection";
 import React from "react";
+import { getCdCollection } from "@/api/cd-collection";
 import CdCollection from "../components/CdCollection";
 
-const WithCds = async () => {
+const Cds = async () => {
   const cds = await getCdCollection();
-  return <CdCollection cds={cds} />;
+  return <CdCollection cds={cds || []} />;
 };
 
-export default WithCds;
+export default Cds;
