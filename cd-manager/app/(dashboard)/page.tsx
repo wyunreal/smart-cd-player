@@ -1,30 +1,21 @@
 "use client";
 
-import { Button } from "@mui/material";
-import ResponsiveDialog from "../components/dialog/responsive-dialog";
-import React, { useEffect } from "react";
-import CdForm from "../forms/cd-form";
+import React, { Suspense, useState } from "react";
+import { Cd } from "@/api/types";
+import { getCdCollection } from "@/api/cd-collection";
+import CdCollection from "../components/CdCollection";
 
 export default () => {
-  const [open, setOpen] = React.useState(false);
+  const [cds, setCds] = useState<Cd[]>();
+  React.useEffect(() => {
+    getCdCollection().then((collection) => {
+      setCds(collection);
+      console.log(collection);
+    });
+  }, []);
   return (
-    <>
-      <Button
-        onClick={() => {
-          setOpen(true);
-        }}
-      >
-        Dialog
-      </Button>
-      <ResponsiveDialog
-        title="Example dialog"
-        isOpen={open}
-        onClose={() => {
-          setOpen(false);
-        }}
-      >
-        <CdForm />
-      </ResponsiveDialog>
-    </>
+    <Suspense fallback={<>Loading</>}>
+      <CdCollection cds={cds || []} />
+    </Suspense>
   );
 };

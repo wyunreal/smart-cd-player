@@ -7,7 +7,7 @@ export type CdKey = {
 export type CdBasicInfo = {
   title: string;
   artist: string;
-  year: string;
+  year: number;
   genre: string;
   tracks: { number: number; title: string }[];
 };
