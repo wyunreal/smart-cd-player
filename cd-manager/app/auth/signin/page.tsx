@@ -5,7 +5,7 @@ import Alert from "@mui/material/Alert";
 import { SignInPage } from "@toolpad/core/SignInPage";
 import { providerMap } from "../../../auth";
 import signIn from "./actions";
-import useThemeCookie from "@/app/hooks/useThemeCookie";
+import useThemeCookie from "@/app/hooks/use-theme-cookie";
 
 function ForgotPasswordLink() {
   return (

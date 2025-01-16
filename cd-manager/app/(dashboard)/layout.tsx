@@ -5,9 +5,9 @@ import { DashboardLayout } from "@toolpad/core/DashboardLayout";
 import { PageContainer } from "@toolpad/core/PageContainer";
 import SidebarFooterAccount, {
   ToolbarAccountOverride,
-} from "./SidebarFooterAccount";
+} from "./sidebar-footer-account";
 import { Button, useColorScheme, useTheme } from "@mui/material";
-import useThemeCookie from "../hooks/useThemeCookie";
+import useThemeCookie from "../hooks/use-theme-cookie";
 
 export default function Layout(props: { children: React.ReactNode }) {
   const theme = useTheme();
