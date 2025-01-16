@@ -1,8 +1,8 @@
-import NextAuth from 'next-auth';
-import GitHub from 'next-auth/providers/github';
-import Google from 'next-auth/providers/google';
-import Credentials from 'next-auth/providers/credentials';
-import type { Provider } from 'next-auth/providers';
+import NextAuth from "next-auth";
+import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
+import type { Provider } from "next-auth/providers";
 
 const providers: Provider[] = [
   GitHub({
@@ -15,14 +15,14 @@ const providers: Provider[] = [
   }),
   Credentials({
     credentials: {
-      email: { label: 'Email Address', type: 'email' },
-      password: { label: 'Password', type: 'password' },
+      email: { label: "Email Address", type: "email" },
+      password: { label: "Password", type: "password" },
     },
     authorize(c) {
-      if (c.password === '@demo1' && c.email === 'toolpad-demo@mui.com') {
+      if (c.password === "@demo1" && c.email === "toolpad-demo@mui.com") {
         return {
-          id: 'test',
-          name: 'Toolpad Demo',
+          id: "test",
+          name: "Toolpad Demo",
           email: String(c.email),
         };
       }
@@ -32,7 +32,7 @@ const providers: Provider[] = [
 ];
 
 export const providerMap = providers.map((provider) => {
-  if (typeof provider === 'function') {
+  if (typeof provider === "function") {
     const providerData = provider();
     return { id: providerData.id, name: providerData.name };
   }
@@ -43,12 +43,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
   secret: process.env.AUTH_SECRET,
   pages: {
-    signIn: '/auth/signin',
+    signIn: "/auth/signin",
   },
   callbacks: {
     authorized({ auth: session, request: { nextUrl } }) {
       const isLoggedIn = !!session?.user;
-      const isPublicPage = nextUrl.pathname.startsWith('/public');
+      const isPublicPage = nextUrl.pathname.startsWith("/public");
 
       if (isPublicPage || isLoggedIn) {
         return true;
