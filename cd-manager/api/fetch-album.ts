@@ -48,4 +48,4 @@ const fetchAlbum = async (
   });
 };
 
-module.exports = { fetchAlbum };
+export default fetchAlbum;

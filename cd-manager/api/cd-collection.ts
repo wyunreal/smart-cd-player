@@ -1,7 +1,8 @@
 "use server";
 
+import fetchAlbum from "./fetch-album";
 import { readJsonFromFile, writeJsonToFile } from "./json-storage";
-import { Cd } from "./types";
+import { Cd, CdInputData } from "./types";
 
 const FILE_PATH = "data/cd-collection.json";
 
@@ -15,12 +16,30 @@ export const getCdCollection = async () => {
   return cdCollection;
 };
 
-export const addCd: (cdData: Cd) => Promise<void> = async (cdData: Cd) =>
-  new Promise(async (resolve) => {
-    const data = await getCdCollection();
-    writeJsonToFile(FILE_PATH, [...data, cdData]);
-    resolve();
-  });
+export const addCd = async (cdData: CdInputData) => {
+  let cdDetails;
+  try {
+    cdDetails = await fetchAlbum(
+      cdData.artist,
+      cdData.album,
+      cdData.tracksNumber
+    );
+  } catch (e) {
+    cdDetails = {
+      title: cdData.album,
+      artist: cdData.artist,
+      genre: cdData.genre,
+      tracks: Array.from({ length: cdData.tracksNumber }, (_, i) => ({
+        number: i + 1,
+        title: `Track ${i + 1}`,
+      })),
+    };
+  }
+
+  const data = await getCdCollection();
+  console.log(cdDetails);
+  writeJsonToFile(FILE_PATH, [...data, cdDetails]);
+};
 
 export const editCd: (cdData: Cd) => Promise<void> = async (cdData) =>
   new Promise(async (resolve) => {

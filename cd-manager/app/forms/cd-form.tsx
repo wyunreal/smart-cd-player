@@ -1,17 +1,33 @@
 "use client";
 
 import React, { useState } from "react";
-import { TextField, Button, Box } from "@mui/material";
+import { TextField, Button, Box, Autocomplete } from "@mui/material";
+import musicGenres from "./genres";
+import { CdInputData } from "@/api/types";
 
-const CdForm = () => {
+const CdForm = ({
+  onSubmit,
+}: {
+  onSubmit: (data: CdInputData) => Promise<void>;
+}) => {
   const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("");
-  const [errors, setErrors] = useState({ title: "", author: "" });
+  const [artist, setArtist] = useState("");
+  const [genre, setGenre] = useState("");
+  const [tracksNumber, setTracksNumber] = useState(0);
+  const [errors, setErrors] = useState({
+    title: "",
+    author: "",
+    genre: "",
+    tracks: "",
+  });
 
   const validate = () => {
-    let tempErrors = { title: "", author: "" };
+    let tempErrors = { title: "", author: "", genre: "", tracks: "" };
     if (!title) tempErrors.title = "Title is required";
-    if (!author) tempErrors.author = "Author is required";
+    if (!artist) tempErrors.author = "Artist is required";
+    if (!genre) tempErrors.genre = "Genre is required";
+    if (tracksNumber < 1)
+      tempErrors.tracks = "Please specify a positive number";
     setErrors(tempErrors);
     return Object.values(tempErrors).every((x) => x === "");
   };
@@ -19,7 +35,7 @@ const CdForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      console.log({ title, author });
+      onSubmit({ artist, album: title, genre, tracksNumber });
     }
   };
 
@@ -44,14 +60,45 @@ const CdForm = () => {
         <TextField
           required
           fullWidth
-          id="author"
-          label="Author"
-          name="author"
-          autoComplete="author"
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
+          id="artist"
+          label="Artist"
+          name="artist"
+          autoComplete="artist"
+          value={artist}
+          onChange={(e) => setArtist(e.target.value)}
           error={!!errors.author}
           helperText={errors.author}
+        />
+      </Box>
+      <Box sx={{ margin: "16px 0", display: "flex" }}>
+        <Autocomplete
+          fullWidth
+          value={genre}
+          onChange={(event: any, newValue: string | null) => {
+            setGenre(newValue || "");
+          }}
+          options={musicGenres}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              required
+              label="Genre"
+              error={!!errors.genre}
+              helperText={errors.genre}
+            />
+          )}
+          sx={{ marginRight: 2 }}
+        />
+        <TextField
+          required
+          type="number"
+          id="tracks"
+          label="Tracks number"
+          name="tracks"
+          value={tracksNumber}
+          onChange={(e) => setTracksNumber(Number(e.target.value))}
+          error={!!errors.tracks}
+          helperText={errors.tracks}
         />
       </Box>
       <Box sx={{ display: "flex", flexDirection: "row-reverse" }}>
