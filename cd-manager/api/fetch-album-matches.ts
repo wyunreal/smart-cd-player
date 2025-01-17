@@ -37,7 +37,8 @@ const getMatchEntries = (text: string) => {
 const fetchMatchesList = async (
   artistName: string,
   albumName: string,
-  trackCount: number
+  trackCount: number,
+  seed: string
 ): Promise<CdKey[]> => {
   return new Promise((resolve, reject) => {
     const options = {
@@ -47,7 +48,7 @@ const fetchMatchesList = async (
         artistName
       )}&album=${encodeURIComponent(
         albumName
-      )}&tracks=${trackCount}&hello=wiljan+arias`,
+      )}&tracks=${trackCount}&hello=${seed}`,
       method: "GET",
     };
 
@@ -66,6 +67,7 @@ const fetchMatchesList = async (
             match.album.length === albumName.length &&
             (isTitleCase(match.artist) || isTitleCase(match.artist, true))
         );
+
         resolve(matches.filter((match) => match !== undefined) as CdKey[]);
       });
     });

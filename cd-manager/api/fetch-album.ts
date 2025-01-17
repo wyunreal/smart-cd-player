@@ -2,23 +2,26 @@ import fetchMatchesList from "./fetch-album-matches";
 import fetchAlbumDetails from "./fetch-album-details";
 import { Cd } from "./types";
 
-const fetchAlbumData = async (cdidList: string[]): Promise<Cd> => {
+const fetchAlbumData = async (
+  cdidList: string[],
+  seed: string
+): Promise<Cd> => {
   if (cdidList.length === 0) {
     return Promise.reject("Empty cd id list");
   }
   return new Promise((resolve, reject) => {
     const cdid = cdidList.shift();
-    fetchAlbumDetails(cdid || "")
+    fetchAlbumDetails(cdid || "", seed)
       .then((data) => {
-        if (data) {
+        if (data.artist && data.title && data.tracks.length > 0) {
           resolve(data);
         } else if (cdidList.length > 0) {
-          fetchAlbumData(cdidList).then(resolve);
+          fetchAlbumData(cdidList, seed).then(resolve);
         } else {
           reject();
         }
       })
-      .catch(() => fetchAlbumData(cdidList).then(resolve));
+      .catch(() => fetchAlbumData(cdidList, seed).then(resolve));
   });
 };
 
@@ -28,13 +31,17 @@ const fetchAlbum = async (
   trackCount: number
 ): Promise<Cd> => {
   return new Promise((resolve, reject) => {
-    fetchMatchesList(artistName, albumName, trackCount)
+    const seed = Math.round(Math.random() * 10000000).toString();
+    fetchMatchesList(artistName, albumName, trackCount, seed)
       .then((matches) => {
         if (matches.length === 0) {
           reject(`No matches found for ${artistName} - ${albumName}`);
           return;
         }
-        fetchAlbumData(matches.map((match) => match.cdid))
+        fetchAlbumData(
+          matches.map((match) => match.cdid),
+          seed
+        )
           .then((data) => {
             if (data) {
               resolve(data);

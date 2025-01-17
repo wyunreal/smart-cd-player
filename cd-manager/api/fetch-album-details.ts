@@ -29,7 +29,7 @@ const getAlbumData = (text: string): CdBasicInfo => {
               artist: getArtist(paramValue),
             };
           case "DYEAR":
-            return { ...acc, year: paramValue };
+            return { ...acc, year: Number(paramValue) };
           case "DGENRE":
             return { ...acc, genre: paramValue };
           default: {
@@ -50,12 +50,12 @@ const getAlbumData = (text: string): CdBasicInfo => {
     }, {}) as CdBasicInfo;
 };
 
-const fetchAlbumDetails = async (cdid: string): Promise<Cd> => {
+const fetchAlbumDetails = async (cdid: string, seed: string): Promise<Cd> => {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: "gnudb.gnudb.org",
       port: 80,
-      path: `/~cddb/cddb.cgi?cmd=cddb+read+soundtrack+${cdid}&hello=wiljan+arias`,
+      path: `/~cddb/cddb.cgi?cmd=cddb+read+soundtrack+${cdid}&hello=${seed}+gnutest+0.1&proto=6`,
       method: "GET",
     };
 

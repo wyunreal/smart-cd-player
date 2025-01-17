@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { TextField, Button, Box, Autocomplete } from "@mui/material";
+import {
+  TextField,
+  Button,
+  Box,
+  Autocomplete,
+  CircularProgress,
+} from "@mui/material";
 import musicGenres from "./genres";
 import { CdInputData } from "@/api/types";
 
@@ -21,6 +27,8 @@ const CdForm = ({
     tracks: "",
   });
 
+  const [sending, setSending] = useState(false);
+
   const validate = () => {
     let tempErrors = { title: "", author: "", genre: "", tracks: "" };
     if (!title) tempErrors.title = "Title is required";
@@ -35,6 +43,7 @@ const CdForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
+      setSending(true);
       onSubmit({ artist, album: title, genre, tracksNumber });
     }
   };
@@ -102,8 +111,13 @@ const CdForm = ({
         />
       </Box>
       <Box sx={{ display: "flex", flexDirection: "row-reverse" }}>
-        <Button type="submit" variant="contained" sx={{ mt: 3, mb: 2 }}>
-          Submit
+        <Button
+          type="submit"
+          variant="contained"
+          sx={{ mt: 3, mb: 2 }}
+          startIcon={sending ? <CircularProgress size={24} /> : undefined}
+        >
+          Save
         </Button>
       </Box>
     </Box>
