@@ -115,7 +115,9 @@ const CdForm = ({
           type="submit"
           variant="contained"
           sx={{ mt: 3, mb: 2 }}
-          startIcon={sending ? <CircularProgress size={24} /> : undefined}
+          startIcon={
+            sending ? <CircularProgress size={20} color="info" /> : undefined
+          }
         >
           Save
         </Button>

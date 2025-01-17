@@ -42,21 +42,18 @@ const CdCollection = ({
       hideable: false,
       disableColumnMenu: true,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<any, string>) =>
-        params.value !== undefined ? (
-          <Box my="5px" ml="-4px">
-            <Avatar variant="rounded">
-              <Image
-                width={40}
-                height={40}
-                src={params.value}
-                alt="Album cover"
-              />
-            </Avatar>
-          </Box>
-        ) : (
-          <>No</>
-        ),
+      renderCell: (params: GridRenderCellParams<any, string>) => (
+        <Box my="5px" ml="-4px">
+          <Avatar variant="rounded">
+            <Image
+              width={40}
+              height={40}
+              src={params.value || "/cd-placeholder-small.png"}
+              alt="Album cover"
+            />
+          </Avatar>
+        </Box>
+      ),
     },
     {
       field: "title",

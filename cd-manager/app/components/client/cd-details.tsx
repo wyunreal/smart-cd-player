@@ -85,7 +85,7 @@ const CdDetails = ({
                   <Image
                     width={DETAILS_PANEL_WIDTH}
                     height={DETAILS_PANEL_WIDTH}
-                    src={cd.art?.albumBig || ""}
+                    src={cd.art?.albumBig || "/cd-placeholder-big.png"}
                     alt="Album big art"
                   />
                 </div>
