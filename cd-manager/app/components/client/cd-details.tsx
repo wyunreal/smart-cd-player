@@ -48,15 +48,15 @@ const CdDetails = ({
             <Box paddingBottom={2} paddingTop="12px">
               <List>
                 {cd.tracks.map((track, index) => (
-                  <>
-                    <ListItem key={index}>
+                  <div key={index}>
+                    <ListItem>
                       <ListItemIcon>
                         <ArrowRightIcon sx={{ marginTop: "-7px" }} />
                       </ListItemIcon>
                       <ListItemText primary={track.title} />
                     </ListItem>
-                    <Divider key={`divider${index}`} />
-                  </>
+                    <Divider />
+                  </div>
                 ))}
               </List>
             </Box>

@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Box } from "@mui/material";
 import CdCollection from "../components/client/cd-collection";
 import CdDetails from "../components/client/cd-details";
-import useCds from "../hooks/api-client/use-cds";
 import FullScreenSpinner from "../components/client/full-screen-spinner";
 import { Cd } from "@/api/types";
+import { DataRepositoryContext } from "@/providers/data-repository";
 
 export default () => {
-  const cds = useCds();
+  const { cds } = useContext(DataRepositoryContext);
   const [selectedCd, setSelectedCd] = useState<Cd | null>(null);
   return (
     <>

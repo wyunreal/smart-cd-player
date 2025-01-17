@@ -8,13 +8,8 @@ const FILE_PATH = "data/cd-collection.json";
 
 const readFile = async () => readJsonFromFile(FILE_PATH) || [];
 
-let cdCollection: Cd[] | undefined = undefined;
-
 export const getCdCollection: () => Promise<Cd[]> = async () => {
-  if (cdCollection === undefined) {
-    cdCollection = await readFile();
-  }
-  return cdCollection || [];
+  return await readFile();
 };
 
 export const addCd = async (cdData: CdInputData) => {

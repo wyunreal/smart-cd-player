@@ -147,6 +147,7 @@ const CdCollection = ({
               pageSizeOptions={[50]}
               rowSelection
               isCellEditable={() => false}
+              autoPageSize={false}
               sx={{
                 border: 0,
                 borderRadius: "8px",
