@@ -13,7 +13,6 @@ import {
 import Image from "next/image";
 import { Cd } from "@/api/types";
 import ResponsiveDialog from "./dialog/responsive-dialog";
-import { ArrowRightIcon } from "@/app/icons";
 
 const DETAILS_PANEL_WIDTH = 300;
 
@@ -148,124 +147,127 @@ const CdDetails = ({
             width: `${DETAILS_PANEL_WIDTH + 16}px`,
           }}
         >
-          <Box sx={{ position: "relative", right: 2 }}>
-            <Box sx={{ mx: 2, position: "absolute" }}>
-              <Paper>
-                <div
-                  style={{
-                    borderTopLeftRadius: "8px",
-                    borderTopRightRadius: "8px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div style={{ filter: "blur(16px)" }}>
-                    <img
-                      src={cd.art?.albumBig || "/cd-placeholder-big.png"}
-                      style={{
-                        height: `${DETAILS_PANEL_WIDTH}px`,
-                        width: "100%",
-                      }}
-                    />
-                  </div>
+          <Box sx={{ mx: 2, position: "absolute" }}>
+            <Paper>
+              <div
+                style={{
+                  borderTopLeftRadius: "8px",
+                  borderTopRightRadius: "8px",
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ filter: "blur(16px)" }}>
+                  <img
+                    src={cd.art?.albumBig || "/cd-placeholder-big.png"}
+                    style={{
+                      height: `${DETAILS_PANEL_WIDTH}px`,
+                      width: "100%",
+                    }}
+                  />
                 </div>
+              </div>
+              <Box
+                sx={{
+                  borderTopLeftRadius: "8px",
+                  borderTopRightRadius: "8px",
+                  marginTop: "-307px",
+                  paddingTop: 1,
+                  position: "relative",
+                  background: `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.7)} 190px, ${alpha(theme.palette.background.paper, 1)} 250px)`,
+                  borderBottomRightRadius: "8px",
+                  borderBottomLeftRadius: "8px",
+                }}
+              >
+                <Box
+                  paddingBottom={2}
+                  minWidth={`${DETAILS_PANEL_WIDTH}px`}
+                  sx={{ marginTop: "203px" }}
+                >
+                  <List
+                    sx={{ maxHeight: "calc(100vh - 400px)", overflow: "auto" }}
+                  >
+                    {cd.tracks.map((track, index) => (
+                      <div key={index}>
+                        <ListItem sx={{ my: "-4px" }}>
+                          <ListItemText>{track.title}</ListItemText>
+                        </ListItem>
+                        <Divider />
+                      </div>
+                    ))}
+                  </List>
+                </Box>
+              </Box>
+              <div style={{ position: "absolute", top: 80, left: 16 }}>
                 <Box
                   sx={{
-                    borderTopLeftRadius: "8px",
-                    borderTopRightRadius: "8px",
-                    marginTop: "-307px",
-                    paddingTop: 1,
-                    position: "relative",
-                    background: `linear-gradient(0deg, ${alpha(theme.palette.background.paper, 1)} 50%, ${alpha(theme.palette.background.paper, 0.8)} 60%,  ${alpha(theme.palette.background.paper, 0.5)} 100%)`,
-                    borderBottomRightRadius: "8px",
-                    borderBottomLeftRadius: "8px",
+                    borderRadius: "8px",
+                    borderColor: "white",
+                    border: "2px solid",
+                    height: 104,
                   }}
                 >
-                  <Box
-                    paddingBottom={2}
-                    minWidth={`${DETAILS_PANEL_WIDTH}px`}
-                    sx={{ marginTop: "203px" }}
-                  >
-                    <List>
-                      {cd.tracks.map((track, index) => (
-                        <ListItem key={index} sx={{ my: "-8px" }}>
-                          {track.title}
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Box>
+                  <Image
+                    width={100}
+                    height={100}
+                    src={cd.art?.albumBig || "/cd-placeholder-big.png"}
+                    alt="Album big art"
+                    style={{
+                      borderRadius: "6px",
+                    }}
+                  />
                 </Box>
-                <div style={{ position: "absolute", top: 80, left: 16 }}>
-                  <Box
-                    sx={{
-                      borderRadius: "8px",
-                      borderColor: "white",
-                      border: "2px solid",
-                      height: 104,
-                    }}
-                  >
-                    <Image
-                      width={100}
-                      height={100}
-                      src={cd.art?.albumBig || "/cd-placeholder-big.png"}
-                      alt="Album big art"
-                      style={{
-                        borderRadius: "6px",
-                      }}
-                    />
-                  </Box>
-                </div>
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    left: 16,
-                    right: 16,
-                    height: "64px",
-                    display: "flex",
-                    alignItems: "center",
+              </div>
+              <div
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  left: 16,
+                  right: 16,
+                  height: "64px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                   }}
                 >
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      textShadow: `1px 1px 1px ${theme.palette.background.default};`,
-                    }}
-                  >
-                    {cd.title}
-                  </Typography>
-                </div>
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 80,
-                    left: 136,
-                    right: 16,
+                  {cd.title}
+                </Typography>
+              </div>
+              <div
+                style={{
+                  position: "absolute",
+                  top: 80,
+                  left: 136,
+                  right: 16,
+                }}
+              >
+                <Typography
+                  sx={{
+                    textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                   }}
                 >
-                  <Typography
-                    sx={{
-                      textShadow: `1px 1px 1px ${theme.palette.background.default};`,
-                    }}
-                  >
-                    {cd.artist}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      textShadow: `1px 1px 1px ${theme.palette.background.default};`,
-                    }}
-                  >
-                    {cd.genre}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      textShadow: `1px 1px 1px ${theme.palette.background.default};`,
-                    }}
-                  >
-                    {cd.year}
-                  </Typography>
-                </div>
-              </Paper>
-            </Box>
+                  {cd.artist}
+                </Typography>
+                <Typography
+                  sx={{
+                    textShadow: `1px 1px 1px ${theme.palette.background.default};`,
+                  }}
+                >
+                  {cd.genre}
+                </Typography>
+                <Typography
+                  sx={{
+                    textShadow: `1px 1px 1px ${theme.palette.background.default};`,
+                  }}
+                >
+                  {cd.year}
+                </Typography>
+              </div>
+            </Paper>
           </Box>
         </Box>
       )}
