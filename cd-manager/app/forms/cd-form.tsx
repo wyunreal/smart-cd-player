@@ -7,6 +7,7 @@ import {
   Box,
   Autocomplete,
   CircularProgress,
+  useTheme,
 } from "@mui/material";
 import musicGenres from "./genres";
 import { CdInputData } from "@/api/types";
@@ -16,6 +17,8 @@ const CdForm = ({
 }: {
   onSubmit: (data: CdInputData) => Promise<void>;
 }) => {
+  const theme = useTheme();
+
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [genre, setGenre] = useState("");
@@ -116,7 +119,9 @@ const CdForm = ({
           variant="contained"
           sx={{ mt: 3, mb: 2 }}
           startIcon={
-            sending ? <CircularProgress size={20} color="info" /> : undefined
+            sending ? (
+              <CircularProgress size={20} sx={{ color: "inherit" }} />
+            ) : undefined
           }
         >
           Save

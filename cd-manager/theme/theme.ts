@@ -87,6 +87,15 @@ export const theme = getComponentsOverrides(
           },
         },
         cssVariables: { colorSchemeSelector: "class" },
+        breakpoints: {
+          values: {
+            xs: 0,
+            sm: 720,
+            md: 960,
+            lg: 1200,
+            xl: 1536,
+          },
+        },
       },
       typography
     ),
