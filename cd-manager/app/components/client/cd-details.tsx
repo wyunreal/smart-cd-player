@@ -184,7 +184,15 @@ const CdDetails = ({
                   sx={{ marginTop: "203px" }}
                 >
                   <List
-                    sx={{ maxHeight: "calc(100vh - 400px)", overflow: "auto" }}
+                    sx={{
+                      maxHeight: "calc(100vh - 400px)",
+                      overflow: "auto",
+                      "&::-webkit-scrollbar": {
+                        display: "none",
+                        scrollbarWidth: "none",
+                        overflowStyle: "none",
+                      },
+                    }}
                   >
                     {cd.tracks.map((track, index) => (
                       <div key={index}>

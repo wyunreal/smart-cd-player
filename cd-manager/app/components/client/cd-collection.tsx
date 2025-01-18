@@ -1,15 +1,18 @@
 "use client";
 
 import { Cd } from "@/api/types";
+import { MoreVertIcon } from "@/app/icons";
 import { Avatar, Box, Paper } from "@mui/material";
 import {
   DataGrid,
+  gridClasses,
   GridColDef,
   GridRenderCellParams,
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
+import Menu from "./menu";
 
 const CdCollection = ({
   cds,
@@ -88,6 +91,49 @@ const CdCollection = ({
       width: 80,
       hideable: false,
     },
+    {
+      field: "id",
+      headerName: "",
+      width: 50,
+      hideable: false,
+      disableColumnMenu: true,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<any, string>) => {
+        const menuId = `cd-menu-${params.value}`;
+        return (
+          <Menu
+            icon={<MoreVertIcon />}
+            menuId={menuId}
+            options={[
+              {
+                caption: "Edit",
+                handler: () => {
+                  if (params.value !== undefined) {
+                    alert(`Edit: ${cds[Number(params.value)].id}`);
+                  }
+                },
+              },
+              {
+                caption: "Fetch additional data",
+                handler: () => {
+                  if (params.value !== undefined) {
+                    alert(`Fetch: ${cds[Number(params.value)].id}`);
+                  }
+                },
+              },
+              {
+                caption: "Delete",
+                handler: () => {
+                  if (params.value !== undefined) {
+                    alert(`Delete: ${cds[Number(params.value)].id}`);
+                  }
+                },
+              },
+            ]}
+          />
+        );
+      },
+    },
   ];
 
   const paginationModel = { page: 0, pageSize: 50 };
@@ -151,15 +197,14 @@ const CdCollection = ({
                 "& .MuiDataGrid-columnSeparator": {
                   display: "none",
                 },
-                "& .MuiDataGrid-cell:focus": {
-                  outline: "none",
-                },
-                "& .MuiDataGrid-columnHeader:focus": {
-                  outline: "none",
-                },
-                "& .MuiDataGrid-columnHeader:focus-within": {
-                  outline: "none",
-                },
+                [`& .${gridClasses.cell}:focus, & .${gridClasses.cell}:focus-within`]:
+                  {
+                    outline: "none",
+                  },
+                [`& .${gridClasses.columnHeader}:focus, & .${gridClasses.columnHeader}:focus-within`]:
+                  {
+                    outline: "none",
+                  },
               }}
               onRowSelectionModelChange={(selection) => {
                 if (selection.length > 0) {
