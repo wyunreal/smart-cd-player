@@ -11,11 +11,13 @@ import React, {
 type DataRepositoryContextProps = {
   cds: Cd[] | null;
   refreshCds: () => void;
+  getCdById: (id: string) => Cd | null;
 };
 
 export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   cds: null,
   refreshCds: () => {},
+  getCdById: () => null,
 });
 
 const useCds = () => {
@@ -27,8 +29,12 @@ const useCds = () => {
   useEffect(() => {
     getCdCollection().then(setCds);
   }, [cdsCacheVersion]);
+  const getCdById = useCallback(
+    (id: string) => cds.find((cd) => cd.id === id) || null,
+    [cds]
+  );
 
-  return { cds, refreshCds };
+  return { cds, refreshCds, getCdById };
 };
 
 export const DataRepositoryProvider = ({
@@ -36,9 +42,9 @@ export const DataRepositoryProvider = ({
 }: {
   children: ReactNode;
 }) => {
-  const { cds, refreshCds } = useCds();
+  const { cds, refreshCds, getCdById } = useCds();
   return (
-    <DataRepositoryContext.Provider value={{ cds, refreshCds }}>
+    <DataRepositoryContext.Provider value={{ cds, refreshCds, getCdById }}>
       {children}
     </DataRepositoryContext.Provider>
   );

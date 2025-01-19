@@ -10,15 +10,18 @@ import { DataRepositoryContext } from "@/providers/data-repository";
 
 export default () => {
   const { cds } = useContext(DataRepositoryContext);
-  const [selectedCd, setSelectedCd] = useState<Cd | null>(null);
+  const [selectedCdId, setSelectedCdId] = useState<string | null>(null);
   return (
     <>
       {cds !== null ? (
         <Box sx={{ display: "flex", flexDirection: "row" }}>
-          <CdCollection cds={cds} onCdSelected={(cd) => setSelectedCd(cd)} />
+          <CdCollection
+            cds={cds}
+            onCdSelected={(cd) => setSelectedCdId(cd?.id || null)}
+          />
           <CdDetails
-            cd={selectedCd}
-            onDialogClosed={() => setSelectedCd(null)}
+            cdId={selectedCdId}
+            onDialogClosed={() => setSelectedCdId(null)}
           />
         </Box>
       ) : (

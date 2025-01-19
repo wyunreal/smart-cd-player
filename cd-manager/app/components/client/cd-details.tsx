@@ -11,20 +11,23 @@ import {
   useTheme,
 } from "@mui/material";
 import Image from "next/image";
-import { Cd } from "@/api/types";
 import ResponsiveDialog from "./dialog/responsive-dialog";
+import { DataRepositoryContext } from "@/providers/data-repository";
+import { useContext } from "react";
 
 const DETAILS_PANEL_WIDTH = 300;
 
 const CdDetails = ({
-  cd,
+  cdId,
   onDialogClosed,
 }: {
-  cd: Cd | null;
+  cdId: string | null;
   onDialogClosed: () => void;
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const { getCdById } = useContext(DataRepositoryContext);
+  const cd = cdId ? getCdById(cdId) : null;
 
   return isMobile ? (
     <>
