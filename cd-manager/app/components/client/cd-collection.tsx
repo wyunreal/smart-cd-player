@@ -105,7 +105,7 @@ const CdCollection = ({
     {
       field: "id",
       headerName: "",
-      width: 50,
+      width: 60,
       hideable: false,
       disableColumnMenu: true,
       sortable: false,
