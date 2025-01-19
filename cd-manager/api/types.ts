@@ -20,14 +20,16 @@ export type CdBasicInfo = {
   tracks: { number: number; title: string }[];
 };
 
+export type AlbumArt = {
+  albumSmall?: string;
+  albumBig?: string;
+  artistSmall?: string;
+  artistBig?: string;
+};
+
 export type Cd = CdBasicInfo & {
   id: string;
-  art?: {
-    albumSmall?: string;
-    albumBig?: string;
-    artistSmall?: string;
-    artistBig?: string;
-  };
+  art?: AlbumArt;
 };
 
 export type CdInUse = Cd & {

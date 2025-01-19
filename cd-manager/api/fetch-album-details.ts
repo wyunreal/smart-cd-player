@@ -3,7 +3,7 @@
 import http from "http";
 
 import albumArt from "album-art";
-import { Cd, CdBasicInfo } from "./types";
+import { AlbumArt, Cd, CdBasicInfo } from "./types";
 
 const getTitle = (title: string) => {
   return title.split(" / ")[1];
@@ -50,6 +50,24 @@ const getAlbumData = (text: string): CdBasicInfo => {
     }, {}) as CdBasicInfo;
 };
 
+export const fetchAlbumArt = async (
+  artist: string,
+  album: string
+): Promise<AlbumArt> =>
+  new Promise((resolve) => {
+    Promise.all([
+      albumArt(artist, {
+        album,
+        size: "small",
+      }),
+      albumArt(artist, { album, size: "big" }),
+      albumArt(artist, { size: "small" }),
+      albumArt(artist, { size: "big" }),
+    ]).then(([albumSmall, albumBig, artistSmall, artistBig]) =>
+      resolve({ albumSmall, albumBig, artistSmall, artistBig })
+    );
+  });
+
 const fetchAlbumDetails = async (cdid: string, seed: string): Promise<Cd> => {
   return new Promise((resolve, reject) => {
     const options = {
@@ -69,20 +87,13 @@ const fetchAlbumDetails = async (cdid: string, seed: string): Promise<Cd> => {
       res.on("end", () => {
         const albumData = getAlbumData(data);
         if (albumData.title) {
-          Promise.all([
-            albumArt(albumData.artist, {
-              album: albumData.title,
-              size: "small",
-            }),
-            albumArt(albumData.artist, { album: albumData.title, size: "big" }),
-            albumArt(albumData.artist, { size: "small" }),
-            albumArt(albumData.artist, { size: "big" }),
-          ]).then(([albumSmall, albumBig, artistSmall, artistBig]) =>
-            resolve({
-              id: cdid,
-              ...albumData,
-              art: { albumSmall, albumBig, artistSmall, artistBig },
-            })
+          fetchAlbumArt(albumData.artist, albumData.title).then(
+            (albumArt: AlbumArt) =>
+              resolve({
+                id: cdid,
+                ...albumData,
+                art: albumArt,
+              })
           );
         } else {
           reject(`No data found for ${cdid}`);

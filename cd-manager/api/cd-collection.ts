@@ -1,6 +1,7 @@
 "use server";
 
 import fetchAlbum from "./fetch-album";
+import { fetchAlbumArt } from "./fetch-album-details";
 import { readJsonFromFile, writeJsonToFile } from "./json-storage";
 import { Cd, CdInputData } from "./types";
 
@@ -13,7 +14,7 @@ export const getCdCollection: () => Promise<Cd[]> = async () => {
 };
 
 export const addCd = async (cdData: CdInputData) => {
-  let cdDetails;
+  let cdDetails: Cd;
   try {
     cdDetails = await fetchAlbum(
       cdData.artist,
@@ -22,6 +23,7 @@ export const addCd = async (cdData: CdInputData) => {
     );
   } catch (e) {
     cdDetails = {
+      id: "0",
       title: cdData.album,
       artist: cdData.artist,
       genre: cdData.genre,
@@ -30,9 +32,15 @@ export const addCd = async (cdData: CdInputData) => {
         title: `Track ${i + 1}`,
       })),
     };
+    try {
+      const art = await fetchAlbumArt(cdData.artist, cdData.album);
+      cdDetails.art = art;
+    } catch (e) {}
   }
 
   const data = await getCdCollection();
+  const lastRowId = Number(data[data.length - 1]?.id);
+  cdDetails.id = (lastRowId ? lastRowId + 1 : 1).toString();
   writeJsonToFile(FILE_PATH, [...data, cdDetails]);
 };
 
@@ -71,13 +79,24 @@ export const editCd = async (
       genre: cdData.genre,
     };
   }
-  if (!cdDetails.tracks || cdDetails.tracks.length === 0) {
+  if (
+    !cdDetails.tracks ||
+    cdDetails.tracks.length === 0 ||
+    cdData.tracksNumber !== cdDetails.tracks.length
+  ) {
     cdDetails.tracks = Array.from({ length: cdData.tracksNumber }, (_, i) => ({
       number: i + 1,
       title: `Track ${i + 1}`,
     }));
   }
+  if (!cdDetails.art) {
+    try {
+      const art = await fetchAlbumArt(cdData.artist, cdData.album);
+      cdDetails.art = art;
+    } catch (e) {}
+  }
 
+  cdDetails.id = cdId;
   cds[index] = cdDetails;
   writeJsonToFile(FILE_PATH, cds);
 };
