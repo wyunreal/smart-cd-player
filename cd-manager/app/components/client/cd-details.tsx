@@ -132,7 +132,7 @@ const CdDetails = ({
                   textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                 }}
               >
-                {cd.year}
+                {cd.year != 0 ? cd.year : ""}
               </Typography>
             </div>
           </Box>
@@ -186,6 +186,7 @@ const CdDetails = ({
                   <List
                     sx={{
                       maxHeight: "calc(100vh - 400px)",
+                      maxWidth: DETAILS_PANEL_WIDTH,
                       overflow: "auto",
                       "&::-webkit-scrollbar": {
                         display: "none",
@@ -272,7 +273,7 @@ const CdDetails = ({
                     textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                   }}
                 >
-                  {cd.year}
+                  {cd.year != 0 ? cd.year : ""}
                 </Typography>
               </div>
             </Paper>

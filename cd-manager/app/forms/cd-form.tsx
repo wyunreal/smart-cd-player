@@ -8,21 +8,28 @@ import {
   Autocomplete,
   CircularProgress,
   useTheme,
+  FormControlLabel,
+  Switch,
 } from "@mui/material";
 import musicGenres from "./genres";
 import { CdInputData } from "@/api/types";
 
+const capitalizeFirstLetter = (string: string) => {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+};
+
 const CdForm = ({
+  cd,
   onSubmit,
 }: {
-  onSubmit: (data: CdInputData) => Promise<void>;
+  cd?: CdInputData | null;
+  onSubmit: (data: CdInputData, fetchCdDetails: boolean) => Promise<void>;
 }) => {
-  const theme = useTheme();
-
-  const [title, setTitle] = useState("");
-  const [artist, setArtist] = useState("");
-  const [genre, setGenre] = useState("");
-  const [tracksNumber, setTracksNumber] = useState(0);
+  const [title, setTitle] = useState(cd ? cd.album : "");
+  const [artist, setArtist] = useState(cd ? cd.artist : "");
+  const [genre, setGenre] = useState(cd ? cd.genre : "");
+  const [tracksNumber, setTracksNumber] = useState(cd ? cd.tracksNumber : 0);
+  const [fetchDetails, setFetchDetails] = useState(true);
   const [errors, setErrors] = useState({
     title: "",
     author: "",
@@ -47,7 +54,7 @@ const CdForm = ({
     e.preventDefault();
     if (validate()) {
       setSending(true);
-      onSubmit({ artist, album: title, genre, tracksNumber });
+      onSubmit({ artist, album: title, genre, tracksNumber }, fetchDetails);
     }
   };
 
@@ -87,7 +94,7 @@ const CdForm = ({
           fullWidth
           value={genre}
           onChange={(event: any, newValue: string | null) => {
-            setGenre(newValue || "");
+            setGenre(newValue ? capitalizeFirstLetter(newValue) : "");
           }}
           options={musicGenres}
           renderInput={(params) => (
@@ -111,6 +118,17 @@ const CdForm = ({
           onChange={(e) => setTracksNumber(Number(e.target.value))}
           error={!!errors.tracks}
           helperText={errors.tracks}
+        />
+      </Box>
+      <Box sx={{ margin: "16px 0" }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={fetchDetails}
+              onChange={() => setFetchDetails(!fetchDetails)}
+            />
+          }
+          label="Fetch additional info."
         />
       </Box>
       <Box sx={{ display: "flex", flexDirection: "row-reverse" }}>

@@ -11,8 +11,13 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Menu from "./menu";
+import useEditCdForm from "@/app/hooks/use-edit-cd-form";
+import useConfirmDialog from "@/app/hooks/use-confirm-dialog";
+import { deleteCd } from "@/api/cd-collection";
+import useSnackbar from "@/app/hooks/use-snackbar";
+import { DataRepositoryContext } from "@/providers/data-repository";
 
 const CdCollection = ({
   cds,
@@ -36,6 +41,12 @@ const CdCollection = ({
       };
     }
   });
+
+  const { openEditCdForm, editCdFormInstance } = useEditCdForm();
+  const { confirmDialog, confirmDialogInstance } = useConfirmDialog();
+  const { openSnackbar, snackbarInstance } = useSnackbar();
+
+  const { refreshCds } = useContext(DataRepositoryContext);
 
   const columns: GridColDef[] = [
     {
@@ -101,36 +112,62 @@ const CdCollection = ({
       renderCell: (params: GridRenderCellParams<any, string>) => {
         const menuId = `cd-menu-${params.value}`;
         return (
-          <Menu
-            icon={<MoreVertIcon />}
-            menuId={menuId}
-            options={[
-              {
-                caption: "Edit",
-                handler: () => {
-                  if (params.value !== undefined) {
-                    alert(`Edit: ${cds[Number(params.value)].id}`);
-                  }
+          <>
+            <Menu
+              icon={<MoreVertIcon />}
+              menuId={menuId}
+              options={[
+                {
+                  caption: "Edit",
+                  handler: () => {
+                    if (params.value !== undefined) {
+                      const cd = cds[Number(params.value)];
+                      openEditCdForm(
+                        {
+                          album: cd.title,
+                          artist: cd.artist,
+                          tracksNumber: cd.tracks.length,
+                          genre: cd.genre,
+                        },
+                        cd.id
+                      );
+                    }
+                  },
                 },
-              },
-              {
-                caption: "Fetch additional data",
-                handler: () => {
-                  if (params.value !== undefined) {
-                    alert(`Fetch: ${cds[Number(params.value)].id}`);
-                  }
+                {
+                  caption: "Fetch albun art",
+                  handler: () => {},
                 },
-              },
-              {
-                caption: "Delete",
-                handler: () => {
-                  if (params.value !== undefined) {
-                    alert(`Delete: ${cds[Number(params.value)].id}`);
-                  }
+                {
+                  caption: "Delete",
+                  handler: () => {
+                    if (params.value !== undefined) {
+                      const cd = cds[Number(params.value)];
+                      confirmDialog({
+                        title: "Delete album",
+                        text: (
+                          <>
+                            <p>{`Are you sure you want to delete the album  ${cd.artist} - ${cd.title} ?`}</p>
+                            <p>This action cannot be undone.</p>
+                          </>
+                        ),
+                        okButtonText: "Yes, delete",
+                        cancelButtonText: "No, cancel",
+                        onConfirm: () => {
+                          deleteCd(cd.id).then(() => {
+                            refreshCds();
+                            openSnackbar({
+                              text: `Album ${cd.artist} - ${cd.title} deleted`,
+                            });
+                          });
+                        },
+                      });
+                    }
+                  },
                 },
-              },
-            ]}
-          />
+              ]}
+            />
+          </>
         );
       },
     },
@@ -218,6 +255,9 @@ const CdCollection = ({
           </div>
         </Paper>
       </Box>
+      {editCdFormInstance}
+      {confirmDialogInstance}
+      {snackbarInstance}
     </Box>
   );
 };
