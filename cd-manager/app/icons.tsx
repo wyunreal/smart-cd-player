@@ -4,6 +4,9 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import CloseIcon from "@mui/icons-material/Close";
 import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 
 export {
   AlbumIcon,
@@ -12,4 +15,7 @@ export {
   CloseIcon,
   ArrowRightIcon,
   MoreVertIcon,
+  DeleteOutlinedIcon,
+  EditOutlinedIcon,
+  ImageOutlinedIcon,
 };

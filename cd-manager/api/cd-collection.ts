@@ -110,3 +110,18 @@ export const deleteCd = async (cdId: string) => {
   data.splice(index, 1);
   writeJsonToFile(FILE_PATH, data);
 };
+
+export const fetchCdArt = async (cdId: string) => {
+  const cds = await getCdCollection();
+  const index = cds.findIndex((cd) => cd.id === cdId);
+  if (index === -1) {
+    throw new Error(`CD with id ${cdId} not found`);
+  }
+  try {
+    const art = await fetchAlbumArt(cds[index].artist, cds[index].title);
+    cds[index].art = art;
+    writeJsonToFile(FILE_PATH, cds);
+    cds[index].art = art;
+    writeJsonToFile(FILE_PATH, cds);
+  } catch (e) {}
+};

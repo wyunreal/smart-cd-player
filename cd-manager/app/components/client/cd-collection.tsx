@@ -1,7 +1,12 @@
 "use client";
 
-import { Cd } from "@/api/types";
-import { MoreVertIcon } from "@/app/icons";
+import { AlbumArt, Cd } from "@/api/types";
+import {
+  DeleteOutlinedIcon,
+  EditOutlinedIcon,
+  ImageOutlinedIcon,
+  MoreVertIcon,
+} from "@/app/icons";
 import { Avatar, Box, Paper } from "@mui/material";
 import {
   DataGrid,
@@ -15,7 +20,7 @@ import React, { useContext, useEffect, useState } from "react";
 import Menu from "./menu";
 import useEditCdForm from "@/app/hooks/use-edit-cd-form";
 import useConfirmDialog from "@/app/hooks/use-confirm-dialog";
-import { deleteCd } from "@/api/cd-collection";
+import { deleteCd, fetchCdArt } from "@/api/cd-collection";
 import useSnackbar from "@/app/hooks/use-snackbar";
 import { DataRepositoryContext } from "@/providers/data-repository";
 
@@ -118,6 +123,7 @@ const CdCollection = ({
               menuId={menuId}
               options={[
                 {
+                  icon: <EditOutlinedIcon />,
                   caption: "Edit",
                   handler: () => {
                     if (params.value !== undefined) {
@@ -135,10 +141,38 @@ const CdCollection = ({
                   },
                 },
                 {
+                  icon: <ImageOutlinedIcon />,
                   caption: "Fetch albun art",
-                  handler: () => {},
+                  handler: () => {
+                    if (params.value !== undefined) {
+                      const cd = cds[Number(params.value)];
+                      const fetchArt = () =>
+                        fetchCdArt(cd.id).then(() => {
+                          refreshCds();
+                          openSnackbar({
+                            text: `Art updated for album ${cd.artist} - ${cd.title}`,
+                          });
+                        });
+                      if (cd.art) {
+                        confirmDialog({
+                          title: "Update album art",
+                          text: (
+                            <>
+                              <p>{`Are you sure you want to update the existing art for the album  ${cd.artist} - ${cd.title} ?`}</p>
+                            </>
+                          ),
+                          okButtonText: "Yes, update",
+                          cancelButtonText: "No, cancel",
+                          onConfirm: fetchArt,
+                        });
+                      } else {
+                        fetchArt();
+                      }
+                    }
+                  },
                 },
                 {
+                  icon: <DeleteOutlinedIcon />,
                   caption: "Delete",
                   handler: () => {
                     if (params.value !== undefined) {
