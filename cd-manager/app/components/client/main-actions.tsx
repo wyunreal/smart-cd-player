@@ -9,7 +9,7 @@ const MainActions = () => {
   const { openAddCdForm, addCdFormInstance } = useAddCdForm();
   return (
     <>
-      {path === "/" && (
+      {path === "/collection" && (
         <Button
           variant={isMobile ? "outlined" : "contained"}
           onClick={openAddCdForm}

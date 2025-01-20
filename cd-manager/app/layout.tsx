@@ -8,13 +8,17 @@ import { SessionProvider, signIn, signOut } from "next-auth/react";
 import { auth } from "../auth";
 import LibraryMusicIcon from "@mui/icons-material/LibraryMusic";
 import { Box } from "@mui/material";
-import { AlbumIcon, GroupsIcon } from "./icons";
+import { AlbumIcon, GroupsIcon, RadioOutlinedIcon } from "./icons";
 import { theme } from "@/theme/theme";
 import { cookies } from "next/headers";
-import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 
 const NAVIGATION: Navigation = [
   {
+    title: "Player",
+    icon: <RadioOutlinedIcon />,
+  },
+  {
+    segment: "collection",
     title: "Collection",
     icon: <AlbumIcon />,
   },
