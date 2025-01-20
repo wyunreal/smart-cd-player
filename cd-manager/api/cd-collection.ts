@@ -6,7 +6,6 @@ import { readJsonFromFile, writeJsonToFile } from "./json-storage";
 import { Cd, CdInputData } from "./types";
 
 const FILE_PATH = "data/cd-collection.json";
-
 const readFile = async () => readJsonFromFile(FILE_PATH) || [];
 
 export const getCdCollection: () => Promise<Cd[]> = async () => {

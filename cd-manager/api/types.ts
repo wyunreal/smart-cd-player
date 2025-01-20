@@ -1,3 +1,20 @@
+// Player definitions
+
+export type PlayerDefinition = {
+  active: boolean;
+  remoteIndex: 1 | 2 | 3;
+  capacity: number;
+};
+
+// Player content
+
+export type CdSlot = {
+  slot: number;
+  cdId: number;
+};
+
+// Cd collection
+
 export type CdKey = {
   cdid: string;
   artist: string;
@@ -28,10 +45,6 @@ export type AlbumArt = {
 };
 
 export type Cd = CdBasicInfo & {
-  id: string;
+  id: number;
   art?: AlbumArt;
-};
-
-export type CdInUse = Cd & {
-  position: number;
 };

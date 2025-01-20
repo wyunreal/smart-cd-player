@@ -1,50 +1,55 @@
-import { getCdCollection } from "@/api/cd-collection";
-import { Cd } from "@/api/types";
-import React, {
-  createContext,
-  useState,
-  ReactNode,
-  useEffect,
-  useCallback,
-} from "react";
+import useCdCollecitonProviderProps, {
+  CdCollectionProps,
+} from "@/app/hooks/use-cd-collection-provider-props";
+import usePlayerContentProviderProps, {
+  PlayerContentProps,
+} from "@/app/hooks/use-player-content-provider-props";
+import usePlayerDefinitionsProviderProps, {
+  PlayerDefinitionsProps,
+} from "@/app/hooks/use-player-definitions-provider-props";
+import React, { createContext, ReactNode } from "react";
 
-type DataRepositoryContextProps = {
-  cds: Cd[] | null;
-  refreshCds: () => void;
-  getCdById: (id: string) => Cd | null;
-};
+type DataRepositoryContextProps = CdCollectionProps &
+  PlayerDefinitionsProps &
+  PlayerContentProps;
 
 export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   cds: null,
   refreshCds: () => {},
   getCdById: () => null,
+  playerDefinitions: null,
+  getPlayerDefinitionsByStatus: () => [],
+  refreshPlayerDefinitions: () => {},
+  playerContent: [[], [], []],
+  refreshPlayerContent: () => {},
 });
-
-const useCds = () => {
-  const [cdsCacheVersion, setCdsCacheVersion] = useState(0);
-  const [cds, setCds] = useState<Cd[]>([]);
-  const refreshCds = useCallback(() => {
-    setCdsCacheVersion((v) => v + 1);
-  }, []);
-  useEffect(() => {
-    getCdCollection().then(setCds);
-  }, [cdsCacheVersion]);
-  const getCdById = useCallback(
-    (id: string) => cds.find((cd) => cd.id === id) || null,
-    [cds]
-  );
-
-  return { cds, refreshCds, getCdById };
-};
 
 export const DataRepositoryProvider = ({
   children,
 }: {
   children: ReactNode;
 }) => {
-  const { cds, refreshCds, getCdById } = useCds();
+  const { cds, refreshCds, getCdById } = useCdCollecitonProviderProps();
+  const {
+    playerDefinitions,
+    getPlayerDefinitionsByStatus,
+    refreshPlayerDefinitions,
+  } = usePlayerDefinitionsProviderProps();
+  const { playerContent, refreshPlayerContent } =
+    usePlayerContentProviderProps();
   return (
-    <DataRepositoryContext.Provider value={{ cds, refreshCds, getCdById }}>
+    <DataRepositoryContext.Provider
+      value={{
+        cds,
+        refreshCds,
+        getCdById,
+        playerDefinitions,
+        getPlayerDefinitionsByStatus,
+        refreshPlayerDefinitions,
+        playerContent,
+        refreshPlayerContent,
+      }}
+    >
       {children}
     </DataRepositoryContext.Provider>
   );
