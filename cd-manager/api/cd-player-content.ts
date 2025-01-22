@@ -11,5 +11,6 @@ export const getPlayerContent = async (
   if (playerIndex < 0 || playerIndex > 2) {
     throw new Error("Invalid player index");
   }
+  console.log(await readFile());
   return (await readFile())[playerIndex];
 };

@@ -36,7 +36,7 @@ const usePlayerContentProviderProps = () => {
       getPlayerContent(2),
     ]).then(setRawContent);
   }, [contentCacheVersion]);
-
+  console.log(playerContent);
   useEffect(() => {
     setPlayerContent(
       playerDefinitions !== null &&
@@ -47,10 +47,18 @@ const usePlayerContentProviderProps = () => {
               { length: playerDefinitions[index].capacity },
               (_, slotIndex: number) => ({ slot: slotIndex, cd: null })
             );
+            let minSlot = playerDefinitions[index].capacity - 1;
+            let maxSlot = 0;
             for (const slot of rawContent[index]) {
               slots[slot.slot].cd = cds[slot.cdId];
+              if (slot.slot < minSlot) {
+                minSlot = slot.slot;
+              }
+              if (slot.slot > maxSlot) {
+                maxSlot = slot.slot;
+              }
             }
-            return slots;
+            return slots.slice(minSlot, maxSlot + 1);
           })
         : [[], [], []]
     );
