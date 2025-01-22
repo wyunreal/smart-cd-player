@@ -39,7 +39,9 @@ const usePlayerContentProviderProps = () => {
 
   useEffect(() => {
     setPlayerContent(
-      playerDefinitions === null || cds === null
+      playerDefinitions !== null &&
+        playerDefinitions.length !== 0 &&
+        cds !== null
         ? Array.from({ length: 3 }).map((_, index: number) => {
             let slots: PlayerSlot[] = Array.from(
               { length: playerDefinitions[index].capacity },

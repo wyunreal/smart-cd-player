@@ -21,7 +21,7 @@ const CdDetails = ({
   cdId,
   onDialogClosed,
 }: {
-  cdId: string | null;
+  cdId: number | null;
   onDialogClosed: () => void;
 }) => {
   const theme = useTheme();
@@ -196,6 +196,8 @@ const CdDetails = ({
                         scrollbarWidth: "none",
                         overflowStyle: "none",
                       },
+                      scrollbarWidth: "none",
+                      overflowStyle: "none",
                     }}
                   >
                     {cd.tracks.map((track, index) => (

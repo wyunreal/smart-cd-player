@@ -9,7 +9,7 @@ import { DataRepositoryContext } from "@/providers/data-repository";
 
 export default () => {
   const { cds } = useContext(DataRepositoryContext);
-  const [selectedCdId, setSelectedCdId] = useState<string | null>(null);
+  const [selectedCdId, setSelectedCdId] = useState<number | null>(null);
   return (
     <>
       {cds !== null ? (

@@ -8,10 +8,10 @@ import { editCd } from "@/api/cd-collection";
 const useEditCdForm = () => {
   const [isEditCdDialogOpen, setIsEditCdDialogOpen] = useState(false);
   const [cd, setCd] = useState<CdInputData | null>(null);
-  const [cdId, setCdId] = useState<string>("");
+  const [cdId, setCdId] = useState<number>(0);
   const { refreshCds } = useContext(DataRepositoryContext);
   return {
-    openEditCdForm: (cd: CdInputData, cdId: string) => {
+    openEditCdForm: (cd: CdInputData, cdId: number) => {
       setCd(cd);
       setCdId(cdId);
       setIsEditCdDialogOpen(true);

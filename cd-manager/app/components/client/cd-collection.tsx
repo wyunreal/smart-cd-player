@@ -23,6 +23,7 @@ import useConfirmDialog from "@/app/hooks/use-confirm-dialog";
 import { deleteCd, fetchCdArt } from "@/api/cd-collection";
 import useSnackbar from "@/app/hooks/use-snackbar";
 import { DataRepositoryContext } from "@/providers/data-repository";
+import useResizeObserver from "@/app/hooks/use-resize-observer";
 
 const CdCollection = ({
   cds,
@@ -31,21 +32,7 @@ const CdCollection = ({
   cds: Cd[];
   onCdSelected: (cd: Cd | null) => void;
 }) => {
-  const [tableContentRef, setTableContentRef] = useState<HTMLDivElement | null>(
-    null
-  );
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const resizeObserver = new ResizeObserver(() => {
-      setWidth(tableContentRef ? tableContentRef.offsetWidth : 0);
-    });
-    if (tableContentRef) {
-      resizeObserver.observe(tableContentRef);
-      return () => {
-        resizeObserver.disconnect();
-      };
-    }
-  });
+  const { width, resizeRef } = useResizeObserver();
 
   const { openEditCdForm, editCdFormInstance } = useEditCdForm();
   const { confirmDialog, confirmDialogInstance } = useConfirmDialog();
@@ -242,11 +229,7 @@ const CdCollection = ({
     >
       <Box sx={{ position: "absolute", inset: 0 }}>
         <Paper sx={{ flex: 1 }}>
-          <div
-            ref={(tableContentRef) => {
-              setTableContentRef(tableContentRef);
-            }}
-          >
+          <div ref={resizeRef}>
             <DataGrid
               disableColumnResize
               rows={cds.map((cd, index) => ({

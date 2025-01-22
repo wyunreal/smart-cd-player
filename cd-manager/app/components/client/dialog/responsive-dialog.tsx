@@ -8,6 +8,7 @@ import { TransitionProps } from "@mui/material/transitions";
 import { AppBar, DialogTitle, IconButton, Slide } from "@mui/material";
 import { CloseIcon } from "@/app/icons";
 import type {} from "@mui/material/themeCssVarsAugmentation";
+import useResizeObserver from "@/app/hooks/use-resize-observer";
 
 const PADDING = 32;
 const TITLE_BAR_HEIGHT = 64;
@@ -36,24 +37,8 @@ const ResponsiveDialog = ({
 }: FullScreenDialogProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [height, setHeight] = useState(0);
 
-  const [dialogContentRef, setDialogContentRef] =
-    useState<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const resizeObserver = new ResizeObserver(() => {
-      setHeight(
-        dialogContentRef ? dialogContentRef.offsetHeight + PADDING - 14 : 0
-      );
-    });
-    if (dialogContentRef) {
-      resizeObserver.observe(dialogContentRef);
-      return () => {
-        resizeObserver.disconnect();
-      };
-    }
-  });
+  const { height, resizeRef } = useResizeObserver();
 
   return (
     <DialogContextProvider>
@@ -101,12 +86,7 @@ const ResponsiveDialog = ({
             },
           }}
         >
-          <div
-            style={{ height: "auto" }}
-            ref={(dialogContentRef) => {
-              setDialogContentRef(dialogContentRef);
-            }}
-          >
+          <div style={{ height: "auto" }} ref={resizeRef}>
             {children}
           </div>
         </Box>

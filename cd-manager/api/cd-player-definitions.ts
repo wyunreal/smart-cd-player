@@ -5,5 +5,7 @@ const FILE_PATH = "data/player-definitions.json";
 const readFile = async () => readJsonFromFile(FILE_PATH) || [];
 
 export const getPlayerDefinitions = async (): Promise<PlayerDefinition[]> => {
-  return await readFile();
+  const a = await readFile();
+  console.log(a);
+  return a;
 };

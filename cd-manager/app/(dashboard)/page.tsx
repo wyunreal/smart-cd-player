@@ -1,141 +1,112 @@
 "use client";
 
-import React, { CSSProperties } from "react";
-import { useSnapCarousel } from "react-snap-carousel";
+import { DataRepositoryContext } from "@/providers/data-repository";
+import { alpha, Box, Slider, Stack, useTheme } from "@mui/material";
+import React, { useContext, useEffect, useState } from "react";
+import { PlayerSlot } from "../hooks/use-player-content-provider-props";
+import useResizeObserver from "../hooks/use-resize-observer";
 
-const styles = {
-  root: {},
-  scroll: {
-    position: "relative",
-    display: "flex",
-    overflow: "auto",
-    scrollSnapType: "x mandatory",
-  },
-  item: {
-    width: "600px",
-    height: "600px",
-    flexShrink: 0,
-  },
-  itemSnapPoint: {
-    scrollSnapAlign: "center",
-  },
-  controls: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  nextPrevButton: {},
-  nextPrevButtonDisabled: { opacity: 0.3 },
-  pagination: {
-    display: "flex",
-  },
-  paginationButton: {
-    margin: "10px",
-  },
-  paginationButtonActive: { opacity: 0.3 },
-  pageIndicator: {
-    display: "flex",
-    justifyContent: "center",
-  },
-} satisfies Record<string, CSSProperties>;
-
-interface CarouselProps<T> {
-  readonly items: T[];
-  readonly renderItem: (
-    props: CarouselRenderItemProps<T>
-  ) => React.ReactElement<CarouselItemProps>;
-}
-
-interface CarouselRenderItemProps<T> {
-  readonly item: T;
-  readonly isSnapPoint: boolean;
-}
-
-export const Carousel = <T extends any>({
+const PlayerContent = ({
   items,
-  renderItem,
-}: CarouselProps<T>) => {
-  const {
-    scrollRef,
-    pages,
-    activePageIndex,
-    hasPrevPage,
-    hasNextPage,
-    prev,
-    next,
-    goTo,
-    snapPointIndexes,
-  } = useSnapCarousel();
+  selected,
+}: {
+  items: PlayerSlot[];
+  selected: number;
+}) => {
+  const { width, resizeRef } = useResizeObserver();
+  const theme = useTheme();
   return (
-    <div style={styles.root}>
-      <ul style={styles.scroll} ref={scrollRef}>
-        {items.map((item, i) =>
-          renderItem({
-            item,
-            isSnapPoint: snapPointIndexes.has(i),
-          })
-        )}
-      </ul>
-      <div style={styles.controls} aria-hidden>
-        <button
-          style={{
-            ...styles.nextPrevButton,
-            ...(!hasPrevPage ? styles.nextPrevButtonDisabled : {}),
-          }}
-          onClick={() => prev()}
-          disabled={!hasPrevPage}
-        >
-          Prev
-        </button>
+    <Box
+      sx={{
+        display: "flex",
+        position: "relative",
+      }}
+      ref={resizeRef}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          overflow: "auto",
+          scrollSnapType: "x mandatory",
 
-        <button
-          style={{
-            ...styles.nextPrevButton,
-            ...(!hasNextPage ? styles.nextPrevButtonDisabled : {}),
-          }}
-          onClick={() => next()}
-          disabled={!hasNextPage}
-        >
-          Next
-        </button>
-      </div>
-      <div style={styles.pageIndicator}>
-        {activePageIndex + 1} / {pages.length}
-      </div>
-    </div>
+          "&::-webkit-scrollbar": {
+            display: "none",
+            scrollbarWidth: "none",
+            overflowStyle: "none",
+          },
+          scrollbarWidth: "none",
+          overflowStyle: "none",
+        }}
+      >
+        {items.map((item, i) => (
+          <Box
+            key={i}
+            sx={{
+              minWidth: `${width}px`,
+              marginLeft: i > 0 ? `-${width / 4}px` : 0,
+              marginRight: `-${width / 4}px`,
+              display: "flex",
+              justifyContent: "center",
+              scrollSnapAlign: "start",
+            }}
+          >
+            <img
+              style={{ borderRadius: "16px" }}
+              src={item.cd?.art?.albumBig || "/cd-placeholder-big.png"}
+              width={width / 3}
+              height={width / 3}
+              alt={item.cd?.title || "CD"}
+            />
+          </Box>
+        ))}
+      </Box>
+      <Box
+        sx={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: width / 6,
+          background: `linear-gradient(270deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
+        }}
+      />
+      <Box
+        sx={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          right: 0,
+          width: width / 6,
+          background: `linear-gradient(90deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
+        }}
+      />
+    </Box>
   );
 };
 
-interface CarouselItemProps {
-  readonly isSnapPoint: boolean;
-  readonly children?: React.ReactNode;
-}
+const Page = () => {
+  const { playerContent, playerDefinitions } = useContext(
+    DataRepositoryContext
+  );
+  const [selectedSlot, setSelectedSlot] = useState(0);
+  console.log(selectedSlot);
 
-export const CarouselItem = ({ isSnapPoint, children }: CarouselItemProps) => (
-  <li
-    style={{
-      ...styles.item,
-      ...(isSnapPoint ? styles.itemSnapPoint : {}),
-    }}
-  >
-    {children}
-  </li>
-);
+  return (
+    <Stack spacing={4}>
+      <PlayerContent items={playerContent[0]} selected={selectedSlot} />
 
-const items = Array.from({ length: 500 }).map((_, i) => ({
-  id: i,
-  src: `https://picsum.photos/500?idx=${i}`,
-}));
-
-const Page = () => (
-  <Carousel
-    items={items}
-    renderItem={({ item, isSnapPoint }) => (
-      <CarouselItem key={item.id} isSnapPoint={isSnapPoint}>
-        <img src={item.src} width="600" height="600" alt="" />
-      </CarouselItem>
-    )}
-  />
-);
+      <Slider
+        step={1}
+        min={0}
+        max={
+          playerDefinitions && playerDefinitions.length > 0
+            ? playerDefinitions[0]?.capacity - 1
+            : 0
+        }
+        onChange={(e, v) => setSelectedSlot(v as number)}
+      />
+    </Stack>
+  );
+};
 
 export default Page;

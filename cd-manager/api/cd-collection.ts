@@ -22,7 +22,7 @@ export const addCd = async (cdData: CdInputData) => {
     );
   } catch (e) {
     cdDetails = {
-      id: "0",
+      id: 0,
       title: cdData.album,
       artist: cdData.artist,
       genre: cdData.genre,
@@ -39,13 +39,13 @@ export const addCd = async (cdData: CdInputData) => {
 
   const data = await getCdCollection();
   const lastRowId = Number(data[data.length - 1]?.id);
-  cdDetails.id = (lastRowId ? lastRowId + 1 : 1).toString();
+  cdDetails.id = lastRowId ? lastRowId + 1 : 1;
   writeJsonToFile(FILE_PATH, [...data, cdDetails]);
 };
 
 export const editCd = async (
   cdData: CdInputData,
-  cdId: string,
+  cdId: number,
   fetchCdDetails?: boolean
 ) => {
   const fetchDetails = fetchCdDetails ?? true;
@@ -100,7 +100,7 @@ export const editCd = async (
   writeJsonToFile(FILE_PATH, cds);
 };
 
-export const deleteCd = async (cdId: string) => {
+export const deleteCd = async (cdId: number) => {
   const data = await getCdCollection();
   const index = data.findIndex((cd) => cd.id === cdId);
   if (index === -1) {
@@ -110,7 +110,7 @@ export const deleteCd = async (cdId: string) => {
   writeJsonToFile(FILE_PATH, data);
 };
 
-export const fetchCdArt = async (cdId: string) => {
+export const fetchCdArt = async (cdId: number) => {
   const cds = await getCdCollection();
   const index = cds.findIndex((cd) => cd.id === cdId);
   if (index === -1) {

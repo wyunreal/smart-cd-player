@@ -7,7 +7,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
-import RadioOutlinedIcon from "@mui/icons-material/RadioOutlined";
+import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 
 export {
   AlbumIcon,
@@ -19,5 +19,5 @@ export {
   DeleteOutlinedIcon,
   EditOutlinedIcon,
   ImageOutlinedIcon,
-  RadioOutlinedIcon,
+  PlayArrowOutlinedIcon,
 };
