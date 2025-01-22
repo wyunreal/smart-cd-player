@@ -7,30 +7,38 @@ import { PlayerSlot } from "../hooks/use-player-content-provider-props";
 import useResizeObserver from "../hooks/use-resize-observer";
 
 const PlayerSlots = ({
-  items,
+  selected,
   containerWidth,
+  onSelectedChange,
   children,
 }: {
-  items: PlayerSlot[];
+  selected: number;
   containerWidth: number;
+  onSelectedChange?: (index: number) => void;
   children: React.ReactNode;
 }) => {
-  const { width, resizeRef } = useResizeObserver();
   const [scrollContanierRef, setScrollContainerRef] =
     useState<HTMLDivElement | null>(null);
 
-  const [currentItem, setCurrentItem] = useState(0);
+  useEffect(() => {
+    scrollContanierRef?.scrollTo({
+      left: (selected * containerWidth) / 2,
+      behavior: "smooth",
+    });
+  }, [selected, onSelectedChange]);
 
   const handleScrollSnapChanged = useCallback(
     (event: any) => {
-      setCurrentItem(
-        Math.round(((scrollContanierRef?.scrollLeft ?? 0) * 2) / containerWidth)
-      );
+      if (onSelectedChange) {
+        onSelectedChange(
+          Math.round(
+            ((scrollContanierRef?.scrollLeft ?? 0) * 2) / containerWidth
+          )
+        );
+      }
     },
     [containerWidth, scrollContanierRef]
   );
-
-  console.log(currentItem);
 
   useEffect(() => {
     scrollContanierRef?.addEventListener(
@@ -63,9 +71,7 @@ const PlayerSlots = ({
         setScrollContainerRef(scrollContanierRef);
       }}
     >
-      <Box sx={{ display: "flex" }} ref={resizeRef}>
-        {children}
-      </Box>
+      {children}
     </Box>
   );
 };
@@ -73,13 +79,23 @@ const PlayerSlots = ({
 const PlayerContent = ({
   items,
   selected,
+  onSelectedChange,
 }: {
   items: PlayerSlot[];
   selected: number;
+  onSelectedChange?: (index: number) => void;
 }) => {
   const { width, resizeRef } = useResizeObserver();
   const theme = useTheme();
-  console.log("width", width);
+
+  const slideWidth =
+    width < 420
+      ? "150px"
+      : width < 630
+        ? "220px"
+        : width < 820
+          ? "280px"
+          : "380px";
   return (
     <Box
       sx={{
@@ -88,7 +104,11 @@ const PlayerContent = ({
       }}
       ref={resizeRef}
     >
-      <PlayerSlots containerWidth={width} items={items}>
+      <PlayerSlots
+        containerWidth={width}
+        selected={selected}
+        onSelectedChange={onSelectedChange}
+      >
         {items.map((item, i) => (
           <Box
             key={i}
@@ -106,15 +126,15 @@ const PlayerContent = ({
               <img
                 style={{ borderRadius: "16px" }}
                 src={item.cd.art?.albumBig || "/cd-placeholder-big.png"}
-                width={width / 3}
-                height={width / 3}
+                width={slideWidth}
+                height={slideWidth}
                 alt={item.cd?.title || "CD"}
               />
             ) : (
               <Stack spacing={1} alignItems="center">
                 <svg
-                  width={width / 4}
-                  height={width / 4}
+                  width={`calc(${slideWidth}/1.2`}
+                  height={`calc(${slideWidth}/1.2`}
                   viewBox="0 0 64 64"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -138,8 +158,8 @@ const PlayerContent = ({
           position: "absolute",
           top: 0,
           bottom: 0,
-          left: 0,
-          width: width / 6,
+          left: "-5px",
+          width: `calc(${slideWidth} / 2)`,
           background: `linear-gradient(270deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
         }}
       />
@@ -148,8 +168,8 @@ const PlayerContent = ({
           position: "absolute",
           top: 0,
           bottom: 0,
-          right: 0,
-          width: width / 6,
+          right: "-5px",
+          width: `calc(${slideWidth} / 2)`,
           background: `linear-gradient(90deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
         }}
       />
@@ -158,16 +178,19 @@ const PlayerContent = ({
 };
 
 const Page = () => {
-  const { playerContent, playerDefinitions } = useContext(
-    DataRepositoryContext
-  );
+  const { playerContent } = useContext(DataRepositoryContext);
   const [selectedSlot, setSelectedSlot] = useState<number>(0);
-  console.log(selectedSlot);
   return (
     <Stack spacing={4}>
-      <PlayerContent items={playerContent[0]} selected={selectedSlot ?? 0} />
+      <PlayerContent
+        items={playerContent[0]}
+        selected={selectedSlot}
+        onSelectedChange={setSelectedSlot}
+      />
 
       <Slider
+        valueLabelDisplay="auto"
+        value={selectedSlot}
         step={1}
         min={0}
         max={playerContent[0].length > 0 ? playerContent[0].length - 1 : 0}

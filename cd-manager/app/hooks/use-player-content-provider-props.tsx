@@ -36,7 +36,7 @@ const usePlayerContentProviderProps = () => {
       getPlayerContent(2),
     ]).then(setRawContent);
   }, [contentCacheVersion]);
-  console.log(playerContent);
+
   useEffect(() => {
     setPlayerContent(
       playerDefinitions !== null &&
