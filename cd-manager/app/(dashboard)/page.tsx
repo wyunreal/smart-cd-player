@@ -6,7 +6,7 @@ import React, { useCallback, useContext, useEffect, useState } from "react";
 import { PlayerSlot } from "../hooks/use-player-content-provider-props";
 import useResizeObserver from "../hooks/use-resize-observer";
 
-const PlayerSlots = ({
+const CarouselSlides = ({
   selected,
   containerWidth,
   onSelectedChange,
@@ -106,7 +106,7 @@ const PlayerContent = ({
       }}
       ref={resizeRef}
     >
-      <PlayerSlots
+      <CarouselSlides
         containerWidth={width}
         selected={selected}
         onSelectedChange={onSelectedChange}
@@ -134,7 +134,6 @@ const PlayerContent = ({
                 src={item.cd.art?.albumBig || "/cd-placeholder-big.png"}
                 width={slideWidth}
                 height={slideWidth}
-                alt={item.cd?.title || "CD"}
                 onClick={() => onSelectedClick?.(i)}
               />
             ) : (
@@ -159,7 +158,7 @@ const PlayerContent = ({
             )}
           </Box>
         ))}
-      </PlayerSlots>
+      </CarouselSlides>
       <Box
         sx={{
           position: "absolute",
