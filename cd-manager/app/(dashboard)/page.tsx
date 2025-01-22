@@ -80,10 +80,12 @@ const PlayerContent = ({
   items,
   selected,
   onSelectedChange,
+  onSelectedClick,
 }: {
   items: PlayerSlot[];
   selected: number;
   onSelectedChange?: (index: number) => void;
+  onSelectedClick?: (index: number) => void;
 }) => {
   const { width, resizeRef } = useResizeObserver();
   const theme = useTheme();
@@ -124,11 +126,12 @@ const PlayerContent = ({
           >
             {item.cd ? (
               <img
-                style={{ borderRadius: "16px" }}
+                style={{ borderRadius: "16px", cursor: "pointer" }}
                 src={item.cd.art?.albumBig || "/cd-placeholder-big.png"}
                 width={slideWidth}
                 height={slideWidth}
                 alt={item.cd?.title || "CD"}
+                onClick={() => onSelectedClick?.(i)}
               />
             ) : (
               <Stack spacing={1} alignItems="center">
@@ -160,7 +163,15 @@ const PlayerContent = ({
           bottom: 0,
           left: "-5px",
           width: `calc(${slideWidth} / 2)`,
+          cursor: "pointer",
           background: `linear-gradient(270deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
+        }}
+        onClick={(e) => {
+          if (selected > 0) {
+            onSelectedChange?.(selected - 1);
+          }
+          e.stopPropagation();
+          e.preventDefault();
         }}
       />
       <Box
@@ -170,7 +181,15 @@ const PlayerContent = ({
           bottom: 0,
           right: "-5px",
           width: `calc(${slideWidth} / 2)`,
+          cursor: "pointer",
           background: `linear-gradient(90deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
+        }}
+        onClick={(e) => {
+          if (selected < items.length - 1) {
+            onSelectedChange?.(selected + 1);
+          }
+          e.stopPropagation();
+          e.preventDefault();
         }}
       />
     </Box>
@@ -186,6 +205,7 @@ const Page = () => {
         items={playerContent[0]}
         selected={selectedSlot}
         onSelectedChange={setSelectedSlot}
+        onSelectedClick={(i) => alert(i)}
       />
 
       <Slider
