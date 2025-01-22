@@ -126,7 +126,11 @@ const PlayerContent = ({
           >
             {item.cd ? (
               <img
-                style={{ borderRadius: "16px", cursor: "pointer" }}
+                style={{
+                  borderRadius: "16px",
+                  cursor: "pointer",
+                  zIndex: selected === i ? 100 : 0,
+                }}
                 src={item.cd.art?.albumBig || "/cd-placeholder-big.png"}
                 width={slideWidth}
                 height={slideWidth}
@@ -165,6 +169,7 @@ const PlayerContent = ({
           width: `calc(${slideWidth} / 2)`,
           cursor: "pointer",
           background: `linear-gradient(270deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
+          zIndex: 200,
         }}
         onClick={(e) => {
           if (selected > 0) {
@@ -183,6 +188,7 @@ const PlayerContent = ({
           width: `calc(${slideWidth} / 2)`,
           cursor: "pointer",
           background: `linear-gradient(90deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
+          zIndex: 200,
         }}
         onClick={(e) => {
           if (selected < items.length - 1) {
