@@ -2,123 +2,26 @@
 
 import { DataRepositoryContext } from "@/providers/data-repository";
 import { alpha, Box, Slider, Stack, Typography, useTheme } from "@mui/material";
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import { PlayerSlot } from "../hooks/use-player-content-provider-props";
-import useResizeObserver from "../hooks/use-resize-observer";
+import Carousel from "../components/client/carousel";
 
-const CarouselSlides = ({
-  selected,
-  containerWidth,
-  onSelectedChange,
-  children,
-}: {
-  selected: number;
-  containerWidth: number;
-  onSelectedChange?: (index: number) => void;
-  children: React.ReactNode;
-}) => {
-  const [scrollContanierRef, setScrollContainerRef] =
-    useState<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    scrollContanierRef?.scrollTo({
-      left: (selected * containerWidth) / 2,
-      behavior: "smooth",
-    });
-  }, [selected, onSelectedChange]);
-
-  const handleScrollSnapChanged = useCallback(
-    (event: any) => {
-      if (onSelectedChange) {
-        onSelectedChange(
-          Math.round(
-            ((scrollContanierRef?.scrollLeft ?? 0) * 2) / containerWidth
-          )
-        );
-      }
-    },
-    [containerWidth, scrollContanierRef]
-  );
-
-  useEffect(() => {
-    scrollContanierRef?.addEventListener(
-      "scrollsnapchange",
-      handleScrollSnapChanged
-    );
-    return () =>
-      scrollContanierRef?.removeEventListener(
-        "scrollsnapchange",
-        handleScrollSnapChanged
-      );
-  }, [scrollContanierRef, handleScrollSnapChanged]);
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        overflow: "auto",
-        scrollSnapType: "x mandatory",
-
-        "&::-webkit-scrollbar": {
-          display: "none",
-          scrollbarWidth: "none",
-          overflowStyle: "none",
-        },
-        scrollbarWidth: "none",
-        overflowStyle: "none",
-      }}
-      ref={(scrollContanierRef: HTMLDivElement | null) => {
-        setScrollContainerRef(scrollContanierRef);
-      }}
-    >
-      {children}
-    </Box>
-  );
-};
-
-const PlayerContent = ({
-  items,
-  selected,
-  onSelectedChange,
-  onSelectedClick,
-}: {
-  items: PlayerSlot[];
-  selected: number;
-  onSelectedChange?: (index: number) => void;
-  onSelectedClick?: (index: number) => void;
-}) => {
-  const { width, resizeRef } = useResizeObserver();
+const Page = () => {
+  const { playerContent } = useContext(DataRepositoryContext);
+  const [selectedSlot, setSelectedSlot] = useState<number>(0);
   const theme = useTheme();
-
-  const slideWidth =
-    width < 420
-      ? "150px"
-      : width < 630
-        ? "220px"
-        : width < 820
-          ? "280px"
-          : "380px";
   return (
-    <Box
-      sx={{
-        display: "flex",
-        position: "relative",
-      }}
-      ref={resizeRef}
-    >
-      <CarouselSlides
-        containerWidth={width}
-        selected={selected}
-        onSelectedChange={onSelectedChange}
-      >
-        {items.map((item, i) => (
+    <Stack spacing={4}>
+      <Carousel<PlayerSlot>
+        items={playerContent[0]}
+        renderItem={(item, i, containerWidth, itemWidth, selected) => (
           <Box
             key={i}
             sx={{
-              minWidth: `${width}px`,
+              minWidth: `${containerWidth}px`,
               alignItems: "center",
-              marginLeft: i > 0 ? `-${width / 4}px` : 0,
-              marginRight: `-${width / 4}px`,
+              marginLeft: i > 0 ? `-${containerWidth / 4}px` : 0,
+              marginRight: `-${containerWidth / 4}px`,
               display: "flex",
               justifyContent: "center",
               scrollSnapAlign: "start",
@@ -132,15 +35,15 @@ const PlayerContent = ({
                   zIndex: selected === i ? 100 : 0,
                 }}
                 src={item.cd.art?.albumBig || "/cd-placeholder-big.png"}
-                width={slideWidth}
-                height={slideWidth}
-                onClick={() => onSelectedClick?.(i)}
+                width={itemWidth}
+                height={itemWidth}
+                onClick={() => alert(i)}
               />
             ) : (
               <Stack spacing={1} alignItems="center">
                 <svg
-                  width={`calc(${slideWidth}/1.2`}
-                  height={`calc(${slideWidth}/1.2`}
+                  width={`calc(${itemWidth}/1.2`}
+                  height={`calc(${itemWidth}/1.2`}
                   viewBox="0 0 64 64"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -157,60 +60,9 @@ const PlayerContent = ({
               </Stack>
             )}
           </Box>
-        ))}
-      </CarouselSlides>
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          bottom: 0,
-          left: "-5px",
-          width: `calc(${slideWidth} / 2)`,
-          cursor: "pointer",
-          background: `linear-gradient(270deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
-          zIndex: 200,
-        }}
-        onClick={(e) => {
-          if (selected > 0) {
-            onSelectedChange?.(selected - 1);
-          }
-          e.stopPropagation();
-          e.preventDefault();
-        }}
-      />
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          bottom: 0,
-          right: "-5px",
-          width: `calc(${slideWidth} / 2)`,
-          cursor: "pointer",
-          background: `linear-gradient(90deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
-          zIndex: 200,
-        }}
-        onClick={(e) => {
-          if (selected < items.length - 1) {
-            onSelectedChange?.(selected + 1);
-          }
-          e.stopPropagation();
-          e.preventDefault();
-        }}
-      />
-    </Box>
-  );
-};
-
-const Page = () => {
-  const { playerContent } = useContext(DataRepositoryContext);
-  const [selectedSlot, setSelectedSlot] = useState<number>(0);
-  return (
-    <Stack spacing={4}>
-      <PlayerContent
-        items={playerContent[0]}
+        )}
         selected={selectedSlot}
         onSelectedChange={setSelectedSlot}
-        onSelectedClick={(i) => alert(i)}
       />
 
       <Slider
