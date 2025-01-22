@@ -2,9 +2,73 @@
 
 import { DataRepositoryContext } from "@/providers/data-repository";
 import { alpha, Box, Slider, Stack, Typography, useTheme } from "@mui/material";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { PlayerSlot } from "../hooks/use-player-content-provider-props";
 import useResizeObserver from "../hooks/use-resize-observer";
+
+const PlayerSlots = ({
+  items,
+  containerWidth,
+  children,
+}: {
+  items: PlayerSlot[];
+  containerWidth: number;
+  children: React.ReactNode;
+}) => {
+  const { width, resizeRef } = useResizeObserver();
+  const [scrollContanierRef, setScrollContainerRef] =
+    useState<HTMLDivElement | null>(null);
+
+  const [currentItem, setCurrentItem] = useState(0);
+
+  const handleScrollSnapChanged = useCallback(
+    (event: any) => {
+      setCurrentItem(
+        Math.round(((scrollContanierRef?.scrollLeft ?? 0) * 2) / containerWidth)
+      );
+    },
+    [containerWidth, scrollContanierRef]
+  );
+
+  console.log(currentItem);
+
+  useEffect(() => {
+    scrollContanierRef?.addEventListener(
+      "scrollsnapchange",
+      handleScrollSnapChanged
+    );
+    return () =>
+      scrollContanierRef?.removeEventListener(
+        "scrollsnapchange",
+        handleScrollSnapChanged
+      );
+  }, [scrollContanierRef, handleScrollSnapChanged]);
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        overflow: "auto",
+        scrollSnapType: "x mandatory",
+
+        "&::-webkit-scrollbar": {
+          display: "none",
+          scrollbarWidth: "none",
+          overflowStyle: "none",
+        },
+        scrollbarWidth: "none",
+        overflowStyle: "none",
+      }}
+      ref={(scrollContanierRef: HTMLDivElement | null) => {
+        setScrollContainerRef(scrollContanierRef);
+      }}
+    >
+      <Box sx={{ display: "flex" }} ref={resizeRef}>
+        {children}
+      </Box>
+    </Box>
+  );
+};
 
 const PlayerContent = ({
   items,
@@ -15,6 +79,7 @@ const PlayerContent = ({
 }) => {
   const { width, resizeRef } = useResizeObserver();
   const theme = useTheme();
+  console.log("width", width);
   return (
     <Box
       sx={{
@@ -23,21 +88,7 @@ const PlayerContent = ({
       }}
       ref={resizeRef}
     >
-      <Box
-        sx={{
-          display: "flex",
-          overflow: "auto",
-          scrollSnapType: "x mandatory",
-
-          "&::-webkit-scrollbar": {
-            display: "none",
-            scrollbarWidth: "none",
-            overflowStyle: "none",
-          },
-          scrollbarWidth: "none",
-          overflowStyle: "none",
-        }}
-      >
+      <PlayerSlots containerWidth={width} items={items}>
         {items.map((item, i) => (
           <Box
             key={i}
@@ -81,7 +132,7 @@ const PlayerContent = ({
             )}
           </Box>
         ))}
-      </Box>
+      </PlayerSlots>
       <Box
         sx={{
           position: "absolute",
