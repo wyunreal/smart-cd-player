@@ -23,11 +23,11 @@ const CarouselSlides = ({
       left: (selected * containerWidth) / 2,
       behavior: "smooth",
     });
-  }, [selected, onSelectedChange]);
+  }, [selected]);
 
   const handleScrollSnapChanged = useCallback(
     (event: any) => {
-      if (onSelectedChange) {
+      if (onSelectedChange && containerWidth > 0) {
         onSelectedChange(
           Math.round(
             ((scrollContanierRef?.scrollLeft ?? 0) * 2) / containerWidth
@@ -93,7 +93,6 @@ const Carousel = <T extends {}>({
 }) => {
   const { width, resizeRef } = useResizeObserver();
   const theme = useTheme();
-
   const slideWidth =
     width < 420
       ? "150px"

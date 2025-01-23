@@ -42,20 +42,20 @@ const Page = () => {
             ) : (
               <Stack spacing={1} alignItems="center">
                 <svg
-                  width={`calc(${itemWidth}/1.2`}
-                  height={`calc(${itemWidth}/1.2`}
-                  viewBox="0 0 64 64"
+                  width={`calc(${itemWidth}/1.5`}
+                  height={`calc(${itemWidth}/1.5`}
+                  viewBox="-2.5 -2.5 25 25"
+                  version="1.1"
                   xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
+                  fill={alpha(theme.palette.text.primary, 0.05)}
+                  strokeWidth={0.2}
                   stroke={alpha(theme.palette.text.primary, 0.3)}
                 >
-                  <circle cx="32" cy="32" r="24" />
-                  <circle cx="32" cy="32" r="6" />
-                  <line x1="38" y1="32" x2="56" y2="32" />
-                  <line x1="8" y1="32" x2="26.01" y2="32" />
-                  <line x1="48.97" y1="15.03" x2="36.21" y2="27.79" />
-                  <line x1="27.76" y1="36.24" x2="15.03" y2="48.97" />
+                  <g id="layer1">
+                    <path d="M 10 0 A 10 10 0 0 0 0 10 A 10 10 0 0 0 10 20 A 10 10 0 0 0 20 10 A 10 10 0 0 0 10 0 z M 10 1 A 9 9 0 0 1 19 10 A 9 9 0 0 1 10 19 A 9 9 0 0 1 1 10 A 9 9 0 0 1 10 1 z M 10 6 A 4 4 0 0 0 6 10 A 4 4 0 0 0 10 14 A 4 4 0 0 0 14 10 A 4 4 0 0 0 10 6 z M 10 7 A 3 3 0 0 1 13 10 A 3 3 0 0 1 10 13 A 3 3 0 0 1 7 10 A 3 3 0 0 1 10 7 z M 10 8 A 2 2 0 0 0 8 10 A 2 2 0 0 0 10 12 A 2 2 0 0 0 12 10 A 2 2 0 0 0 10 8 z M 10 9 A 1 1 0 0 1 11 10 A 1 1 0 0 1 10 11 A 1 1 0 0 1 9 10 A 1 1 0 0 1 10 9 z" />
+                  </g>
                 </svg>
+
                 {<Typography variant="caption">No disk</Typography>}
               </Stack>
             )}
@@ -71,7 +71,9 @@ const Page = () => {
         step={1}
         min={0}
         max={playerContent[0].length > 0 ? playerContent[0].length - 1 : 0}
-        onChange={(e, v) => setSelectedSlot(v as number)}
+        onChange={(e, v) => {
+          setSelectedSlot(v as number);
+        }}
       />
     </Stack>
   );
