@@ -153,7 +153,7 @@ const Page = () => {
                   </BottomSheet>
                 )}
               </Box>
-              <Box mt={2} mb={1}>
+              <Box mt={2} mb={1} mx={1}>
                 <Slider
                   valueLabelDisplay="auto"
                   valueLabelFormat={(v) => currentSlotNumber.toString()}
