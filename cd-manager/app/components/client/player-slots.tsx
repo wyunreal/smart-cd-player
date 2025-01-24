@@ -21,7 +21,7 @@ const PlayerSlots = ({
 
   const slotsDimension =
     containerWidth < 420
-      ? "150px"
+      ? "140px"
       : containerWidth < 630
         ? "220px"
         : containerWidth < 820

@@ -17,6 +17,7 @@ type FullScreenDialogProps = {
   title: string;
   isOpen: boolean;
   onClose: () => void;
+  forcedHeight?: number;
   children: React.ReactNode;
 };
 
@@ -33,6 +34,7 @@ const ResponsiveDialog = ({
   title,
   isOpen,
   onClose,
+  forcedHeight,
   children,
 }: FullScreenDialogProps) => {
   const theme = useTheme();
@@ -53,7 +55,8 @@ const ResponsiveDialog = ({
             ? { borderRadius: 0 }
             : {
                 width: "600px",
-                height: height + TITLE_BAR_HEIGHT + PADDING + 16,
+                height:
+                  forcedHeight ?? height + TITLE_BAR_HEIGHT + PADDING + 16,
                 transition: "height 0.5s",
                 overflow: "hidden",
                 backgroundColor: theme.vars.palette.section.background,

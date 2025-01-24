@@ -1,8 +1,10 @@
 import { PlayerSlot } from "@/app/hooks/use-player-content-provider-props";
-import { ArrowForwardIcon } from "@/app/icons";
-import { alpha, Box, Typography, useTheme } from "@mui/material";
+import { ArrowForwardIcon, ListIcon } from "@/app/icons";
+import { alpha, Box, Button, Typography, useTheme } from "@mui/material";
 import HorizontalScroll from "./horizontal-scroll";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
+import CdDetailsDialog from "./cd-details-dialog";
+import { useState } from "react";
 
 const SelectedSlotDetails = ({
   slot,
@@ -20,8 +22,11 @@ const SelectedSlotDetails = ({
     (s) => s.cd?.title !== slot.cd?.title
   );
 
-  const isHorizontalLayout = width >= 617;
+  const [cdIdForTracksDialog, setCdIdForTracksDialog] = useState<number | null>(
+    null
+  );
 
+  const isHorizontalLayout = width >= 617;
   const { height, resizeRef } = useResizeObserver();
 
   return (
@@ -121,7 +126,18 @@ const SelectedSlotDetails = ({
                 <Typography variant="h6">Tracks</Typography>
               </Box>
             ) : (
-              <Box>Tracks button</Box>
+              <Box>
+                <Button
+                  startIcon={<ListIcon />}
+                  onClick={() => setCdIdForTracksDialog(slot.cd?.id || null)}
+                >
+                  Tracks
+                </Button>
+                <CdDetailsDialog
+                  cdId={cdIdForTracksDialog}
+                  onDialogClosed={() => setCdIdForTracksDialog(null)}
+                />
+              </Box>
             )}
           </Box>
         </Box>
