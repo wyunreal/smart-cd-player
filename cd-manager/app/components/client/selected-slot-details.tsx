@@ -125,20 +125,37 @@ const SelectedSlotDetails = ({
               <Box sx={{ mt: "-8px", mb: "8px" }}>
                 <Typography variant="h6">Tracks</Typography>
               </Box>
+            ) : height > 40 ? (
+              <>
+                <Box sx={{ mt: "-8px", mb: "8px" }}>
+                  <Typography variant="h6">Tracks</Typography>
+                  <Typography
+                    sx={{ mt: "3px" }}
+                  >{`${slot.cd.tracks.length} tracks included in the album.`}</Typography>
+                  <Button
+                    sx={{ ml: "-8px" }}
+                    startIcon={<ListIcon />}
+                    onClick={() => setCdIdForTracksDialog(slot.cd?.id || null)}
+                  >
+                    Show tracks
+                  </Button>
+                </Box>
+              </>
             ) : (
               <Box>
                 <Button
+                  sx={{ ml: "-8px" }}
                   startIcon={<ListIcon />}
                   onClick={() => setCdIdForTracksDialog(slot.cd?.id || null)}
                 >
                   Tracks
                 </Button>
-                <CdDetailsDialog
-                  cdId={cdIdForTracksDialog}
-                  onDialogClosed={() => setCdIdForTracksDialog(null)}
-                />
               </Box>
             )}
+            <CdDetailsDialog
+              cdId={cdIdForTracksDialog}
+              onDialogClosed={() => setCdIdForTracksDialog(null)}
+            />
           </Box>
         </Box>
       ) : null}
