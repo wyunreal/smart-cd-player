@@ -22,6 +22,10 @@ export default function Layout(props: { children: React.ReactNode }) {
           toolbarActions: MainActions,
         }}
         sx={{
+          "& nav .MuiListItem-root .MuiListItemIcon-root": {
+            minWidth: "38px",
+            marginTop: "3px",
+          },
           "& .MuiDrawer-paper": {
             borderRight: 0,
             "& .MuiListItem-root": {

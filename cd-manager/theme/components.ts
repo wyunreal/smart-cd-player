@@ -101,10 +101,8 @@ const getComponentsOverrides = (theme: Theme) => {
           root: {
             alignItems: "center",
             color: "inherit",
-
             "&.MuiListItem-root .MuiListItemIcon-root": {
-              minWidth: "38px",
-              marginTop: "4px",
+              minWidth: "34px",
             },
             "&.MuiListItem-root .MuiListItemAvatar-root": {
               marginTop: "auto",

@@ -1,6 +1,21 @@
 import { PlayerSlot } from "@/app/hooks/use-player-content-provider-props";
-import { ArrowForwardIcon, ListIcon } from "@/app/icons";
-import { alpha, Box, Button, Typography, useTheme } from "@mui/material";
+import {
+  ArrowForwardIcon,
+  ListIcon,
+  PlayCircleOutlineOutlinedIcon,
+} from "@/app/icons";
+import {
+  alpha,
+  Box,
+  Button,
+  Divider,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import HorizontalScroll from "./horizontal-scroll";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 import CdDetailsDialog from "./cd-details-dialog";
@@ -116,14 +131,53 @@ const SelectedSlotDetails = ({
           <Box
             sx={
               isHorizontalLayout
-                ? { marginX: 2, marginTop: 0, flex: 1 }
+                ? { marginLeft: 2, marginTop: 0, flex: 1, display: "flex" }
                 : { marginTop: 2, marginRight: 2, flex: 1 }
             }
             ref={resizeRef}
           >
             {height > 150 ? (
-              <Box sx={{ mt: "-8px", mb: "8px" }}>
-                <Typography variant="h6">Tracks</Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", flex: 1 }}>
+                <Typography sx={{ mt: "-8px", mb: "8px" }} variant="h6">
+                  Tracks
+                </Typography>
+                <Box
+                  sx={{
+                    flex: 1,
+                    overflow: "auto",
+                    "&::-webkit-scrollbar": {
+                      display: "none",
+                      scrollbarWidth: "none",
+                      overflowStyle: "none",
+                    },
+                    scrollbarWidth: "none",
+                    overflowStyle: "none",
+                  }}
+                >
+                  <div style={{ maxHeight: 0 }}>
+                    <List>
+                      <Divider />
+                      {slot.cd.tracks.map((track, index) => (
+                        <div key={index}>
+                          <ListItem sx={{ paddingX: 0, paddingY: "4px" }}>
+                            <ListItemIcon>
+                              <PlayCircleOutlineOutlinedIcon
+                                fontSize="small"
+                                color="primary"
+                              />
+                            </ListItemIcon>
+                            <ListItemText>
+                              <Typography variant="body2">
+                                {track.title}
+                              </Typography>
+                            </ListItemText>
+                          </ListItem>
+                          <Divider />
+                        </div>
+                      ))}
+                    </List>
+                  </div>
+                </Box>
               </Box>
             ) : height > 40 ? (
               <>
