@@ -29,7 +29,7 @@ const CdCollection = ({
   cds,
   onCdSelected,
 }: {
-  cds: Cd[];
+  cds: { [id: number]: Cd };
   onCdSelected: (cd: Cd | null) => void;
 }) => {
   const { width, resizeRef } = useResizeObserver();
@@ -232,7 +232,7 @@ const CdCollection = ({
           <div ref={resizeRef}>
             <DataGrid
               disableColumnResize
-              rows={cds.map((cd, index) => ({
+              rows={Object.values(cds).map((cd, index) => ({
                 ...cd,
                 albumArt: cd.art?.albumSmall,
                 id: index,
@@ -263,7 +263,10 @@ const CdCollection = ({
               onRowSelectionModelChange={(selection) => {
                 if (selection.length > 0) {
                   setSelectionModel(selection);
-                  onCdSelected(cds[selection[0] as number]);
+                  onCdSelected(
+                    cds[Number(Object.keys(cds)[selection[0] as number])] ||
+                      null
+                  );
                 } else {
                   onCdSelected(null);
                 }

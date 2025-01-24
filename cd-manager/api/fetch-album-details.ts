@@ -73,7 +73,7 @@ const fetchAlbumDetails = async (cdid: string, seed: string): Promise<Cd> => {
     const options = {
       hostname: "gnudb.gnudb.org",
       port: 80,
-      path: `/~cddb/cddb.cgi?cmd=cddb+read+soundtrack+${cdid}&hello=${seed}+gnutest+0.1&proto=6`,
+      path: `/~cddb/cddb.cgi?cmd=cddb+read+data+${cdid}&hello=name+my.host.com+gnutest+0.1&proto=6`,
       method: "GET",
     };
 

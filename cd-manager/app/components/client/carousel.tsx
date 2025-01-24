@@ -2,7 +2,6 @@
 
 import { alpha, Box, useTheme } from "@mui/material";
 import React, { useCallback, useEffect, useState } from "react";
-import useResizeObserver from "../../hooks/use-resize-observer";
 
 const CarouselSlides = ({
   selected,

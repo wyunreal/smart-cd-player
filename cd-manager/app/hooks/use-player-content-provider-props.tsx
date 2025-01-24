@@ -51,7 +51,6 @@ const usePlayerContentProviderProps = () => {
   const { playerDefinitions } = usePlayerDefinitionsProviderProps();
   const { cds } = useCdCollecitonProviderProps();
   const [rawContent, setRawContent] = useState<CdSlot[][]>([[], [], []]);
-
   useEffect(() => {
     Promise.all([
       getPlayerContent(0),

@@ -8,6 +8,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 export {
   AlbumIcon,
@@ -20,4 +21,5 @@ export {
   EditOutlinedIcon,
   ImageOutlinedIcon,
   PlayArrowOutlinedIcon,
+  ArrowForwardIcon,
 };

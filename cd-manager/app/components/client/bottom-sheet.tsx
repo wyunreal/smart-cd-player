@@ -1,9 +1,10 @@
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 import { alpha, Box, useTheme } from "@mui/material";
+import React from "react";
 
 const MIN_AVAILABLE_HEIGHT = 96;
 
-const BottomSheet = () => {
+const BottomSheet = ({ children }: { children: React.ReactNode }) => {
   const theme = useTheme();
   const { height, resizeRef } = useResizeObserver();
   return (
@@ -21,7 +22,9 @@ const BottomSheet = () => {
         background: `linear-gradient(0deg, ${theme.palette.section.background} 0%, ${theme.palette.background.paper} 100%)`,
       }}
       ref={resizeRef}
-    ></Box>
+    >
+      {children}
+    </Box>
   );
 };
 
