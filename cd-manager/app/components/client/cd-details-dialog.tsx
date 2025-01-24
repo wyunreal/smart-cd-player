@@ -2,8 +2,10 @@ import {
   alpha,
   Box,
   Divider,
+  IconButton,
   List,
   ListItem,
+  ListItemIcon,
   ListItemText,
   Typography,
   useMediaQuery,
@@ -13,13 +15,19 @@ import Image from "next/image";
 import ResponsiveDialog from "./dialog/responsive-dialog";
 import { DataRepositoryContext } from "@/providers/data-repository";
 import { useContext } from "react";
+import {
+  PlayArrowOutlinedIcon,
+  PlayCircleOutlineOutlinedIcon,
+} from "@/app/icons";
 
 const CdDetailsDialog = ({
   cdId,
   onDialogClosed,
+  onTrackPlayClick,
 }: {
   cdId: number | null;
   onDialogClosed: () => void;
+  onTrackPlayClick?: (trackIndex: number) => void;
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -76,8 +84,18 @@ const CdDetailsDialog = ({
                     <List>
                       {cd.tracks.map((track, index) => (
                         <div key={index}>
-                          <ListItem>
-                            <ListItemText>{track.title}</ListItemText>
+                          <ListItem sx={{ paddingX: 0 }}>
+                            {onTrackPlayClick && (
+                              <IconButton
+                                sx={{ mr: isMobile ? 0 : 2 }}
+                                onClick={() => onTrackPlayClick(index)}
+                              >
+                                <PlayCircleOutlineOutlinedIcon />
+                              </IconButton>
+                            )}
+                            <ListItemText sx={{ marginTop: "6px" }}>
+                              {track.title}
+                            </ListItemText>
                           </ListItem>
                           <Divider />
                         </div>
