@@ -69,9 +69,7 @@ const CdDetailsDialog = ({
                 <Box
                   sx={{
                     overflow: "auto",
-                    maxHeight: isMobile
-                      ? "calc(100vh - 285px)"
-                      : "calc(100vh - 524px)",
+                    maxHeight: isMobile ? "calc(100vh - 285px)" : "330px",
                   }}
                 >
                   <Box m={2}>
