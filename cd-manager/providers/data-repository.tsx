@@ -21,6 +21,7 @@ export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   getPlayerDefinitionsByStatus: () => [],
   refreshPlayerDefinitions: () => {},
   playerContent: [[], [], []],
+  playerContentByArtist: [{}, {}, {}],
   refreshPlayerContent: () => {},
 });
 
@@ -35,7 +36,7 @@ export const DataRepositoryProvider = ({
     getPlayerDefinitionsByStatus,
     refreshPlayerDefinitions,
   } = usePlayerDefinitionsProviderProps();
-  const { playerContent, refreshPlayerContent } =
+  const { playerContent, playerContentByArtist, refreshPlayerContent } =
     usePlayerContentProviderProps();
   return (
     <DataRepositoryContext.Provider
@@ -47,6 +48,7 @@ export const DataRepositoryProvider = ({
         getPlayerDefinitionsByStatus,
         refreshPlayerDefinitions,
         playerContent,
+        playerContentByArtist,
         refreshPlayerContent,
       }}
     >

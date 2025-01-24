@@ -90,7 +90,7 @@ const fetchAlbumDetails = async (cdid: string, seed: string): Promise<Cd> => {
           fetchAlbumArt(albumData.artist, albumData.title).then(
             (albumArt: AlbumArt) =>
               resolve({
-                id: cdid,
+                id: 0,
                 ...albumData,
                 art: albumArt,
               })

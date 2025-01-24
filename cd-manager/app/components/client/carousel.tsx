@@ -77,45 +77,52 @@ const CarouselSlides = ({
 const Carousel = <T extends {}>({
   items,
   renderItem,
-  selected,
-  onSelectedChange,
+  slideDimensions,
+  containerWidth,
+  selectedIndex,
+  onSelectedIndexChange,
 }: {
   items: T[];
   renderItem: (
     item: T,
     index: number,
     containerWidth: number,
-    itemWidth: string,
-    selected: number
+    itemDimensions: {
+      width: string;
+      height: string;
+    },
+    selectedIndex: number
   ) => React.ReactNode;
-  selected: number;
-  onSelectedChange?: (index: number) => void;
+  slideDimensions: {
+    width: string;
+    height: string;
+  };
+  containerWidth: number;
+  selectedIndex: number;
+  onSelectedIndexChange?: (index: number) => void;
 }) => {
-  const { width, resizeRef } = useResizeObserver();
   const theme = useTheme();
-  const slideWidth =
-    width < 420
-      ? "150px"
-      : width < 630
-        ? "220px"
-        : width < 820
-          ? "280px"
-          : "380px";
+
   return (
     <Box
       sx={{
         display: "flex",
         position: "relative",
       }}
-      ref={resizeRef}
     >
       <CarouselSlides
-        containerWidth={width}
-        selected={selected}
-        onSelectedChange={onSelectedChange}
+        containerWidth={containerWidth}
+        selected={selectedIndex}
+        onSelectedChange={onSelectedIndexChange}
       >
         {items.map((item, index) =>
-          renderItem(item, index, width, slideWidth, selected)
+          renderItem(
+            item,
+            index,
+            containerWidth,
+            slideDimensions,
+            selectedIndex
+          )
         )}
       </CarouselSlides>
       <Box
@@ -124,14 +131,14 @@ const Carousel = <T extends {}>({
           top: 0,
           bottom: 0,
           left: "-5px",
-          width: `calc(${slideWidth} / 2)`,
+          width: `calc(${slideDimensions.width} / 2)`,
           cursor: "pointer",
           background: `linear-gradient(270deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
           zIndex: 200,
         }}
         onClick={(e) => {
-          if (selected > 0) {
-            onSelectedChange?.(selected - 1);
+          if (selectedIndex > 0) {
+            onSelectedIndexChange?.(selectedIndex - 1);
           }
           e.stopPropagation();
           e.preventDefault();
@@ -143,14 +150,14 @@ const Carousel = <T extends {}>({
           top: 0,
           bottom: 0,
           right: "-5px",
-          width: `calc(${slideWidth} / 2)`,
+          width: `calc(${slideDimensions.width} / 2)`,
           cursor: "pointer",
           background: `linear-gradient(90deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
           zIndex: 200,
         }}
         onClick={(e) => {
-          if (selected < items.length - 1) {
-            onSelectedChange?.(selected + 1);
+          if (selectedIndex < items.length - 1) {
+            onSelectedIndexChange?.(selectedIndex + 1);
           }
           e.stopPropagation();
           e.preventDefault();

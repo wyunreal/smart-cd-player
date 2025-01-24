@@ -1,7 +1,10 @@
 import {
   alpha,
   Box,
+  Collapse,
   Divider,
+  Fade,
+  IconButton,
   List,
   ListItem,
   ListItemText,
@@ -13,7 +16,8 @@ import {
 import Image from "next/image";
 import ResponsiveDialog from "./dialog/responsive-dialog";
 import { DataRepositoryContext } from "@/providers/data-repository";
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
+import { CloseIcon } from "@/app/icons";
 
 const DETAILS_PANEL_WIDTH = 300;
 
@@ -28,6 +32,13 @@ const CdDetails = ({
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { getCdById } = useContext(DataRepositoryContext);
   const cd = cdId ? getCdById(cdId) : null;
+
+  const [animationDriver, setAnimationDriver] = useState<boolean>(false);
+  useEffect(() => {
+    if (cd !== null) {
+      setAnimationDriver(true);
+    }
+  }, [cd]);
 
   return isMobile ? (
     <>
@@ -143,7 +154,7 @@ const CdDetails = ({
       </ResponsiveDialog>
     </>
   ) : (
-    <>
+    <Collapse timeout={500} orientation="horizontal" in={animationDriver}>
       {cd && (
         <Box
           sx={{
@@ -151,141 +162,155 @@ const CdDetails = ({
           }}
         >
           <Box sx={{ mx: 2, position: "absolute" }}>
-            <Paper>
-              <div
-                style={{
-                  borderTopLeftRadius: "8px",
-                  borderTopRightRadius: "8px",
-                  overflow: "hidden",
-                }}
-              >
-                <div style={{ filter: "blur(16px)" }}>
-                  <img
-                    src={cd.art?.albumBig || "/cd-placeholder-big.png"}
-                    style={{
-                      height: `${DETAILS_PANEL_WIDTH}px`,
-                      width: "100%",
-                    }}
-                  />
-                </div>
-              </div>
-              <Box
-                sx={{
-                  borderTopLeftRadius: "8px",
-                  borderTopRightRadius: "8px",
-                  marginTop: "-307px",
-                  paddingTop: 1,
-                  position: "relative",
-                  background: `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.7)} 190px, ${alpha(theme.palette.background.paper, 1)} 250px)`,
-                  borderBottomRightRadius: "8px",
-                  borderBottomLeftRadius: "8px",
-                }}
-              >
-                <Box
-                  paddingBottom={2}
-                  minWidth={`${DETAILS_PANEL_WIDTH}px`}
-                  sx={{ marginTop: "203px" }}
+            <Fade timeout={500} in={animationDriver}>
+              <Paper>
+                <div
+                  style={{
+                    borderTopLeftRadius: "8px",
+                    borderTopRightRadius: "8px",
+                    overflow: "hidden",
+                  }}
                 >
-                  <List
-                    sx={{
-                      maxHeight: "calc(100vh - 400px)",
-                      maxWidth: DETAILS_PANEL_WIDTH,
-                      overflow: "auto",
-                      "&::-webkit-scrollbar": {
-                        display: "none",
+                  <div style={{ filter: "blur(16px)" }}>
+                    <img
+                      src={cd.art?.albumBig || "/cd-placeholder-big.png"}
+                      style={{
+                        height: `${DETAILS_PANEL_WIDTH}px`,
+                        width: "100%",
+                      }}
+                    />
+                  </div>
+                </div>
+                <Box
+                  sx={{
+                    borderTopLeftRadius: "8px",
+                    borderTopRightRadius: "8px",
+                    marginTop: "-307px",
+                    paddingTop: 1,
+                    position: "relative",
+                    background: `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.7)} 190px, ${alpha(theme.palette.background.paper, 1)} 250px)`,
+                    borderBottomRightRadius: "8px",
+                    borderBottomLeftRadius: "8px",
+                  }}
+                >
+                  <Box
+                    paddingBottom={2}
+                    minWidth={`${DETAILS_PANEL_WIDTH}px`}
+                    sx={{ marginTop: "203px" }}
+                  >
+                    <List
+                      sx={{
+                        maxHeight: "calc(100vh - 400px)",
+                        maxWidth: DETAILS_PANEL_WIDTH,
+                        overflow: "auto",
+                        "&::-webkit-scrollbar": {
+                          display: "none",
+                          scrollbarWidth: "none",
+                          overflowStyle: "none",
+                        },
                         scrollbarWidth: "none",
                         overflowStyle: "none",
-                      },
-                      scrollbarWidth: "none",
-                      overflowStyle: "none",
+                      }}
+                    >
+                      {cd.tracks.map((track, index) => (
+                        <div key={index}>
+                          <ListItem sx={{ my: "-4px" }}>
+                            <ListItemText>{track.title}</ListItemText>
+                          </ListItem>
+                          <Divider />
+                        </div>
+                      ))}
+                    </List>
+                  </Box>
+                </Box>
+                <div style={{ position: "absolute", top: 80, left: 16 }}>
+                  <Box
+                    sx={{
+                      borderRadius: "8px",
+                      borderColor: "white",
+                      border: "2px solid",
+                      height: 104,
                     }}
                   >
-                    {cd.tracks.map((track, index) => (
-                      <div key={index}>
-                        <ListItem sx={{ my: "-4px" }}>
-                          <ListItemText>{track.title}</ListItemText>
-                        </ListItem>
-                        <Divider />
-                      </div>
-                    ))}
-                  </List>
-                </Box>
-              </Box>
-              <div style={{ position: "absolute", top: 80, left: 16 }}>
-                <Box
-                  sx={{
-                    borderRadius: "8px",
-                    borderColor: "white",
-                    border: "2px solid",
-                    height: 104,
+                    <Image
+                      width={100}
+                      height={100}
+                      src={cd.art?.albumBig || "/cd-placeholder-big.png"}
+                      alt="Album big art"
+                      style={{
+                        borderRadius: "6px",
+                      }}
+                    />
+                  </Box>
+                </div>
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    left: 16,
+                    right: 48,
+                    height: "64px",
+                    display: "flex",
+                    alignItems: "center",
                   }}
                 >
-                  <Image
-                    width={100}
-                    height={100}
-                    src={cd.art?.albumBig || "/cd-placeholder-big.png"}
-                    alt="Album big art"
-                    style={{
-                      borderRadius: "6px",
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                     }}
-                  />
+                  >
+                    {cd.title}
+                  </Typography>
+                </div>
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 80,
+                    left: 136,
+                    right: 16,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      textShadow: `1px 1px 1px ${theme.palette.background.default};`,
+                    }}
+                  >
+                    {cd.artist}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      textShadow: `1px 1px 1px ${theme.palette.background.default};`,
+                    }}
+                  >
+                    {cd.genre}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      textShadow: `1px 1px 1px ${theme.palette.background.default};`,
+                    }}
+                  >
+                    {cd.year != 0 ? cd.year : ""}
+                  </Typography>
+                </div>
+                <Box sx={{ position: "absolute", top: "8px", right: "8px" }}>
+                  <IconButton
+                    onClick={() => {
+                      setAnimationDriver(false);
+                      setTimeout(() => {
+                        onDialogClosed();
+                      }, 500);
+                    }}
+                  >
+                    <CloseIcon />
+                  </IconButton>
                 </Box>
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  left: 16,
-                  right: 16,
-                  height: "64px",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <Typography
-                  variant="h5"
-                  sx={{
-                    textShadow: `1px 1px 1px ${theme.palette.background.default};`,
-                  }}
-                >
-                  {cd.title}
-                </Typography>
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  top: 80,
-                  left: 136,
-                  right: 16,
-                }}
-              >
-                <Typography
-                  sx={{
-                    textShadow: `1px 1px 1px ${theme.palette.background.default};`,
-                  }}
-                >
-                  {cd.artist}
-                </Typography>
-                <Typography
-                  sx={{
-                    textShadow: `1px 1px 1px ${theme.palette.background.default};`,
-                  }}
-                >
-                  {cd.genre}
-                </Typography>
-                <Typography
-                  sx={{
-                    textShadow: `1px 1px 1px ${theme.palette.background.default};`,
-                  }}
-                >
-                  {cd.year != 0 ? cd.year : ""}
-                </Typography>
-              </div>
-            </Paper>
+              </Paper>
+            </Fade>
           </Box>
         </Box>
       )}
-    </>
+    </Collapse>
   );
 };
 
