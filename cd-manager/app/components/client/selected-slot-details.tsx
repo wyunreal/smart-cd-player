@@ -12,7 +12,6 @@ import {
   IconButton,
   List,
   ListItem,
-  ListItemIcon,
   ListItemText,
   Typography,
   useMediaQuery,
@@ -21,7 +20,7 @@ import {
 import HorizontalScroll from "./horizontal-scroll";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 import CdDetailsDialog from "./cd-details-dialog";
-import { use, useState } from "react";
+import { useState } from "react";
 
 const SelectedSlotDetails = ({
   slot,
@@ -36,7 +35,7 @@ const SelectedSlotDetails = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const ottherAlbums = relatedSlots.filter(
+  const otherAlbums = relatedSlots.filter(
     (s) => s.cd?.title !== slot.cd?.title
   );
 
@@ -78,13 +77,23 @@ const SelectedSlotDetails = ({
               isHorizontalLayout
                 ? {
                     borderRight: `1px solid ${alpha(theme.palette.text.primary, 0.2)}`,
+                    flex: 1,
+                    marginLeft: 2,
                   }
                 : {}
             }
           >
-            <Box sx={{ mt: "-8px", mb: "8px" }}>
+            <Box
+              sx={{
+                ml: isHorizontalLayout ? "-16px" : 0,
+                mt: "-8px",
+                mb: "8px",
+              }}
+            >
               <Typography variant="h6">
-                {`More from ${slot.cd.artist}`}
+                {otherAlbums.length > 0
+                  ? `More from ${slot.cd.artist}`
+                  : slot.cd.artist}
               </Typography>
             </Box>
             <Box
@@ -92,6 +101,7 @@ const SelectedSlotDetails = ({
                 display: "flex",
                 flex: 1,
                 alignItems: "center",
+                ml: isHorizontalLayout ? "-16px" : 0,
               }}
             >
               <img
@@ -103,30 +113,42 @@ const SelectedSlotDetails = ({
                   border: `2px solid ${theme.vars.palette.text.primary}`,
                 }}
               />
-              <Box m={2} display={"flex"}>
-                <ArrowForwardIcon />
-              </Box>
-              <HorizontalScroll
-                width={
-                  isHorizontalLayout
-                    ? `calc(${width / 2}px - 144px)`
-                    : `calc(${width}px - 144px)`
-                }
-                items={ottherAlbums.map((s) => (
-                  <img
-                    src={s.cd?.art?.albumSmall || "/cd-placeholder-small.png"}
-                    width="70px"
-                    height="70px"
-                    style={{
-                      marginBottom: "-7px",
-                      borderRadius: "8px",
-                      marginRight: "16px",
-                      border: `2px solid ${theme.vars.palette.text.primary}`,
-                    }}
-                    onClick={() => onRelatedAlbumClick(s)}
-                  />
-                ))}
-              />
+
+              {otherAlbums.length > 0 && (
+                <Box m={2} display={"flex"}>
+                  <ArrowForwardIcon />
+                </Box>
+              )}
+
+              {otherAlbums.length > 0 ? (
+                <HorizontalScroll
+                  width={
+                    isHorizontalLayout
+                      ? `calc(${width / 2}px - 144px)`
+                      : `calc(${width}px - 144px)`
+                  }
+                  items={otherAlbums.map((s) => (
+                    <img
+                      src={s.cd?.art?.albumSmall || "/cd-placeholder-small.png"}
+                      width="70px"
+                      height="70px"
+                      style={{
+                        marginBottom: "-7px",
+                        borderRadius: "8px",
+                        marginRight: "16px",
+                        border: `2px solid ${theme.vars.palette.text.primary}`,
+                      }}
+                      onClick={() => onRelatedAlbumClick(s)}
+                    />
+                  ))}
+                />
+              ) : (
+                <Box sx={{ marginLeft: 2 }}>
+                  <Typography>{slot.cd.genre}</Typography>
+                  <Typography>{slot.cd.year ? slot.cd.year : ""}</Typography>
+                  <Typography>{`${slot.cd.tracks.length} tracks`}</Typography>
+                </Box>
+              )}
             </Box>
           </Box>
           <Box
