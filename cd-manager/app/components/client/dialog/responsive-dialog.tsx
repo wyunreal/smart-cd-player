@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import useTheme from "@mui/material/styles/useTheme";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { DialogContextProvider } from "./dialog-context";
@@ -10,7 +10,7 @@ import { CloseIcon } from "@/app/icons";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 
-const PADDING = 32;
+const PADDING = 16;
 const TITLE_BAR_HEIGHT = 64;
 
 type FullScreenDialogProps = {
@@ -18,6 +18,7 @@ type FullScreenDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   forcedHeight?: number;
+  noHeader?: boolean;
   children: React.ReactNode;
 };
 
@@ -35,6 +36,7 @@ const ResponsiveDialog = ({
   isOpen,
   onClose,
   forcedHeight,
+  noHeader,
   children,
 }: FullScreenDialogProps) => {
   const theme = useTheme();
@@ -55,34 +57,55 @@ const ResponsiveDialog = ({
             ? { borderRadius: 0 }
             : {
                 width: "600px",
-                height:
-                  forcedHeight ?? height + TITLE_BAR_HEIGHT + PADDING + 16,
+                height: forcedHeight ?? height + TITLE_BAR_HEIGHT + 3 * PADDING,
                 transition: "height 0.5s",
                 overflow: "hidden",
                 backgroundColor: theme.vars.palette.section.background,
               },
         }}
       >
-        <AppBar position="relative">
-          <DialogTitle id="customized-dialog-title">{title}</DialogTitle>
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            sx={() => ({
-              position: "absolute",
-              right: 8,
-              top: 12,
-            })}
-          >
-            <CloseIcon />
-          </IconButton>
-        </AppBar>
+        {!noHeader ? (
+          <AppBar position="relative">
+            <DialogTitle id="customized-dialog-title">{title}</DialogTitle>
+            <IconButton
+              aria-label="close"
+              onClick={onClose}
+              sx={() => ({
+                position: "absolute",
+                right: 8,
+                top: 12,
+              })}
+            >
+              <CloseIcon />
+            </IconButton>
+          </AppBar>
+        ) : (
+          <Box position="relative">
+            <IconButton
+              aria-label="close"
+              onClick={onClose}
+              sx={() => ({
+                position: "absolute",
+                right: 12,
+                top: 12,
+                zIndex: 100,
+              })}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        )}
         <Box
           sx={{
             backgroundColor: theme.vars.palette.section.background,
-            padding: isMobile ? "16px" : `${PADDING}px`,
-            minHeight: `calc(100vh - ${TITLE_BAR_HEIGHT}px)`,
-            overflowX: "hidden",
+            paddingY: isMobile ? "16px" : `${PADDING}px`,
+            paddingX: isMobile ? "16px" : `${2 * PADDING}px`,
+            minHeight: isMobile
+              ? noHeader
+                ? "100vh"
+                : `calc(100vh - ${TITLE_BAR_HEIGHT}px)`
+              : "300px",
+            overflow: "hidden",
             [theme.breakpoints.up("md")]: {
               overflow: "hidden",
               minHeight: 0,

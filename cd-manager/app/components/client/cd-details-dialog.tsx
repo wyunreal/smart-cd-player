@@ -5,7 +5,6 @@ import {
   IconButton,
   List,
   ListItem,
-  ListItemIcon,
   ListItemText,
   Typography,
   useMediaQuery,
@@ -15,10 +14,7 @@ import Image from "next/image";
 import ResponsiveDialog from "./dialog/responsive-dialog";
 import { DataRepositoryContext } from "@/providers/data-repository";
 import { useContext } from "react";
-import {
-  PlayArrowOutlinedIcon,
-  PlayCircleOutlineOutlinedIcon,
-} from "@/app/icons";
+import { PlayCircleOutlineOutlinedIcon } from "@/app/icons";
 
 const CdDetailsDialog = ({
   cdId,
@@ -40,13 +36,14 @@ const CdDetailsDialog = ({
         isOpen={cd !== null}
         onClose={onDialogClosed}
         title={cd?.title || "Album details"}
-        forcedHeight={isMobile ? undefined : 600}
+        forcedHeight={isMobile ? undefined : 500}
+        noHeader
       >
         {cd && (
           <Box
             sx={{
               position: "relative",
-              height: "calc(100vh - 46px)",
+              height: "150vh",
             }}
           >
             <div
@@ -76,8 +73,15 @@ const CdDetailsDialog = ({
               <Box paddingBottom={2} sx={{ marginTop: "254px" }}>
                 <Box
                   sx={{
+                    "&::-webkit-scrollbar": {
+                      display: "none",
+                      scrollbarWidth: "none",
+                      overflowStyle: "none",
+                    },
+                    scrollbarWidth: "none",
+                    overflowStyle: "none",
                     overflow: "auto",
-                    maxHeight: isMobile ? "calc(100vh - 285px)" : "330px",
+                    maxHeight: isMobile ? "calc(100vh - 211px)" : "309px",
                   }}
                 >
                   <Box m={2}>
@@ -87,6 +91,7 @@ const CdDetailsDialog = ({
                           <ListItem sx={{ paddingX: 0 }}>
                             {onTrackPlayClick && (
                               <IconButton
+                                color="primary"
                                 sx={{ mr: isMobile ? 0 : 2 }}
                                 onClick={() => onTrackPlayClick(index)}
                               >
@@ -105,7 +110,7 @@ const CdDetailsDialog = ({
                 </Box>
               </Box>
             </Box>
-            <div style={{ position: "absolute", top: 64, left: 16 }}>
+            <div style={{ position: "absolute", top: 64, left: 2 }}>
               <Box
                 sx={{
                   borderRadius: "8px",
@@ -129,33 +134,29 @@ const CdDetailsDialog = ({
               style={{
                 position: "absolute",
                 top: 64,
-                left: 186,
-                right: 0,
+                left: isMobile ? 160 : 176,
+                right: 16,
+                height: "144px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "end",
               }}
             >
               <Typography
-                variant="h4"
+                variant={isMobile ? "body1" : "h6"}
+                sx={{
+                  textShadow: `1px 1px 1px ${theme.palette.background.default};`,
+                }}
+              >
+                {cd.title}
+              </Typography>
+              <Typography
+                variant={isMobile ? "h4" : "h4"}
                 sx={{
                   textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                 }}
               >
                 {cd.artist}
-              </Typography>
-              <Typography
-                variant="h5"
-                sx={{
-                  textShadow: `1px 1px 1px ${theme.palette.background.default};`,
-                }}
-              >
-                {cd.genre}
-              </Typography>
-              <Typography
-                variant="h5"
-                sx={{
-                  textShadow: `1px 1px 1px ${theme.palette.background.default};`,
-                }}
-              >
-                {cd.year != 0 ? cd.year : ""}
               </Typography>
             </div>
           </Box>
