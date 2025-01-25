@@ -212,10 +212,10 @@ const SelectedSlotDetails = ({
                 <Box sx={{ mt: "-8px", mb: "8px" }}>
                   <Typography variant="h6">Tracks</Typography>
                   <Typography
-                    sx={{ mt: "3px" }}
+                    sx={{ mt: "19px" }}
                   >{`${slot.cd.tracks.length} tracks included in the album.`}</Typography>
                   <Button
-                    sx={{ ml: "-6px" }}
+                    sx={{ ml: "-6px", mt: "-4px" }}
                     startIcon={<ListIcon />}
                     onClick={() => setCdIdForTracksDialog(slot.cd?.id || null)}
                   >
