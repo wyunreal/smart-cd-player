@@ -68,12 +68,21 @@ export const fetchAlbumArt = async (
     );
   });
 
-const fetchAlbumDetails = async (cdid: string, seed: string): Promise<Cd> => {
+const fetchAlbumDetails = async (
+  cdid: string,
+  userSeed: string,
+  debug: boolean
+): Promise<Cd> => {
+  if (debug) {
+    console.log(
+      `Fetching album details for ${cdid}, using user seed: ${userSeed}`
+    );
+  }
   return new Promise((resolve, reject) => {
     const options = {
       hostname: "gnudb.gnudb.org",
       port: 80,
-      path: `/~cddb/cddb.cgi?cmd=cddb+read+data+${cdid}&hello=name+my.host.com+gnutest+0.1&proto=6`,
+      path: `/~cddb/cddb.cgi?cmd=cddb+read+data+${cdid}&hello=${userSeed}+smart-cd.eu+smartcd+1.0&proto=6`,
       method: "GET",
     };
 

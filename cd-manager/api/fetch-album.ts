@@ -4,35 +4,43 @@ import { Cd } from "./types";
 
 const fetchAlbumData = async (
   cdidList: string[],
-  seed: string
+  userSeed: string,
+  debug: boolean
 ): Promise<Cd> => {
   if (cdidList.length === 0) {
     return Promise.reject("Empty cd id list");
   }
   return new Promise((resolve, reject) => {
     const cdid = cdidList.shift();
-    fetchAlbumDetails(cdid || "", seed)
+    fetchAlbumDetails(cdid || "", userSeed, debug)
       .then((data) => {
         if (data.artist && data.title && data.tracks.length > 0) {
           resolve(data);
         } else if (cdidList.length > 0) {
-          fetchAlbumData(cdidList, seed).then(resolve);
+          fetchAlbumData(cdidList, userSeed, debug).then(resolve);
         } else {
           reject();
         }
       })
-      .catch(() => fetchAlbumData(cdidList, seed).then(resolve));
+      .catch(() => fetchAlbumData(cdidList, userSeed, debug).then(resolve));
   });
 };
 
 const fetchAlbum = async (
   artistName: string,
   albumName: string,
-  trackCount: number
+  trackCount: number,
+  userSeed: string,
+  debug?: boolean
 ): Promise<Cd> => {
   return new Promise((resolve, reject) => {
-    const seed = Math.round(Math.random() * 10000000).toString();
-    fetchMatchesList(artistName, albumName, trackCount, seed)
+    fetchMatchesList(
+      artistName,
+      albumName,
+      trackCount,
+      userSeed,
+      debug || false
+    )
       .then((matches) => {
         if (matches.length === 0) {
           reject(`No matches found for ${artistName} - ${albumName}`);
@@ -40,7 +48,8 @@ const fetchAlbum = async (
         }
         fetchAlbumData(
           matches.map((match) => match.cdid),
-          seed
+          userSeed,
+          debug || false
         )
           .then((data) => {
             if (data) {

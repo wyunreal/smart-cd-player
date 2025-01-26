@@ -38,9 +38,15 @@ const fetchMatchesList = async (
   artistName: string,
   albumName: string,
   trackCount: number,
-  seed: string
+  userSeed: string,
+  debug: boolean
 ): Promise<CdKey[]> => {
   return new Promise((resolve, reject) => {
+    if (debug) {
+      console.log(
+        `Fetching matches for ${artistName} - ${albumName} - ${trackCount}, suing user seed: ${userSeed}`
+      );
+    }
     const options = {
       hostname: "gnudb.gnudb.org",
       port: 80,
@@ -48,7 +54,7 @@ const fetchMatchesList = async (
         artistName
       )}&album=${encodeURIComponent(
         albumName
-      )}&tracks=${trackCount}&hello=${seed}`,
+      )}&tracks=${trackCount}&&hello=${userSeed}+smart-cd.eu+smartcd+1.0&proto=6`,
       method: "GET",
     };
 
