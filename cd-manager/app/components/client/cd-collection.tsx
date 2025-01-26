@@ -194,7 +194,7 @@ const CdCollection = ({
     },
   ];
 
-  const paginationModel = { page: 0, pageSize: 50 };
+  const paginationModel = { page: 0, pageSize: 10 };
 
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -232,11 +232,10 @@ const CdCollection = ({
           <div ref={resizeRef}>
             <DataGrid
               disableColumnResize
-              rows={Object.values(cds).map((cd, index) => ({
+              rows={Object.values(cds).map((cd) => ({
                 ...cd,
                 albumArt: cd.art?.albumSmall,
-                id: index,
-                cdId: cd.id,
+                id: cd.id,
                 tracksNumber: cd.tracks.length,
               }))}
               columns={columns}
@@ -263,10 +262,7 @@ const CdCollection = ({
               onRowSelectionModelChange={(selection) => {
                 if (selection.length > 0) {
                   setSelectionModel(selection);
-                  onCdSelected(
-                    cds[Number(Object.keys(cds)[selection[0] as number])] ||
-                      null
-                  );
+                  onCdSelected(cds[selection[0] as number]);
                 } else {
                   onCdSelected(null);
                 }

@@ -1,4 +1,4 @@
-import useCdCollecitonProviderProps, {
+import useCdCollectionProviderProps, {
   CdCollectionProps,
 } from "@/app/hooks/use-cd-collection-provider-props";
 import usePlayerContentProviderProps, {
@@ -30,7 +30,7 @@ export const DataRepositoryProvider = ({
 }: {
   children: ReactNode;
 }) => {
-  const { cds, refreshCds, getCdById } = useCdCollecitonProviderProps();
+  const { cds, refreshCds, getCdById } = useCdCollectionProviderProps();
   const {
     playerDefinitions,
     getPlayerDefinitionsByStatus,

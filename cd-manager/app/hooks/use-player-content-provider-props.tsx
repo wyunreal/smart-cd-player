@@ -2,7 +2,7 @@ import { getPlayerContent } from "@/api/cd-player-content";
 import { Cd, CdSlot } from "@/api/types";
 import { useCallback, useEffect, useState } from "react";
 import usePlayerDefinitionsProviderProps from "./use-player-definitions-provider-props";
-import useCdCollecitonProviderProps from "./use-cd-collection-provider-props";
+import useCdCollectionProviderProps from "./use-cd-collection-provider-props";
 
 export type PlayerSlot = {
   slot: number;
@@ -49,7 +49,7 @@ const usePlayerContentProviderProps = () => {
   }, []);
 
   const { playerDefinitions } = usePlayerDefinitionsProviderProps();
-  const { cds } = useCdCollecitonProviderProps();
+  const { cds } = useCdCollectionProviderProps();
   const [rawContent, setRawContent] = useState<CdSlot[][]>([[], [], []]);
   useEffect(() => {
     Promise.all([

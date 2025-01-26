@@ -8,7 +8,7 @@ export type CdCollectionProps = {
   getCdById: (id: number) => Cd | null;
 };
 
-const useCdCollecitonProviderProps = () => {
+const useCdCollectionProviderProps = () => {
   const [cdsCacheVersion, setCdsCacheVersion] = useState(0);
   const [cds, setCds] = useState<{ [id: number]: Cd }>({});
   const refreshCds = useCallback(() => {
@@ -31,4 +31,4 @@ const useCdCollecitonProviderProps = () => {
   return { cds, refreshCds, getCdById };
 };
 
-export default useCdCollecitonProviderProps;
+export default useCdCollectionProviderProps;
