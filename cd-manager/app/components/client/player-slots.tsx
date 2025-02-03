@@ -1,10 +1,9 @@
 "use client";
 
-import { DataRepositoryContext } from "@/providers/data-repository";
+import { DataRepositoryContext, PlayerSlot } from "@/providers/data-repository";
 import { alpha, Box, useTheme } from "@mui/material";
 import React, { useContext } from "react";
 import Carousel from "./carousel";
-import { PlayerSlot } from "@/app/hooks/use-player-content-provider-props";
 
 const PlayerSlots = ({
   selectedPlayer,
@@ -26,7 +25,7 @@ const PlayerSlots = ({
         ? "220px"
         : containerWidth < 820
           ? "280px"
-          : "380px";
+          : "340px";
 
   const theme = useTheme();
   return (

@@ -11,6 +11,7 @@ import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ListIcon from "@mui/icons-material/List";
 import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
 export {
   AlbumIcon,
@@ -26,4 +27,5 @@ export {
   ArrowForwardIcon,
   ListIcon,
   PlayCircleOutlineOutlinedIcon,
+  SettingsOutlinedIcon,
 };

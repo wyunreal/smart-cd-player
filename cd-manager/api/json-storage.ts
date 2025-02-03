@@ -24,3 +24,5 @@ export const writeJsonToFile: (
       reject(new Error(`Error writing JSON to file: ${error}`));
     }
   });
+
+export const fileExists = async (filePath: string) => fs.existsSync(filePath);

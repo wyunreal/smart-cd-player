@@ -1,29 +1,42 @@
 "use client";
 
 import { DataRepositoryContext } from "@/providers/data-repository";
-import {
-  Box,
-  Fade,
-  Slider,
-  Tab,
-  Tabs,
-  Typography,
-  useTheme,
-} from "@mui/material";
-import React, { useCallback, useContext, useState } from "react";
+import { Box, Fade, Slider, Typography, useTheme } from "@mui/material";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import BottomSheet from "../components/client/bottom-sheet";
 import useResizeObserver from "../hooks/use-resize-observer";
 import PlayerSlots from "../components/client/player-slots";
 import SelectedSlotDetails from "../components/client/selected-slot-details";
 
 const Page = () => {
-  const { playerContent, playerContentByArtist, playerDefinitions } =
-    useContext(DataRepositoryContext);
-  const [selectedPlayer, setSelectedPlayer] = useState<0 | 1 | 2>(0);
-  const [selectedSlot, setSelectedSlot] = useState<number[]>([0, 0, 0]);
+  const {
+    playerContent,
+    playerContentByArtist,
+    playerDefinitions,
+    selectedPlayer,
+  } = useContext(DataRepositoryContext);
+  const [selectedPlayerRemoteIndex, setSelectedPlayerRemoteIndex] = useState<
+    1 | 2 | 3
+  >(1);
+  useEffect(() => {
+    if (selectedPlayer !== null) {
+      setPageShown(false);
+      setTimeout(() => {
+        setSelectedPlayerRemoteIndex(selectedPlayer);
+        setTimeout(() => {
+          setPageShown(true);
+        }, 500);
+      }, 500);
+    }
+  }, [selectedPlayer]);
 
+  const [selectedSlot, setSelectedSlot] = useState<number[]>([0, 0, 0]);
   const currentSlot =
-    playerContent[selectedPlayer][selectedSlot[selectedPlayer]];
+    selectedPlayerRemoteIndex !== null
+      ? playerContent[selectedPlayerRemoteIndex - 1][
+          selectedSlot[selectedPlayerRemoteIndex - 1]
+        ]
+      : null;
   const currentSlotNumber = currentSlot?.slot || 0;
   const [pageShown, setPageShown] = useState(true);
   const { width, resizeRef } = useResizeObserver();
@@ -60,26 +73,6 @@ const Page = () => {
             flexGrow: 1,
           }}
         >
-          <Tabs
-            value={selectedPlayer}
-            onChange={(event: React.SyntheticEvent, newValue: number) => {
-              if (newValue === 0 || newValue === 1 || newValue === 2) {
-                setPageShown(false);
-                setTimeout(() => {
-                  setSelectedSlot([0, 0, 0]);
-                  setSelectedPlayer(newValue);
-                  setTimeout(() => {
-                    setPageShown(true);
-                  }, 500);
-                }, 500);
-              }
-            }}
-            centered
-          >
-            {playerDefinitions.map((player, i) => (
-              <Tab label={`Player ${i + 1}`} key={i} />
-            ))}
-          </Tabs>
           <Fade timeout={250} in={width > 0 && pageShown}>
             <Box
               sx={{
@@ -99,10 +92,17 @@ const Page = () => {
               >
                 <Box ref={resizeRef}>
                   <PlayerSlots
-                    selectedPlayer={selectedPlayer}
-                    selectedSlot={selectedSlot[selectedPlayer]}
+                    selectedPlayer={
+                      (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2
+                    }
+                    selectedSlot={selectedSlot[selectedPlayerRemoteIndex - 1]}
                     handleSelectedSlotChange={(slot) => {
-                      setSelectedSlot(buildSelectedSlot(slot, selectedPlayer));
+                      setSelectedSlot(
+                        buildSelectedSlot(
+                          slot,
+                          (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2
+                        )
+                      );
                     }}
                     containerWidth={width}
                   />
@@ -139,14 +139,17 @@ const Page = () => {
                       slot={currentSlot}
                       relatedSlots={
                         currentSlot.cd
-                          ? playerContentByArtist[selectedPlayer][
-                              currentSlot.cd.artist
-                            ] || []
+                          ? playerContentByArtist[
+                              selectedPlayerRemoteIndex - 1
+                            ][currentSlot.cd.artist] || []
                           : []
                       }
                       onRelatedAlbumClick={(slot) => {
                         setSelectedSlot(
-                          buildSelectedSlot(slot.slot - 1, selectedPlayer)
+                          buildSelectedSlot(
+                            slot.slot - 1,
+                            (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2
+                          )
                         );
                       }}
                     />
@@ -157,17 +160,20 @@ const Page = () => {
                 <Slider
                   valueLabelDisplay="auto"
                   valueLabelFormat={(v) => currentSlotNumber.toString()}
-                  value={selectedSlot[selectedPlayer]}
+                  value={selectedSlot[selectedPlayerRemoteIndex - 1]}
                   step={1}
                   min={0}
                   max={
-                    playerContent[selectedPlayer].length > 0
-                      ? playerContent[selectedPlayer].length - 1
+                    playerContent[selectedPlayerRemoteIndex - 1].length > 0
+                      ? playerContent[selectedPlayerRemoteIndex - 1].length - 1
                       : 0
                   }
                   onChange={(e, v) => {
                     setSelectedSlot(
-                      buildSelectedSlot(v as number, selectedPlayer)
+                      buildSelectedSlot(
+                        v as number,
+                        (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2
+                      )
                     );
                   }}
                   sx={{

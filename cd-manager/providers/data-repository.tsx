@@ -13,6 +13,8 @@ import React, {
 export type PlayerDefinitionsProps = {
   playerDefinitions: PlayerDefinition[] | null;
   getPlayerDefinitionsByStatus: (isActive: boolean) => PlayerDefinition[];
+  selectedPlayer: 1 | 2 | 3 | null;
+  setSelectedPlayer: (player: 1 | 2 | 3) => void;
   refreshPlayerDefinitions: () => void;
 };
 
@@ -62,6 +64,8 @@ export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   getCdById: () => null,
   playerDefinitions: null,
   getPlayerDefinitionsByStatus: () => [],
+  selectedPlayer: null,
+  setSelectedPlayer: () => {},
   refreshPlayerDefinitions: () => {},
   playerContent: [[], [], []],
   playerContentByArtist: [{}, {}, {}],
@@ -102,11 +106,24 @@ export const DataRepositoryProvider = ({
   const [playerDefinitions, setPlayerDefinitions] = useState<
     PlayerDefinition[]
   >([]);
+  const [selectedPlayer, setSelectedPlayer] = useState<1 | 2 | 3 | null>(null);
   const refreshPlayerDefinitions = useCallback(() => {
     setDefinitionsCacheVersion((v) => v + 1);
   }, []);
   useEffect(() => {
-    getPlayerDefinitions().then(setPlayerDefinitions);
+    getPlayerDefinitions().then((playerDef) => {
+      setPlayerDefinitions(playerDef);
+      const selectedPlayerDefinition = playerDef.find(
+        (def) => def.remoteIndex === selectedPlayer
+      );
+      if (!selectedPlayerDefinition) {
+        if (playerDef.length > 0) {
+          setSelectedPlayer(playerDef[0].remoteIndex);
+        } else {
+          setSelectedPlayer(null);
+        }
+      }
+    });
   }, [definititionsCacheVersion]);
   const getPlayerDefinitionsByStatus = useCallback(
     (isActive: boolean) =>
@@ -182,6 +199,8 @@ export const DataRepositoryProvider = ({
         getCdById,
         playerDefinitions,
         getPlayerDefinitionsByStatus,
+        selectedPlayer,
+        setSelectedPlayer,
         refreshPlayerDefinitions,
         playerContent,
         playerContentByArtist,
