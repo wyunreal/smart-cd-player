@@ -8,7 +8,7 @@ import SidebarFooterAccount, {
 } from "./sidebar-footer-account";
 import { useTheme } from "@mui/material";
 import MainActions from "../components/client/main-actions";
-import { DataRepositoryProvider } from "@/providers/data-repository";
+import { DataRepositoryProvider } from "@/app/providers/data-repository";
 
 export default function Layout(props: { children: React.ReactNode }) {
   const theme = useTheme();

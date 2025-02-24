@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import Image from "next/image";
 import ResponsiveDialog from "./dialog/responsive-dialog";
-import { DataRepositoryContext } from "@/providers/data-repository";
+import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { useContext } from "react";
 import { PlayCircleOutlineOutlinedIcon } from "@/app/icons";
 

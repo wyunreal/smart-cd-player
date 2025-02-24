@@ -22,7 +22,7 @@ import useEditCdForm from "@/app/hooks/use-edit-cd-form";
 import useConfirmDialog from "@/app/hooks/use-confirm-dialog";
 import { deleteCd, fetchCdArt } from "@/api/cd-collection";
 import useSnackbar from "@/app/hooks/use-snackbar";
-import { DataRepositoryContext } from "@/providers/data-repository";
+import { DataRepositoryContext } from "@/app/providers/data-repository";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 
 const CdCollection = ({

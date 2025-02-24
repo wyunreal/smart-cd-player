@@ -1,6 +1,9 @@
 "use client";
 
-import { DataRepositoryContext, PlayerSlot } from "@/providers/data-repository";
+import {
+  DataRepositoryContext,
+  PlayerSlot,
+} from "@/app/providers/data-repository";
 import { alpha, Box, useTheme } from "@mui/material";
 import React, { useContext } from "react";
 import Carousel from "./carousel";

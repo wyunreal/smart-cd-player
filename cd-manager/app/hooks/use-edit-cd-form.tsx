@@ -1,7 +1,7 @@
 import CdForm from "@/app/forms/cd-form";
 import { useContext, useState } from "react";
 import ResponsiveDialog from "../components/client/dialog/responsive-dialog";
-import { DataRepositoryContext } from "@/providers/data-repository";
+import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { CdInputData } from "@/api/types";
 import { editCd } from "@/api/cd-collection";
 

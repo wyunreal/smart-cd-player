@@ -13,8 +13,8 @@ import React, {
 export type PlayerDefinitionsProps = {
   playerDefinitions: PlayerDefinition[] | null;
   getPlayerDefinitionsByStatus: (isActive: boolean) => PlayerDefinition[];
-  selectedPlayer: 1 | 2 | 3 | null;
-  setSelectedPlayer: (player: 1 | 2 | 3) => void;
+  selectedPlayer: number | null;
+  setSelectedPlayer: (player: number) => void;
   refreshPlayerDefinitions: () => void;
 };
 
@@ -106,7 +106,7 @@ export const DataRepositoryProvider = ({
   const [playerDefinitions, setPlayerDefinitions] = useState<
     PlayerDefinition[]
   >([]);
-  const [selectedPlayer, setSelectedPlayer] = useState<1 | 2 | 3 | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
   const refreshPlayerDefinitions = useCallback(() => {
     setDefinitionsCacheVersion((v) => v + 1);
   }, []);

@@ -2,7 +2,7 @@
 
 export type PlayerDefinition = {
   active: boolean;
-  remoteIndex: 1 | 2 | 3;
+  remoteIndex: number;
   capacity: number;
 };
 

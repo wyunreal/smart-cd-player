@@ -12,10 +12,7 @@ import {
 } from "@mui/material";
 import musicGenres from "./genres";
 import { CdInputData } from "@/api/types";
-
-const capitalizeFirstLetter = (string: string) => {
-  return string.charAt(0).toUpperCase() + string.slice(1);
-};
+import { capitalizeFirstLetter } from "../util/string";
 
 const CdForm = ({
   cd,

@@ -5,7 +5,7 @@ import { Box } from "@mui/material";
 import CdCollection from "../../components/client/cd-collection";
 import CdDetails from "../../components/client/cd-details";
 import FullScreenSpinner from "../../components/client/full-screen-spinner";
-import { DataRepositoryContext } from "@/providers/data-repository";
+import { DataRepositoryContext } from "@/app/providers/data-repository";
 
 export default () => {
   const { cds } = useContext(DataRepositoryContext);

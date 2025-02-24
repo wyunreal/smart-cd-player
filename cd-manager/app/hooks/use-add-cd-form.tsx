@@ -2,7 +2,7 @@ import CdForm from "@/app/forms/cd-form";
 import { useContext, useState } from "react";
 import { addCd } from "@/api/cd-collection";
 import ResponsiveDialog from "../components/client/dialog/responsive-dialog";
-import { DataRepositoryContext } from "@/providers/data-repository";
+import { DataRepositoryContext } from "@/app/providers/data-repository";
 
 const useAddCdForm = () => {
   const [isAddCdDialogOpen, setIsAddCdDialogOpen] = useState(false);

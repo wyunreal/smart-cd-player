@@ -1,6 +1,6 @@
 "use client";
 
-import { DataRepositoryContext } from "@/providers/data-repository";
+import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { Box, Fade, Slider, Typography, useTheme } from "@mui/material";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import BottomSheet from "../components/client/bottom-sheet";
@@ -15,9 +15,8 @@ const Page = () => {
     playerDefinitions,
     selectedPlayer,
   } = useContext(DataRepositoryContext);
-  const [selectedPlayerRemoteIndex, setSelectedPlayerRemoteIndex] = useState<
-    1 | 2 | 3
-  >(1);
+  const [selectedPlayerRemoteIndex, setSelectedPlayerRemoteIndex] =
+    useState<number>(1);
   useEffect(() => {
     if (selectedPlayer !== null) {
       setPageShown(false);
