@@ -10,6 +10,8 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
+  FormControlLabel,
+  Switch,
 } from "@mui/material";
 import { PlayerDefinition } from "@/api/types";
 import { DEFINITIONS_COUNT, VALID_CAPACITY } from "@/api/cd-player-definitions";
@@ -42,69 +44,46 @@ const PlayerDefinitionForm = ({
   };
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-      <Box sx={{ margin: "16px 0" }}>
-        <FormControl fullWidth>
-          <InputLabel id="player1-capacity-label">Capacity</InputLabel>
-          <Select
-            labelId="player1-capacity-label"
-            id="player1-capacity"
-            value={(definitions[0].capacity || VALID_CAPACITY[0]).toString()}
-            label="Capacity"
-            onChange={(event: SelectChangeEvent) => {
-              definitions[0].capacity = Number(event.target.value);
-              setDefinitions([...definitions]);
-            }}
-          >
-            {VALID_CAPACITY.map((capacity, index) => (
-              <MenuItem key={index} value={capacity.toString()}>
-                {capacity}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-      <Box sx={{ margin: "16px 0" }}>
-        <FormControl fullWidth>
-          <InputLabel id="player2-capacity-label">Capacity</InputLabel>
-          <Select
-            labelId="player2-capacity-label"
-            id="player2-capacity"
-            value={(definitions[1].capacity || VALID_CAPACITY[0]).toString()}
-            label="Capacity"
-            onChange={(event: SelectChangeEvent) => {
-              definitions[1].capacity = Number(event.target.value);
-              setDefinitions([...definitions]);
-            }}
-          >
-            {VALID_CAPACITY.map((capacity, index) => (
-              <MenuItem key={index} value={capacity.toString()}>
-                {capacity}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-      <Box sx={{ margin: "16px 0" }}>
-        <FormControl fullWidth>
-          <InputLabel id="player3-capacity-label">Capacity</InputLabel>
-          <Select
-            labelId="player3-capacity-label"
-            id="player2-capacity"
-            value={(definitions[2].capacity || VALID_CAPACITY[0]).toString()}
-            label="Capacity"
-            onChange={(event: SelectChangeEvent) => {
-              definitions[2].capacity = Number(event.target.value);
-              setDefinitions([...definitions]);
-            }}
-          >
-            {VALID_CAPACITY.map((capacity, index) => (
-              <MenuItem key={index} value={capacity.toString()}>
-                {capacity}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
+      {definitions.map((definition, index) => (
+        <Box key={index} sx={{ marginBottom: 2 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={definition.active}
+                onChange={(event) => {
+                  definitions[index].active = !!event.target.checked;
+                  setDefinitions([...definitions]);
+                }}
+              />
+            }
+            label={`Player ${index + 1}`}
+            labelPlacement="start"
+            sx={{ margin: 0 }}
+          />
+          <Box sx={{ marginTop: 1, marginBottom: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel id="player1-capacity-label">Capacity</InputLabel>
+              <Select
+                labelId="player1-capacity-label"
+                id="player1-capacity"
+                value={(definition.capacity || VALID_CAPACITY[0]).toString()}
+                label="Capacity"
+                onChange={(event: SelectChangeEvent) => {
+                  definitions[index].capacity = Number(event.target.value);
+                  setDefinitions([...definitions]);
+                }}
+              >
+                {VALID_CAPACITY.map((capacity, index) => (
+                  <MenuItem key={index} value={capacity.toString()}>
+                    {capacity}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </Box>
+      ))}
+
       <Box sx={{ display: "flex", flexDirection: "row-reverse" }}>
         <Button
           type="submit"

@@ -1,7 +1,6 @@
 import {
   Button,
   Divider,
-  ListItemIcon,
   ListItemText,
   MenuItem,
   Select,
@@ -20,11 +19,19 @@ const MainActions = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { openAddCdForm, addCdFormInstance } = useAddCdForm();
-  const { selectedPlayer, setSelectedPlayer, playerDefinitions } = useContext(
-    DataRepositoryContext
-  );
+  const {
+    selectedPlayer,
+    setSelectedPlayer,
+    playerDefinitions,
+    playerContent,
+  } = useContext(DataRepositoryContext);
   const { editPlayerDefinitionFormInstance, openEditPlayerDefinitionForm } =
     useEditPlayerDefinitionForm();
+
+  const playerIsEmpty = (playerIndex: number) =>
+    playerContent[playerIndex].length === 1 &&
+    playerContent[playerIndex][0].cd === null;
+
   return (
     <>
       {path === "/" && (
@@ -33,12 +40,8 @@ const MainActions = () => {
             id="player-select"
             onChange={(e) => {
               const selectedValue = e.target.value;
-              if (
-                selectedValue === 1 ||
-                selectedValue === 2 ||
-                selectedValue === 3
-              ) {
-                setSelectedPlayer(selectedValue);
+              if (Number(selectedValue) !== 0) {
+                setSelectedPlayer(Number(selectedValue));
               } else if (playerDefinitions && playerDefinitions.length > 0) {
                 openEditPlayerDefinitionForm(playerDefinitions);
               }
@@ -48,18 +51,24 @@ const MainActions = () => {
             sx={{ fontSize: "1.2rem" }}
             disableUnderline
           >
-            <MenuItem value={1} sx={{ display: "flex" }}>
-              <ListItemText primary="Player 1" />
-            </MenuItem>
-            <MenuItem value={2}>
-              <ListItemText primary="Player 2" />
-            </MenuItem>
-            <MenuItem value={3}>
-              <ListItemText primary="Player 3" />
-            </MenuItem>
-            {playerDefinitions && playerDefinitions.length > 0 && <Divider />}
+            {playerDefinitions &&
+              playerDefinitions.map(
+                (player, index) =>
+                  (player.active || !playerIsEmpty(index)) && (
+                    <MenuItem
+                      key={`player${index}`}
+                      value={index + 1}
+                      sx={{ display: "flex" }}
+                    >
+                      <ListItemText primary={`Player ${index + 1}`} />
+                    </MenuItem>
+                  )
+              )}
             {playerDefinitions && playerDefinitions.length > 0 && (
-              <MenuItem value={0}>
+              <Divider key="divider" />
+            )}
+            {playerDefinitions && playerDefinitions.length > 0 && (
+              <MenuItem key="configure" value={0}>
                 <ListItemText primary="Configure players" />
               </MenuItem>
             )}
