@@ -5,6 +5,7 @@ import { Button, IconButton, ListItemIcon, ListItemText } from "@mui/material";
 import useTheme from "@mui/material/styles/useTheme";
 
 type BaseAction = {
+  type: "action";
   caption: string;
   icon?: React.ReactNode;
 };
@@ -18,11 +19,15 @@ type MenuOption = BaseMenuOption & {
   alertIcon?: React.ReactNode;
 };
 
+type MenuDivider = {
+  type: "divider";
+};
+
 type MenuProps = {
   icon: React.ReactNode;
   alert?: boolean;
   caption?: string;
-  options: readonly MenuOption[];
+  options: readonly (MenuOption | MenuDivider)[];
   menuId: string;
 };
 
@@ -40,7 +45,9 @@ const Menu = ({ menuId, icon, alert, caption, options }: MenuProps) => {
   const handleCloseMenu = () => {
     setAnchorElement(null);
   };
-  const insetItems = !!options.find((option) => !!option.icon);
+  const insetItems = !!options.find(
+    (option) => option.type === "action" && !!option.icon
+  );
   return (
     <>
       {caption ? (
@@ -71,6 +78,10 @@ const Menu = ({ menuId, icon, alert, caption, options }: MenuProps) => {
         }}
       >
         {options.map((option, index) => {
+          if (option.type === "divider") {
+            return <MenuItem key={index} divider />;
+          }
+
           const { caption, icon, alertIcon, handler } = option;
 
           return (

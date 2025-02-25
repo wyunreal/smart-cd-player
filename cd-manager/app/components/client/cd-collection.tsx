@@ -1,13 +1,13 @@
 "use client";
 
-import { AlbumArt, Cd } from "@/api/types";
+import { Cd } from "@/api/types";
 import {
   DeleteOutlinedIcon,
   EditOutlinedIcon,
   ImageOutlinedIcon,
   MoreVertIcon,
 } from "@/app/icons";
-import { Avatar, Box, Paper } from "@mui/material";
+import { Avatar, Box, Divider, Paper } from "@mui/material";
 import {
   DataGrid,
   gridClasses,
@@ -110,6 +110,7 @@ const CdCollection = ({
               menuId={menuId}
               options={[
                 {
+                  type: "action",
                   icon: <EditOutlinedIcon />,
                   caption: "Edit",
                   handler: () => {
@@ -128,6 +129,7 @@ const CdCollection = ({
                   },
                 },
                 {
+                  type: "action",
                   icon: <ImageOutlinedIcon />,
                   caption: "Fetch albun art",
                   handler: () => {
@@ -159,6 +161,7 @@ const CdCollection = ({
                   },
                 },
                 {
+                  type: "action",
                   icon: <DeleteOutlinedIcon />,
                   caption: "Delete",
                   handler: () => {
@@ -184,6 +187,14 @@ const CdCollection = ({
                         },
                       });
                     }
+                  },
+                },
+                { type: "divider" },
+                {
+                  type: "action",
+                  caption: "Add to player",
+                  handler: () => {
+                    alert("Add to player");
                   },
                 },
               ]}
