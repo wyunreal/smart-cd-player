@@ -8,6 +8,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import { on } from "events";
 import { useState } from "react";
 
 type StepProps<StepperData> = {
@@ -23,10 +24,13 @@ type Step<StepperData> = {
 
 type StepperProps<StepperData, Result> = {
   steps: Step<StepperData>[];
-  ResultScreen: React.FunctionComponent<{ result: Result | null }>;
+  ResultScreen?: React.FunctionComponent<{ result: Result | null }>;
   initialData: StepperData;
   operationName?: string;
-  onDataSubmitted: (data: StepperData) => Promise<Result>;
+  closeActionName?: string;
+  onDataSubmission: (data: StepperData) => Promise<Result>;
+  onResultReception?: (result: Result) => void;
+  onClose: () => void;
 };
 
 const Flow = <StepperData, Result>({
@@ -34,7 +38,10 @@ const Flow = <StepperData, Result>({
   ResultScreen,
   initialData,
   operationName,
-  onDataSubmitted,
+  closeActionName,
+  onDataSubmission,
+  onResultReception,
+  onClose,
 }: StepperProps<StepperData, Result>) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -44,17 +51,14 @@ const Flow = <StepperData, Result>({
   const [result, setResult] = useState<Result | null>(null);
 
   const ActiveStepContent =
-    activeStep < steps.length ? steps[activeStep].content : () => undefined;
+    activeStep < steps.length ? steps[activeStep].content : undefined;
 
   const onDataChanged = (newData: StepperData) => {
     setData(newData);
   };
-
   return (
     <>
-      {isMobile ? (
-        <></>
-      ) : (
+      {!isMobile && (
         <Box marginTop={2} marginX="-8px">
           <Stepper activeStep={activeStep}>
             {steps.map(({ label, title }, index) => {
@@ -68,9 +72,7 @@ const Flow = <StepperData, Result>({
           </Stepper>
         </Box>
       )}
-      {activeStep === steps.length ? (
-        <>end of flow</>
-      ) : (
+      {
         <>
           <Box marginY={2}>
             <Stack direction="column" spacing={2}>
@@ -81,7 +83,7 @@ const Flow = <StepperData, Result>({
                     onDataChanged={onDataChanged}
                   />
                 ) : (
-                  <ResultScreen result={result} />
+                  ResultScreen && <ResultScreen result={result} />
                 )}
               </div>
               <div>
@@ -93,7 +95,7 @@ const Flow = <StepperData, Result>({
                 >
                   <Button
                     variant="outlined"
-                    disabled={activeStep === 0}
+                    disabled={activeStep === 0 || activeStep === steps.length}
                     onClick={() =>
                       setActiveStep((prevActiveStep) => prevActiveStep - 1)
                     }
@@ -115,13 +117,25 @@ const Flow = <StepperData, Result>({
                     <Button
                       variant="contained"
                       onClick={() =>
-                        onDataSubmitted(data).then((result) => {
+                        onDataSubmission(data).then((result) => {
                           setResult(result);
-                          setActiveStep((prevActiveStep) => prevActiveStep + 1);
+                          if (ResultScreen) {
+                            setActiveStep(
+                              (prevActiveStep) => prevActiveStep + 1
+                            );
+                          }
+                          if (onResultReception) {
+                            onResultReception(result);
+                          }
                         })
                       }
                     >
                       {operationName || "Submit"}
+                    </Button>
+                  )}
+                  {activeStep === steps.length && (
+                    <Button variant="contained" onClick={onClose}>
+                      {closeActionName || "Close"}
                     </Button>
                   )}
                 </Stack>
@@ -129,7 +143,7 @@ const Flow = <StepperData, Result>({
             </Stack>
           </Box>
         </>
-      )}
+      }
     </>
   );
 };

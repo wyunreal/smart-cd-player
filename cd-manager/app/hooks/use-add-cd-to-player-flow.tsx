@@ -12,6 +12,7 @@ type AddCdToPlayerData = {
 const useAddCdToPlayerFlow = () => {
   const [isAddCdToPlayerFlowOpen, setIsAddCdToPlayerFlowOpen] = useState(false);
   const [cd, setCd] = useState<Cd | undefined>();
+  const closeDialog = () => setIsAddCdToPlayerFlowOpen(false);
   //const {} = useContext(DataRepositoryContext);
   return {
     openAddCdToPlayerFlow: ({ cd }: { cd: Cd }) => {
@@ -22,7 +23,7 @@ const useAddCdToPlayerFlow = () => {
       <ResponsiveDialog
         title="Add CD to player"
         isOpen={isAddCdToPlayerFlowOpen}
-        onClose={() => setIsAddCdToPlayerFlowOpen(false)}
+        onClose={closeDialog}
       >
         <Flow<AddCdToPlayerData | null, boolean>
           steps={[
@@ -39,14 +40,20 @@ const useAddCdToPlayerFlow = () => {
             result ? <>CD added to player</> : <>CD not added to player</>
           }
           initialData={{ cd }}
-          onDataSubmitted={(data) =>
+          operationName="Add CD"
+          closeActionName="Confirm"
+          onDataSubmission={(data) =>
             new Promise<boolean>((resolve) => {
-              alert(
+              console.log(
                 `Adding CD ${data?.cd?.id} to slot ${data?.slot} on player ${data?.player}`
               );
               resolve(true);
             })
           }
+          onResultReception={(result) => {
+            console.log("Result received", result);
+          }}
+          onClose={closeDialog}
         />
       </ResponsiveDialog>
     ),

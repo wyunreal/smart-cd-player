@@ -259,7 +259,7 @@ const CdCollection = ({
               }))}
               columns={columns}
               initialState={{ pagination: { paginationModel } }}
-              pageSizeOptions={[50]}
+              pageSizeOptions={[10]}
               rowSelection
               isCellEditable={() => false}
               autoPageSize={false}
