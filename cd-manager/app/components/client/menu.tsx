@@ -1,7 +1,13 @@
 import * as React from "react";
 import { default as MuiMenu } from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { Button, IconButton, ListItemIcon, ListItemText } from "@mui/material";
+import {
+  Button,
+  Divider,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+} from "@mui/material";
 import useTheme from "@mui/material/styles/useTheme";
 
 type BaseAction = {
@@ -79,7 +85,7 @@ const Menu = ({ menuId, icon, alert, caption, options }: MenuProps) => {
       >
         {options.map((option, index) => {
           if (option.type === "divider") {
-            return <MenuItem key={index} divider />;
+            return <Divider key={index} sx={{ height: "2px" }} />;
           }
 
           const { caption, icon, alertIcon, handler } = option;

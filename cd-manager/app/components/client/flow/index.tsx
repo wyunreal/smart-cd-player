@@ -21,13 +21,17 @@ type Step<StepperData> = {
 
 type StepperProps<StepperData, Result> = {
   steps: Step<StepperData>[];
+  ResultScreen: React.FunctionComponent<{ result: Result }>;
   initialData: StepperData;
+  operationName?: string;
   onDataSubmitted: (data: StepperData) => Promise<Result>;
 };
 
 const Flow = <StepperData, Result>({
   steps,
+  ResultScreen,
   initialData,
+  operationName,
   onDataSubmitted,
 }: StepperProps<StepperData, Result>) => {
   const theme = useTheme();
@@ -35,8 +39,10 @@ const Flow = <StepperData, Result>({
 
   const [activeStep, setActiveStep] = useState(0);
   const [data, setData] = useState(initialData);
+  const [result, setResult] = useState<Result | null>(null);
 
-  const ActiveStepContent = steps[activeStep].content;
+  const ActiveStepContent =
+    activeStep < steps.length ? steps[activeStep].content : () => undefined;
 
   const onDataChanged = (newData: StepperData) => {
     setData(newData);
@@ -64,7 +70,10 @@ const Flow = <StepperData, Result>({
         <>end of flow</>
       ) : (
         <>
-          <ActiveStepContent data={data} onDataChanged={onDataChanged} />
+          {ActiveStepContent && (
+            <ActiveStepContent data={data} onDataChanged={onDataChanged} />
+          )}
+          {result && <ResultScreen result={result} />}
 
           <Button
             disabled={activeStep === 0}
@@ -75,13 +84,27 @@ const Flow = <StepperData, Result>({
             Back
           </Button>
 
-          <Button
-            onClick={() =>
-              setActiveStep((prevActiveStep) => prevActiveStep + 1)
-            }
-          >
-            {activeStep === steps.length - 1 ? "Finish" : "Next"}
-          </Button>
+          {activeStep < steps.length - 1 && (
+            <Button
+              onClick={() =>
+                setActiveStep((prevActiveStep) => prevActiveStep + 1)
+              }
+            >
+              "Next"
+            </Button>
+          )}
+          {activeStep === steps.length - 1 && (
+            <Button
+              onClick={() =>
+                onDataSubmitted(data).then((result) => {
+                  setResult(result);
+                  setActiveStep((prevActiveStep) => prevActiveStep + 1);
+                })
+              }
+            >
+              {operationName || "Submit"}
+            </Button>
+          )}
         </>
       )}
     </>
