@@ -35,6 +35,9 @@ const useAddCdToPlayerFlow = () => {
               content: () => <>Summary</>,
             },
           ]}
+          ResultScreen={({ result }) =>
+            result ? <>CD added to player</> : <>CD not added to player</>
+          }
           initialData={{ cd }}
           onDataSubmitted={(data) =>
             new Promise<boolean>((resolve) => {

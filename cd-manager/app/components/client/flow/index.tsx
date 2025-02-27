@@ -1,5 +1,7 @@
 import {
+  Box,
   Button,
+  Stack,
   Step,
   StepLabel,
   Stepper,
@@ -21,7 +23,7 @@ type Step<StepperData> = {
 
 type StepperProps<StepperData, Result> = {
   steps: Step<StepperData>[];
-  ResultScreen: React.FunctionComponent<{ result: Result }>;
+  ResultScreen: React.FunctionComponent<{ result: Result | null }>;
   initialData: StepperData;
   operationName?: string;
   onDataSubmitted: (data: StepperData) => Promise<Result>;
@@ -53,7 +55,7 @@ const Flow = <StepperData, Result>({
       {isMobile ? (
         <></>
       ) : (
-        <>
+        <Box marginTop={2} marginX="-8px">
           <Stepper activeStep={activeStep}>
             {steps.map(({ label, title }, index) => {
               const stepProps: { completed?: boolean } = {};
@@ -64,47 +66,68 @@ const Flow = <StepperData, Result>({
               );
             })}
           </Stepper>
-        </>
+        </Box>
       )}
       {activeStep === steps.length ? (
         <>end of flow</>
       ) : (
         <>
-          {ActiveStepContent && (
-            <ActiveStepContent data={data} onDataChanged={onDataChanged} />
-          )}
-          {result && <ResultScreen result={result} />}
+          <Box marginY={2}>
+            <Stack direction="column" spacing={2}>
+              <div>
+                {ActiveStepContent ? (
+                  <ActiveStepContent
+                    data={data}
+                    onDataChanged={onDataChanged}
+                  />
+                ) : (
+                  <ResultScreen result={result} />
+                )}
+              </div>
+              <div>
+                <Stack
+                  direction="row"
+                  justifyContent={"end"}
+                  spacing={2}
+                  marginBottom={1}
+                >
+                  <Button
+                    variant="outlined"
+                    disabled={activeStep === 0}
+                    onClick={() =>
+                      setActiveStep((prevActiveStep) => prevActiveStep - 1)
+                    }
+                  >
+                    Back
+                  </Button>
 
-          <Button
-            disabled={activeStep === 0}
-            onClick={() =>
-              setActiveStep((prevActiveStep) => prevActiveStep - 1)
-            }
-          >
-            Back
-          </Button>
-
-          {activeStep < steps.length - 1 && (
-            <Button
-              onClick={() =>
-                setActiveStep((prevActiveStep) => prevActiveStep + 1)
-              }
-            >
-              "Next"
-            </Button>
-          )}
-          {activeStep === steps.length - 1 && (
-            <Button
-              onClick={() =>
-                onDataSubmitted(data).then((result) => {
-                  setResult(result);
-                  setActiveStep((prevActiveStep) => prevActiveStep + 1);
-                })
-              }
-            >
-              {operationName || "Submit"}
-            </Button>
-          )}
+                  {activeStep < steps.length - 1 && (
+                    <Button
+                      variant="contained"
+                      onClick={() =>
+                        setActiveStep((prevActiveStep) => prevActiveStep + 1)
+                      }
+                    >
+                      Next
+                    </Button>
+                  )}
+                  {activeStep === steps.length - 1 && (
+                    <Button
+                      variant="contained"
+                      onClick={() =>
+                        onDataSubmitted(data).then((result) => {
+                          setResult(result);
+                          setActiveStep((prevActiveStep) => prevActiveStep + 1);
+                        })
+                      }
+                    >
+                      {operationName || "Submit"}
+                    </Button>
+                  )}
+                </Stack>
+              </div>
+            </Stack>
+          </Box>
         </>
       )}
     </>

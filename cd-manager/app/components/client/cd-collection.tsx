@@ -6,6 +6,7 @@ import {
   EditOutlinedIcon,
   ImageOutlinedIcon,
   MoreVertIcon,
+  PlaylistAddOutlinedIcon,
 } from "@/app/icons";
 import { Avatar, Box, Divider, Paper } from "@mui/material";
 import {
@@ -195,6 +196,7 @@ const CdCollection = ({
                 { type: "divider" },
                 {
                   type: "action",
+                  icon: <PlaylistAddOutlinedIcon />,
                   caption: "Add to player",
                   handler: () => {
                     if (params.value !== undefined) {
