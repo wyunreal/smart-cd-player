@@ -24,6 +24,7 @@ import { deleteCd, fetchCdArt } from "@/api/cd-collection";
 import useSnackbar from "@/app/hooks/use-snackbar";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
+import useAddCdToPlayerFlow from "@/app/hooks/use-add-cd-to-player-flow";
 
 const CdCollection = ({
   cds,
@@ -36,6 +37,8 @@ const CdCollection = ({
 
   const { openEditCdForm, editCdFormInstance } = useEditCdForm();
   const { confirmDialog, confirmDialogInstance } = useConfirmDialog();
+  const { openAddCdToPlayerFlow, addCdToPlayerFlowInstance } =
+    useAddCdToPlayerFlow();
   const { openSnackbar, snackbarInstance } = useSnackbar();
 
   const { refreshCds } = useContext(DataRepositoryContext);
@@ -194,7 +197,10 @@ const CdCollection = ({
                   type: "action",
                   caption: "Add to player",
                   handler: () => {
-                    alert("Add to player");
+                    if (params.value !== undefined) {
+                      const cd = cds[Number(params.value)];
+                      openAddCdToPlayerFlow({ cd });
+                    }
                   },
                 },
               ]}
@@ -285,6 +291,7 @@ const CdCollection = ({
       {editCdFormInstance}
       {confirmDialogInstance}
       {snackbarInstance}
+      {addCdToPlayerFlowInstance}
     </Box>
   );
 };
