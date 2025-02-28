@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Slide,
   Stack,
   Step,
   StepLabel,
@@ -56,6 +57,31 @@ const Flow = <StepperData, Result>({
   const onDataChanged = (newData: StepperData) => {
     setData(newData);
   };
+
+  const [animationId1, setAnimationId1] = useState(0);
+  const [animationId2, setAnimationId2] = useState(0);
+  const [animationDirection, setAnimationDirection] = useState<
+    "next" | "back" | undefined
+  >();
+
+  const handleNext = () => {
+    setAnimationDirection("next");
+    setAnimationId1(activeStep + 1);
+    setTimeout(() => {
+      setAnimationId2(activeStep + 1);
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    }, 250);
+  };
+
+  const handleBack = () => {
+    setAnimationDirection("back");
+    setAnimationId1(activeStep - 1);
+    setTimeout(() => {
+      setAnimationId2(activeStep - 1);
+      setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    }, 250);
+  };
+
   return (
     <>
       {!isMobile && (
@@ -73,9 +99,24 @@ const Flow = <StepperData, Result>({
         </Box>
       )}
       {
-        <>
-          <Box marginY={2}>
-            <Stack direction="column" spacing={2}>
+        <Box marginY={2}>
+          <Stack direction="column" spacing={2}>
+            <Slide
+              key={activeStep}
+              direction={
+                animationId1 === animationId2
+                  ? animationDirection === "next"
+                    ? "left"
+                    : "right"
+                  : animationDirection === "next"
+                    ? "right"
+                    : "left"
+              }
+              in={animationId1 === animationId2}
+              timeout={animationDirection !== undefined ? 250 : 0}
+              mountOnEnter
+              unmountOnExit
+            >
               <div>
                 {ActiveStepContent ? (
                   <ActiveStepContent
@@ -86,63 +127,54 @@ const Flow = <StepperData, Result>({
                   ResultScreen && <ResultScreen result={result} />
                 )}
               </div>
-              <div>
-                <Stack
-                  direction="row"
-                  justifyContent={"end"}
-                  spacing={2}
-                  marginBottom={1}
+            </Slide>
+            <div>
+              <Stack
+                direction="row"
+                justifyContent={"end"}
+                spacing={2}
+                marginBottom={1}
+              >
+                <Button
+                  variant="outlined"
+                  disabled={activeStep === 0 || activeStep === steps.length}
+                  onClick={handleBack}
                 >
+                  Back
+                </Button>
+
+                {activeStep < steps.length - 1 && (
+                  <Button variant="contained" onClick={handleNext}>
+                    Next
+                  </Button>
+                )}
+                {activeStep === steps.length - 1 && (
                   <Button
-                    variant="outlined"
-                    disabled={activeStep === 0 || activeStep === steps.length}
+                    variant="contained"
                     onClick={() =>
-                      setActiveStep((prevActiveStep) => prevActiveStep - 1)
+                      onDataSubmission(data).then((result) => {
+                        setResult(result);
+                        if (ResultScreen) {
+                          handleNext();
+                        }
+                        if (onResultReception) {
+                          onResultReception(result);
+                        }
+                      })
                     }
                   >
-                    Back
+                    {operationName || "Submit"}
                   </Button>
-
-                  {activeStep < steps.length - 1 && (
-                    <Button
-                      variant="contained"
-                      onClick={() =>
-                        setActiveStep((prevActiveStep) => prevActiveStep + 1)
-                      }
-                    >
-                      Next
-                    </Button>
-                  )}
-                  {activeStep === steps.length - 1 && (
-                    <Button
-                      variant="contained"
-                      onClick={() =>
-                        onDataSubmission(data).then((result) => {
-                          setResult(result);
-                          if (ResultScreen) {
-                            setActiveStep(
-                              (prevActiveStep) => prevActiveStep + 1
-                            );
-                          }
-                          if (onResultReception) {
-                            onResultReception(result);
-                          }
-                        })
-                      }
-                    >
-                      {operationName || "Submit"}
-                    </Button>
-                  )}
-                  {activeStep === steps.length && (
-                    <Button variant="contained" onClick={onClose}>
-                      {closeActionName || "Close"}
-                    </Button>
-                  )}
-                </Stack>
-              </div>
-            </Stack>
-          </Box>
-        </>
+                )}
+                {activeStep === steps.length && (
+                  <Button variant="contained" onClick={onClose}>
+                    {closeActionName || "Close"}
+                  </Button>
+                )}
+              </Stack>
+            </div>
+          </Stack>
+        </Box>
       }
     </>
   );
