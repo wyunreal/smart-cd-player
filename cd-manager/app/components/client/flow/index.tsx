@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Fade,
   Slide,
   Stack,
   Step,
@@ -11,6 +12,8 @@ import {
 } from "@mui/material";
 import { on } from "events";
 import { useState } from "react";
+
+const TRANSITION_DURATION = 300;
 
 type StepProps<StepperData> = {
   data: StepperData;
@@ -70,7 +73,7 @@ const Flow = <StepperData, Result>({
     setTimeout(() => {
       setAnimationId2(activeStep + 1);
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
-    }, 250);
+    }, TRANSITION_DURATION);
   };
 
   const handleBack = () => {
@@ -79,7 +82,7 @@ const Flow = <StepperData, Result>({
     setTimeout(() => {
       setAnimationId2(activeStep - 1);
       setActiveStep((prevActiveStep) => prevActiveStep - 1);
-    }, 250);
+    }, TRANSITION_DURATION);
   };
 
   return (
@@ -101,33 +104,43 @@ const Flow = <StepperData, Result>({
       {
         <Box marginY={2}>
           <Stack direction="column" spacing={2}>
-            <Slide
-              key={activeStep}
-              direction={
-                animationId1 === animationId2
-                  ? animationDirection === "next"
-                    ? "left"
-                    : "right"
-                  : animationDirection === "next"
-                    ? "right"
-                    : "left"
-              }
+            <Fade
               in={animationId1 === animationId2}
-              timeout={animationDirection !== undefined ? 250 : 0}
-              mountOnEnter
-              unmountOnExit
+              timeout={TRANSITION_DURATION}
             >
-              <div>
-                {ActiveStepContent ? (
-                  <ActiveStepContent
-                    data={data}
-                    onDataChanged={onDataChanged}
-                  />
-                ) : (
-                  ResultScreen && <ResultScreen result={result} />
-                )}
-              </div>
-            </Slide>
+              <Box>
+                <Slide
+                  key={activeStep}
+                  direction={
+                    animationId1 === animationId2
+                      ? animationDirection === "next"
+                        ? "left"
+                        : "right"
+                      : animationDirection === "next"
+                        ? "right"
+                        : "left"
+                  }
+                  in={animationId1 === animationId2}
+                  easing={"ease-out"}
+                  timeout={
+                    animationDirection !== undefined ? TRANSITION_DURATION : 0
+                  }
+                  mountOnEnter
+                  unmountOnExit
+                >
+                  <div>
+                    {ActiveStepContent ? (
+                      <ActiveStepContent
+                        data={data}
+                        onDataChanged={onDataChanged}
+                      />
+                    ) : (
+                      ResultScreen && <ResultScreen result={result} />
+                    )}
+                  </div>
+                </Slide>
+              </Box>
+            </Fade>
             <div>
               <Stack
                 direction="row"
