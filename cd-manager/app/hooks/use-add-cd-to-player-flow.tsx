@@ -2,20 +2,16 @@ import { useState } from "react";
 import ResponsiveDialog from "../components/client/dialog/responsive-dialog";
 import Flow from "../components/client/flow";
 import { Cd } from "@/api/types";
-
-type AddCdToPlayerData = {
-  player?: number;
-  slot?: number;
-  cd?: Cd;
-};
+import { AddCdToPlayerData } from "../forms/add-cd-to-player/types";
+import SlotForm from "../forms/add-cd-to-player/slot-form";
+import Confirm from "../forms/add-cd-to-player/confirm";
 
 const useAddCdToPlayerFlow = () => {
   const [isAddCdToPlayerFlowOpen, setIsAddCdToPlayerFlowOpen] = useState(false);
   const [cd, setCd] = useState<Cd | undefined>();
   const closeDialog = () => setIsAddCdToPlayerFlowOpen(false);
-  //const {} = useContext(DataRepositoryContext);
   return {
-    openAddCdToPlayerFlow: ({ cd }: { cd: Cd }) => {
+    openAddCdToPlayerFlow: ({ cd }: { cd?: Cd }) => {
       setCd(cd);
       setIsAddCdToPlayerFlowOpen(true);
     },
@@ -25,15 +21,17 @@ const useAddCdToPlayerFlow = () => {
         isOpen={isAddCdToPlayerFlowOpen}
         onClose={closeDialog}
       >
-        <Flow<AddCdToPlayerData | null, boolean>
+        <Flow<AddCdToPlayerData, boolean>
           steps={[
             {
               title: "Select slot",
-              content: () => <>{`Slot selection for cd ${cd?.id}`}</>,
+              content: SlotForm,
+              validate: () => null,
             },
             {
               title: "Summary",
-              content: () => <>Summary</>,
+              content: Confirm,
+              validate: () => null,
             },
           ]}
           ResultScreen={({ result }) =>

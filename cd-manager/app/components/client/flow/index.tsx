@@ -10,13 +10,13 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { on } from "events";
 import { useState } from "react";
 
 const TRANSITION_DURATION = 300;
 
-type StepProps<StepperData> = {
+export type StepProps<StepperData> = {
   data: StepperData;
+  errors: { [key: string]: string } | null;
   onDataChanged: (data: StepperData) => void;
 };
 
@@ -24,6 +24,7 @@ type Step<StepperData> = {
   label?: string;
   title: string;
   content: React.FunctionComponent<StepProps<StepperData>>;
+  validate?: (data: StepperData) => { [key: string]: string } | null;
 };
 
 type StepperProps<StepperData, Result> = {
@@ -53,6 +54,9 @@ const Flow = <StepperData, Result>({
   const [activeStep, setActiveStep] = useState(0);
   const [data, setData] = useState(initialData);
   const [result, setResult] = useState<Result | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  } | null>(null);
 
   const ActiveStepContent =
     activeStep < steps.length ? steps[activeStep].content : undefined;
@@ -132,6 +136,7 @@ const Flow = <StepperData, Result>({
                     {ActiveStepContent ? (
                       <ActiveStepContent
                         data={data}
+                        errors={validationErrors}
                         onDataChanged={onDataChanged}
                       />
                     ) : (
@@ -157,24 +162,39 @@ const Flow = <StepperData, Result>({
                 </Button>
 
                 {activeStep < steps.length - 1 && (
-                  <Button variant="contained" onClick={handleNext}>
+                  <Button
+                    variant="contained"
+                    onClick={() => {
+                      const validationErrors =
+                        steps[activeStep].validate?.(data) || null;
+                      if (validationErrors === null) {
+                        handleNext();
+                      }
+                      setValidationErrors(validationErrors);
+                    }}
+                  >
                     Next
                   </Button>
                 )}
                 {activeStep === steps.length - 1 && (
                   <Button
                     variant="contained"
-                    onClick={() =>
-                      onDataSubmission(data).then((result) => {
-                        setResult(result);
-                        if (ResultScreen) {
-                          handleNext();
-                        }
-                        if (onResultReception) {
-                          onResultReception(result);
-                        }
-                      })
-                    }
+                    onClick={() => {
+                      const validationErrors =
+                        steps[activeStep].validate?.(data) || null;
+                      if (validationErrors === null) {
+                        onDataSubmission(data).then((result) => {
+                          setResult(result);
+                          if (ResultScreen) {
+                            handleNext();
+                          }
+                          if (onResultReception) {
+                            onResultReception(result);
+                          }
+                        });
+                      }
+                      setValidationErrors(validationErrors);
+                    }}
                   >
                     {operationName || "Submit"}
                   </Button>
