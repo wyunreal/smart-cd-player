@@ -33,6 +33,26 @@ const useAddCdToPlayerFlow = () => {
               content: Confirm,
               validate: () => null,
             },
+            {
+              title: "Select slot",
+              content: SlotForm,
+              validate: () => null,
+            },
+            {
+              title: "Summary",
+              content: Confirm,
+              validate: () => null,
+            },
+            {
+              title: "Select slot",
+              content: SlotForm,
+              validate: () => null,
+            },
+            {
+              title: "Summary",
+              content: Confirm,
+              validate: () => null,
+            },
           ]}
           ResultScreen={({ result }) =>
             result ? <>CD added to player</> : <>CD not added to player</>

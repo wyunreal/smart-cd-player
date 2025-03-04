@@ -2,50 +2,107 @@ import {
   TransitionGroup,
   Transition as ReactTransition,
 } from "react-transition-group";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import React from "react";
 
-type TransitionKind<RC> = {
-  children: RC;
-  location: string;
-};
+const TIMEOUT: number = 250;
 
-const TIMEOUT: number = 200;
-
-const getTransitionStyles: any = {
+const getForwardTransitionStyles: any = {
   entering: {
-    position: `absolute`,
-    opacity: 0,
-    transform: `translateX(50px)`,
-  },
-  entered: {
     transition: `opacity ${TIMEOUT}ms ease-in-out, transform ${TIMEOUT}ms ease-in-out`,
     opacity: 1,
-    transform: `translateX(0px)`,
-    animation: "blink .3s linear 2",
+    transform: `scale(1) translate3d(0, 0, 0)`,
+  },
+  entered: {
+    transition: `opacity 0ms ease-in-out, transform 0ms ease-in-out`,
+    opacity: 1,
+    transform: `scale(1) translate3d(0, 0, 0)`,
   },
   exiting: {
     transition: `opacity ${TIMEOUT}ms ease-in-out, transform ${TIMEOUT}ms ease-in-out`,
-    opacity: 1,
-    transform: `translateX(-50px)`,
+    opacity: 0,
+    transform: "scale(0.95) translate3d(0px, 0, 0px)",
   },
   exited: {
-    transition: `opacity ${TIMEOUT}ms ease-in-out, transform ${TIMEOUT}ms ease-in-out`,
+    transition: `opacity 0ms ease-in-out, transform 0ms ease-in-out`,
     opacity: 0,
-    transform: `translateX(0px)`,
-    animation: "blink .3s linear 2",
+    transform: "scale(1) translate3d(150px, 0, 0)",
   },
 };
+
+const getBackwardTransitionStyles: any = {
+  entering: {
+    transition: `opacity ${TIMEOUT}ms ease-in-out, transform ${TIMEOUT}ms ease-in-out`,
+    opacity: 1,
+    transform: `scale(1) translate3d(0, 0, 0)`,
+  },
+  entered: {
+    transition: `opacity 0ms ease-in-out, transform 0ms ease-in-out`,
+    opacity: 1,
+    transform: `scale(1) translate3d(0, 0, 0)`,
+  },
+  exiting: {
+    transition: `opacity ${TIMEOUT}ms ease-in-out, transform ${TIMEOUT}ms ease-in-out`,
+    opacity: 0,
+    transform: "scale(0.95) translate3d(0px, 0, 0px)",
+  },
+  exited: {
+    transition: `opacity 0ms ease-in-out, transform 0ms ease-in-out`,
+    opacity: 0,
+    transform: "scale(1) translate3d(-150px, 0, 0)",
+  },
+};
+
 const Transition = ({
   currentExitId,
   newEnterId,
+  direction,
   children,
 }: {
   currentExitId: number;
   newEnterId: number;
+  direction: "forward" | "backward";
   children: ReactNode;
 }) => {
-  const ref = React.createRef<HTMLElement>();
+  const [state, setState] = React.useState<
+    "entering" | "entered" | "exiting" | "exited"
+  >("entered");
+  const [initialized, setInitialized] = React.useState(false);
+
+  console.log("Transition", currentExitId, newEnterId, direction, state);
+
+  useEffect(() => {
+    if (!initialized) {
+      setInitialized(true);
+    } else {
+      if (currentExitId !== newEnterId) {
+        setState("exiting");
+        setTimeout(() => {
+          setState("exited");
+        }, TIMEOUT);
+      } else {
+        setState("entering");
+        setTimeout(() => {
+          setState("entered");
+        }, TIMEOUT);
+      }
+    }
+  }, [currentExitId, newEnterId, direction]);
+
+  return (
+    <div
+      style={{
+        ...(direction === "forward"
+          ? getForwardTransitionStyles[state]
+          : getBackwardTransitionStyles[state]),
+      }}
+    >
+      {children}
+    </div>
+  );
+
+  /*
+  const ref = React.useRef(null);
   return (
     <ReactTransition
       timeout={{
@@ -60,7 +117,7 @@ const Transition = ({
         return (
           <div
             style={{
-              ...getTransitionStyles[status],
+              ...getForwardTransitionStyles[status],
             }}
           >
             {children}
@@ -68,6 +125,6 @@ const Transition = ({
         );
       }}
     </ReactTransition>
-  );
+  );*/
 };
 export default Transition;

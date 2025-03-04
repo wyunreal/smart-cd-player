@@ -11,7 +11,7 @@ import {
 import { useState } from "react";
 import Transition from "../transition";
 
-const TRANSITION_DURATION = 200;
+const TRANSITION_DURATION = 300;
 
 export type StepProps<StepperData> = {
   data: StepperData;
@@ -51,6 +51,7 @@ const Flow = <StepperData, Result>({
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [activeStep, setActiveStep] = useState(0);
+  const [currentExitId, setCurrentExitId] = useState(0);
   const [data, setData] = useState(initialData);
   const [result, setResult] = useState<Result | null>(null);
   const [validationErrors, setValidationErrors] = useState<{
@@ -64,17 +65,24 @@ const Flow = <StepperData, Result>({
     setData(newData);
   };
 
-  const [currentExitId, setCurrentExitId] = useState(activeStep);
+  const [transitionDirection, setTransitionDirection] = useState<
+    "forward" | "backward"
+  >("forward");
 
   const handleNext = () => {
-    setCurrentExitId(activeStep + 1);
+    setTransitionDirection("forward");
+    setCurrentExitId((s) => s + 1);
     setTimeout(() => {
-      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+      setActiveStep((s) => s + 1);
     }, TRANSITION_DURATION);
   };
 
   const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    setTransitionDirection("backward");
+    setCurrentExitId((s) => s - 1);
+    setTimeout(() => {
+      setActiveStep((s) => s - 1);
+    }, TRANSITION_DURATION);
   };
 
   return (
@@ -96,7 +104,11 @@ const Flow = <StepperData, Result>({
       {
         <Box marginY={2}>
           <Stack direction="column" spacing={2}>
-            <Transition currentExitId={currentExitId} newEnterId={activeStep}>
+            <Transition
+              direction={transitionDirection}
+              currentExitId={currentExitId}
+              newEnterId={activeStep}
+            >
               <div>
                 {ActiveStepContent ? (
                   <ActiveStepContent
@@ -130,10 +142,10 @@ const Flow = <StepperData, Result>({
                     onClick={() => {
                       const validationErrors =
                         steps[activeStep].validate?.(data) || null;
+                      setValidationErrors(validationErrors);
                       if (validationErrors === null) {
                         handleNext();
                       }
-                      setValidationErrors(validationErrors);
                     }}
                   >
                     Next
