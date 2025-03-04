@@ -3,15 +3,15 @@ import React from "react";
 type State = "entering" | "entered" | "exiting" | "exited";
 type Direction = "forward" | "backward";
 type TransitionStyles = {
-  entering?: any;
-  entered?: any;
-  exiting?: any;
-  exited?: any;
+  entering?: React.CSSProperties;
+  entered?: React.CSSProperties;
+  exiting?: React.CSSProperties;
+  exited?: React.CSSProperties;
 };
 type TransitionData = [
   (transitionExecutor: () => void) => void,
   (transitionExecutor: () => void) => void,
-  any,
+  React.CSSProperties,
 ];
 
 const getTransitionStyles = (
@@ -19,7 +19,7 @@ const getTransitionStyles = (
   backwardStyles: TransitionStyles | undefined,
   state: State,
   direction: Direction
-): any => {
+): React.CSSProperties => {
   if (direction === "forward" || !backwardStyles) {
     return forwardStyles[state] || {};
   } else {
