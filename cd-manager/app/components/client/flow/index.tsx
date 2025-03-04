@@ -1,3 +1,4 @@
+import useTransition from "@/app/hooks/use-transition";
 import {
   Box,
   Button,
@@ -9,9 +10,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useState } from "react";
-import Transition from "../transition";
-
-const TRANSITION_DURATION = 300;
+import React from "react";
 
 export type StepProps<StepperData> = {
   data: StepperData;
@@ -37,6 +36,54 @@ type StepperProps<StepperData, Result> = {
   onClose: () => void;
 };
 
+const TRANSITION_DURATION: number = 250;
+
+const forwardTransitionStyles: any = {
+  entering: {
+    transition: `${TRANSITION_DURATION}ms ease-in-out`,
+    opacity: 1,
+    transform: `scale(1) translate3d(0, 0, 0)`,
+  },
+  entered: {
+    transition: `0ms`,
+    opacity: 1,
+    transform: `scale(1) translate3d(0, 0, 0)`,
+  },
+  exiting: {
+    transition: `${TRANSITION_DURATION}ms ease-in-out`,
+    opacity: 0,
+    transform: "scale(0.95) translate3d(0px, 0, 0px)",
+  },
+  exited: {
+    transition: `0ms`,
+    opacity: 0,
+    transform: "scale(1) translate3d(150px, 0, 0)",
+  },
+};
+
+const backwardTransitionStyles: any = {
+  entering: {
+    transition: `${TRANSITION_DURATION}ms ease-in-out`,
+    opacity: 1,
+    transform: `scale(1) translate3d(0, 0, 0)`,
+  },
+  entered: {
+    transition: `0ms`,
+    opacity: 1,
+    transform: `scale(1) translate3d(0, 0, 0)`,
+  },
+  exiting: {
+    transition: `${TRANSITION_DURATION}ms ease-in-out`,
+    opacity: 0,
+    transform: "scale(0.95) translate3d(0px, 0, 0px)",
+  },
+  exited: {
+    transition: `0ms`,
+    opacity: 0,
+    transform: "scale(1) translate3d(-150px, 0, 0)",
+  },
+};
+
 const Flow = <StepperData, Result>({
   steps,
   ResultScreen,
@@ -51,7 +98,6 @@ const Flow = <StepperData, Result>({
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [activeStep, setActiveStep] = useState(0);
-  const [currentExitId, setCurrentExitId] = useState(0);
   const [data, setData] = useState(initialData);
   const [result, setResult] = useState<Result | null>(null);
   const [validationErrors, setValidationErrors] = useState<{
@@ -61,29 +107,11 @@ const Flow = <StepperData, Result>({
   const ActiveStepContent =
     activeStep < steps.length ? steps[activeStep].content : undefined;
 
-  const onDataChanged = (newData: StepperData) => {
-    setData(newData);
-  };
-
-  const [transitionDirection, setTransitionDirection] = useState<
-    "forward" | "backward"
-  >("forward");
-
-  const handleNext = () => {
-    setTransitionDirection("forward");
-    setCurrentExitId((s) => s + 1);
-    setTimeout(() => {
-      setActiveStep((s) => s + 1);
-    }, TRANSITION_DURATION);
-  };
-
-  const handleBack = () => {
-    setTransitionDirection("backward");
-    setCurrentExitId((s) => s - 1);
-    setTimeout(() => {
-      setActiveStep((s) => s - 1);
-    }, TRANSITION_DURATION);
-  };
+  const [goForward, goBackward, transitionStyles] = useTransition({
+    forwardStyles: forwardTransitionStyles,
+    backwardStyles: backwardTransitionStyles,
+    timeout: TRANSITION_DURATION,
+  });
 
   return (
     <>
@@ -104,23 +132,17 @@ const Flow = <StepperData, Result>({
       {
         <Box marginY={2}>
           <Stack direction="column" spacing={2}>
-            <Transition
-              direction={transitionDirection}
-              currentExitId={currentExitId}
-              newEnterId={activeStep}
-            >
-              <div>
-                {ActiveStepContent ? (
-                  <ActiveStepContent
-                    data={data}
-                    errors={validationErrors}
-                    onDataChanged={onDataChanged}
-                  />
-                ) : (
-                  ResultScreen && <ResultScreen result={result} />
-                )}
-              </div>
-            </Transition>
+            <div style={transitionStyles}>
+              {ActiveStepContent ? (
+                <ActiveStepContent
+                  data={data}
+                  errors={validationErrors}
+                  onDataChanged={setData}
+                />
+              ) : (
+                ResultScreen && <ResultScreen result={result} />
+              )}
+            </div>
             <div>
               <Stack
                 direction="row"
@@ -131,7 +153,11 @@ const Flow = <StepperData, Result>({
                 <Button
                   variant="outlined"
                   disabled={activeStep === 0 || activeStep === steps.length}
-                  onClick={handleBack}
+                  onClick={() =>
+                    goBackward(() => {
+                      setActiveStep((s) => s - 1);
+                    })
+                  }
                 >
                   Back
                 </Button>
@@ -144,7 +170,9 @@ const Flow = <StepperData, Result>({
                         steps[activeStep].validate?.(data) || null;
                       setValidationErrors(validationErrors);
                       if (validationErrors === null) {
-                        handleNext();
+                        goForward(() => {
+                          setActiveStep((s) => s + 1);
+                        });
                       }
                     }}
                   >
@@ -161,7 +189,9 @@ const Flow = <StepperData, Result>({
                         onDataSubmission(data).then((result) => {
                           setResult(result);
                           if (ResultScreen) {
-                            handleNext();
+                            goForward(() => {
+                              setActiveStep((s) => s + 1);
+                            });
                           }
                           if (onResultReception) {
                             onResultReception(result);
