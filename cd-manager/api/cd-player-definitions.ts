@@ -4,7 +4,8 @@ import { PlayerDefinition } from "./types";
 export const DEFINITIONS_COUNT = 3;
 export const VALID_CAPACITY = [50, 100, 200, 300, 400];
 
-const FILE_PATH = "data/player-definitions.json";
+const DATA_DIR = process.env.DATA_DIR || "../data/db";
+const FILE_PATH = `${DATA_DIR}/player-definitions.json`;
 const readFile = async () => readJsonFromFile(FILE_PATH) || [];
 
 export const getPlayerDefinitions = async (): Promise<PlayerDefinition[]> => {
@@ -20,7 +21,7 @@ export const getPlayerDefinitions = async (): Promise<PlayerDefinition[]> => {
 };
 
 export const savePlayerDefinitions = async (
-  definitions: PlayerDefinition[]
+  definitions: PlayerDefinition[],
 ) => {
   writeJsonToFile(FILE_PATH, definitions);
 };

@@ -6,7 +6,8 @@ import { fetchAlbumArt } from "./fetch-album-details";
 import { readJsonFromFile, writeJsonToFile } from "./json-storage";
 import { Cd, CdInputData } from "./types";
 
-const FILE_PATH = "data/cd-collection.json";
+const DATA_DIR = process.env.DATA_DIR || "../data/db";
+const FILE_PATH = `${DATA_DIR}/cd-collection.json`;
 const readFile = async () => readJsonFromFile(FILE_PATH) || [];
 
 export const getCdCollection: () => Promise<Cd[]> = async () => {
@@ -21,7 +22,7 @@ export const addCd = async (cdData: CdInputData) => {
       cdData.artist,
       cdData.album,
       cdData.tracksNumber,
-      userSeed
+      userSeed,
     );
   } catch (e) {
     cdDetails = {
@@ -49,7 +50,7 @@ export const addCd = async (cdData: CdInputData) => {
 export const editCd = async (
   cdData: CdInputData,
   cdId: number,
-  fetchCdDetails?: boolean
+  fetchCdDetails?: boolean,
 ) => {
   const userSeed = await getGnuDbSeed();
   const fetchDetails = fetchCdDetails ?? true;
@@ -65,7 +66,7 @@ export const editCd = async (
         cdData.artist,
         cdData.album,
         cdData.tracksNumber,
-        userSeed
+        userSeed,
       );
     } catch (e) {
       cdDetails = {
