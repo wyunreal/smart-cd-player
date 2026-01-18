@@ -1,4 +1,4 @@
-import { PlayerSlot } from "@/app/hooks/use-player-content-provider-props";
+import { PlayerSlot } from "@/app/providers/data-repository";
 import {
   ArrowForwardIcon,
   ListIcon,
@@ -36,11 +36,11 @@ const SelectedSlotDetails = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const otherAlbums = relatedSlots.filter(
-    (s) => s.cd?.title !== slot.cd?.title
+    (s) => s.cd?.title !== slot.cd?.title,
   );
 
   const [cdIdForTracksDialog, setCdIdForTracksDialog] = useState<number | null>(
-    null
+    null,
   );
 
   const isHorizontalLayout = width >= 617;

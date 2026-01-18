@@ -33,26 +33,6 @@ const useAddCdToPlayerFlow = () => {
               content: Confirm,
               validate: () => null,
             },
-            {
-              title: "Select slot",
-              content: SlotForm,
-              validate: () => null,
-            },
-            {
-              title: "Summary",
-              content: Confirm,
-              validate: () => null,
-            },
-            {
-              title: "Select slot",
-              content: SlotForm,
-              validate: () => null,
-            },
-            {
-              title: "Summary",
-              content: Confirm,
-              validate: () => null,
-            },
           ]}
           ResultScreen={({ result }) =>
             result ? <>CD added to player</> : <>CD not added to player</>
@@ -63,7 +43,7 @@ const useAddCdToPlayerFlow = () => {
           onDataSubmission={(data) =>
             new Promise<boolean>((resolve) => {
               console.log(
-                `Adding CD ${data?.cd?.id} to slot ${data?.slot} on player ${data?.player}`
+                `Adding CD ${data?.cd?.id} to slot ${data?.slot} on player ${data?.player}`,
               );
               resolve(true);
             })

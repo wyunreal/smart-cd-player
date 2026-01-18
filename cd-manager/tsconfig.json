@@ -33,7 +33,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "app/forms/add-cd-to-player"  ],
   "exclude": [
     "node_modules"
   ]
