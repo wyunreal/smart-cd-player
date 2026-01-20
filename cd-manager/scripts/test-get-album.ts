@@ -16,33 +16,41 @@ const fetchAlbumData = async (barcode: string) => {
 
   try {
     console.log(`Searching for album with barcode: ${barcode}...`);
-    const albumData = await searchByBarCode(barcode);
+    const result = await searchByBarCode(barcode);
 
-    if (albumData) {
-      console.log("\n✓ Album found:");
-      console.log(`Title: ${albumData.title}`);
-      console.log(`Artist: ${albumData.artist}`);
-      console.log(`Year: ${albumData.year || "N/A"}`);
-      console.log(`Genre: ${albumData.genre}`);
-      console.log(`Tracks: ${albumData.tracks.length}`);
+    if (result.rateLimit) {
+      console.log(
+        `\nRate Limit: ${result.rateLimit.remaining}/${result.rateLimit.limit} requests remaining\n`,
+      );
+    }
 
-      if (albumData.art?.allImages && albumData.art.allImages.length > 0) {
-        console.log("\nAll Images:");
-        albumData.art.allImages.forEach((img, index) => {
-          console.log(
-            `  [${index}] Type: ${img.type} | Size: ${img.width}x${img.height}`,
-          );
-          console.log(`      Full: ${img.uri}`);
-          console.log(`      150px: ${img.uri150}`);
-        });
-      } else {
-        console.log("\nImages: None available");
-      }
+    if (result.cds.length > 0) {
+      console.log(`✓ Found ${result.cds.length} album(s):\n`);
 
-      console.log("\nFull JSON:");
-      console.log(JSON.stringify(albumData, null, 2));
+      console.log(`${"─".repeat(120)}`);
+      console.log(
+        `${"#".padEnd(4)} | ${"Artist".padEnd(25)} | ${"Title".padEnd(30)} | ${"Year".padEnd(6)} | ${"Genre".padEnd(15)} | ${"Tracks".padEnd(8)} | ${"Images".padEnd(8)}`,
+      );
+      console.log(`${"─".repeat(120)}`);
+
+      result.cds.forEach((albumData, idx) => {
+        const artist = albumData.artist.substring(0, 25).padEnd(25);
+        const title = albumData.title.substring(0, 30).padEnd(30);
+        const year = (albumData.year || "N/A").toString().padEnd(6);
+        const genre = albumData.genre.substring(0, 15).padEnd(15);
+        const tracks = albumData.tracks.length.toString().padEnd(8);
+        const images = (albumData.art?.allImages?.length || 0)
+          .toString()
+          .padEnd(8);
+
+        console.log(
+          `${(idx + 1).toString().padEnd(4)} | ${artist} | ${title} | ${year} | ${genre} | ${tracks} | ${images}`,
+        );
+      });
+
+      console.log(`${"─".repeat(120)}`);
     } else {
-      console.log("\n✗ No album found with that barcode");
+      console.log("\n✗ No albums found with that barcode");
     }
   } catch (error) {
     console.error("Error searching for album:", error);

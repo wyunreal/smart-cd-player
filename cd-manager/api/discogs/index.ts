@@ -1,5 +1,5 @@
 import { Client } from "disconnect";
-import { Cd } from "../types";
+import { Cd, DiscogsSearchResult } from "../types";
 
 const getDiscogsClient = () => {
   const userToken = process.env.DISCOGS_USER_TOKEN;
@@ -12,94 +12,126 @@ const getDiscogsClient = () => {
     return new Client("SmartCDPlayer/1.0", { consumerKey, consumerSecret });
   } else {
     throw new Error(
-      "Discogs authentication required. Set DISCOGS_USER_TOKEN or DISCOGS_CONSUMER_KEY/DISCOGS_CONSUMER_SECRET in .env.local",
+      "Discogs authentication required. Pass DISCOGS_USER_TOKEN or DISCOGS_CONSUMER_KEY/DISCOGS_CONSUMER_SECRET in env vars",
     );
   }
 };
 
-const searchByBarCode = async (barcode: string): Promise<Cd | null> => {
+const searchByBarCode = async (barcode: string): Promise<DiscogsSearchResult> => {
   try {
     const dis = getDiscogsClient();
     const db = dis.database();
 
-    // Buscar por código de barras
-    const searchResults = await db.search({
-      barcode: barcode,
-      type: "release",
+    let rateLimit: { limit: number; remaining: number } | undefined;
+
+    const searchResults = await new Promise<any>((resolve, reject) => {
+      db.search(
+        {
+          barcode: barcode,
+          type: "release",
+        },
+        (err, data, rateLimitInfo) => {
+          if (err) {
+            reject(err);
+          } else {
+            if (rateLimitInfo) {
+              rateLimit = rateLimitInfo;
+            }
+            resolve(data);
+          }
+        }
+      );
     });
 
     if (!searchResults.results || searchResults.results.length === 0) {
-      return null;
+      return { cds: [], rateLimit };
     }
 
-    // Obtener detalles del primer resultado
-    const firstResult = searchResults.results[0];
-    const release = await db.getRelease(firstResult.id);
+    const cdPromises = searchResults.results.map(async (result: any) => {
+      try {
+        const release = await new Promise<any>((resolve, reject) => {
+          db.getRelease(result.id, (err, data, rateLimitInfo) => {
+            if (err) {
+              reject(err);
+            } else {
+              if (rateLimitInfo) {
+                rateLimit = rateLimitInfo;
+              }
+              resolve(data);
+            }
+          });
+        });
 
-    // Extraer información del artista
-    const artist =
-      release.artists && release.artists.length > 0
-        ? release.artists[0].name
-        : "Unknown Artist";
+        const artist =
+          release.artists && release.artists.length > 0
+            ? release.artists[0].name
+            : "Unknown Artist";
 
-    // Extraer el título del álbum (remover el nombre del artista si está incluido)
-    let albumTitle = release.title;
-    if (albumTitle.includes(" - ")) {
-      const parts = albumTitle.split(" - ");
-      albumTitle = parts.length > 1 ? parts[1] : parts[0];
-    }
+        // Remove artist name from title if included
+        let albumTitle = release.title;
+        if (albumTitle.includes(" - ")) {
+          const parts = albumTitle.split(" - ");
+          albumTitle = parts.length > 1 ? parts[1] : parts[0];
+        }
 
-    // Extraer género
-    const genre =
-      release.styles && release.styles.length > 0
-        ? release.styles[0]
-        : release.genres && release.genres.length > 0
-          ? release.genres[0]
-          : "Unknown";
+        const genre =
+          release.styles && release.styles.length > 0
+            ? release.styles[0]
+            : release.genres && release.genres.length > 0
+              ? release.genres[0]
+              : "Unknown";
 
-    // Extraer tracks
-    const tracks =
-      release.tracklist?.map((track: any, index: number) => ({
-        number: index + 1,
-        title: track.title,
-      })) || [];
+        const genres = release.genres || [];
+        const styles = release.styles || [];
 
-    // Extraer imágenes - obtener la imagen principal
-    const primaryImage = release.images?.find(
-      (img: any) => img.type === "primary",
-    );
-    const firstImage = release.images?.[0]; // Fallback a la primera imagen si no hay primary
+        const tracks =
+          release.tracklist?.map((track: any, index: number) => ({
+            number: index + 1,
+            title: track.title,
+          })) || [];
 
-    // Usar la imagen principal o la primera disponible
-    const albumImage = primaryImage || firstImage;
+        const primaryImage = release.images?.find(
+          (img: any) => img.type === "primary",
+        );
+        const firstImage = release.images?.[0];
 
-    const cd: Cd = {
-      id: 0,
-      title: albumTitle,
-      artist: artist,
-      year: release.year,
-      genre: genre,
-      tracks: tracks,
-      art: albumImage
-        ? {
-            albumBig: albumImage.uri,
-            albumSmall: albumImage.uri150 || albumImage.uri,
-            allImages:
-              release.images?.map((img: any) => ({
-                uri: img.uri,
-                uri150: img.uri150,
-                width: img.width,
-                height: img.height,
-                type: img.type,
-              })) || [],
-          }
-        : undefined,
-    };
+        const albumImage = primaryImage || firstImage;
 
-    return cd;
+        return {
+          id: 0,
+          title: albumTitle,
+          artist: artist,
+          year: release.year,
+          genre: genre,
+          genres: genres,
+          styles: styles,
+          tracks: tracks,
+          art: albumImage
+            ? {
+                albumBig: albumImage.uri,
+                albumSmall: albumImage.uri150 || albumImage.uri,
+                allImages:
+                  release.images?.map((img: any) => ({
+                    uri: img.uri,
+                    uri150: img.uri150,
+                    width: img.width,
+                    height: img.height,
+                    type: img.type,
+                  })) || [],
+              }
+            : undefined,
+        };
+      } catch (error) {
+        return null;
+      }
+    });
+
+    const results = await Promise.all(cdPromises);
+    const cds = results.filter((cd) => cd !== null);
+
+    return { cds, rateLimit };
   } catch (error) {
-    console.error(`Error searching by barcode: ${error}`);
-    return null;
+    throw new Error(`Error fetching data from Discogs: ${error}`);
   }
 };
 

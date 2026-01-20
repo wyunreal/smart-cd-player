@@ -1,15 +1,15 @@
 import { useState } from "react";
 import ResponsiveDialog from "../components/client/dialog/responsive-dialog";
 import Flow from "../components/client/flow";
-import { Cd } from "@/api/types";
 import { AddCdData } from "../forms/add-cd/types";
 import SearchCdForm from "../forms/add-cd/search-cd";
 import CdPreviewForm from "../forms/add-cd/cd-preview";
 import CdArtForm from "../forms/add-cd/cd-art";
+import { validate as validateCdSelection } from "../forms/add-cd/search-cd";
 
 const useAddCdFlow = () => {
   const [isAddCdFlowOpen, setIsAddCdFlowOpen] = useState(false);
-  const [cd, setCd] = useState<Cd | undefined>(undefined);
+
   const closeDialog = () => setIsAddCdFlowOpen(false);
   return {
     openAddCdFlow: () => {
@@ -26,7 +26,7 @@ const useAddCdFlow = () => {
             {
               title: "Search CD",
               content: SearchCdForm,
-              validate: () => null,
+              validate: validateCdSelection,
             },
             {
               title: "Preview",
@@ -42,7 +42,7 @@ const useAddCdFlow = () => {
           ResultScreen={({ result }) =>
             result ? <>CD added</> : <>CD not added</>
           }
-          initialData={{ cd }}
+          initialData={{ barCode: "", cd: undefined }}
           operationName="Add CD to collection"
           closeActionName="Close"
           onDataSubmission={(data) =>

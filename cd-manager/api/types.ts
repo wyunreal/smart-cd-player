@@ -34,6 +34,8 @@ export type CdBasicInfo = {
   artist: string;
   year?: number;
   genre: string;
+  genres?: string[];
+  styles?: string[];
   tracks: { number: number; title: string }[];
 };
 
@@ -54,4 +56,12 @@ export type AlbumArt = {
 export type Cd = CdBasicInfo & {
   id: number;
   art?: AlbumArt;
+};
+
+export type DiscogsSearchResult = {
+  cds: Cd[];
+  rateLimit?: {
+    limit: number;
+    remaining: number;
+  };
 };

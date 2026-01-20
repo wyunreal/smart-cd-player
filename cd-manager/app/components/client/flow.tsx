@@ -12,9 +12,11 @@ import {
 import { useState } from "react";
 import React from "react";
 
+export type StepErrors = { [key: string]: string } | null;
+
 export type StepProps<StepperData> = {
   data: StepperData;
-  errors: { [key: string]: string } | null;
+  errors: StepErrors;
   onDataChanged: (data: StepperData) => void;
 };
 
@@ -22,7 +24,7 @@ type Step<StepperData> = {
   label?: string;
   title: string;
   content: React.FunctionComponent<StepProps<StepperData>>;
-  validate?: (data: StepperData) => { [key: string]: string } | null;
+  validate?: (data: StepperData) => StepErrors;
 };
 
 type StepperProps<StepperData, Result> = {

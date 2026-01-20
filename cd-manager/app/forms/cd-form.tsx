@@ -7,8 +7,6 @@ import {
   Box,
   Autocomplete,
   CircularProgress,
-  FormControlLabel,
-  Switch,
 } from "@mui/material";
 import musicGenres from "./genres";
 import { CdInputData } from "@/api/types";
