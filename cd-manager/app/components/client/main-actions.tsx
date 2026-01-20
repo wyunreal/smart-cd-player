@@ -8,17 +8,17 @@ import {
   useTheme,
 } from "@mui/material";
 import { usePathname } from "next/navigation";
-import useAddCdForm from "@/app/hooks/use-add-cd-form";
 import { useContext } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { SettingsIcon } from "@/app/icons";
 import useEditPlayerDefinitionForm from "@/app/hooks/use-edit-player-definition-form";
+import useAddCdFlow from "@/app/hooks/use-add-cd-flow";
 
 const MainActions = () => {
   const path = usePathname();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const { openAddCdForm, addCdFormInstance } = useAddCdForm();
+  const { openAddCdFlow, addCdFlowInstance } = useAddCdFlow();
   const {
     selectedPlayer,
     setSelectedPlayer,
@@ -62,7 +62,7 @@ const MainActions = () => {
                     >
                       <ListItemText primary={`Player ${index + 1}`} />
                     </MenuItem>
-                  )
+                  ),
               )}
             {playerDefinitions && playerDefinitions.length > 0 && (
               <Divider key="divider" />
@@ -80,11 +80,11 @@ const MainActions = () => {
         <>
           <Button
             variant={isMobile ? "outlined" : "contained"}
-            onClick={openAddCdForm}
+            onClick={openAddCdFlow}
           >
             Add CD
           </Button>
-          {addCdFormInstance}
+          {addCdFlowInstance}
         </>
       )}
       {path === "/groups" && (
