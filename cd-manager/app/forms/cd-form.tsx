@@ -19,13 +19,12 @@ const CdForm = ({
   onSubmit,
 }: {
   cd?: CdInputData | null;
-  onSubmit: (data: CdInputData, fetchCdDetails: boolean) => Promise<void>;
+  onSubmit: (data: CdInputData) => Promise<void>;
 }) => {
   const [title, setTitle] = useState(cd ? cd.album : "");
   const [artist, setArtist] = useState(cd ? cd.artist : "");
   const [genre, setGenre] = useState(cd ? cd.genre : "");
   const [tracksNumber, setTracksNumber] = useState(cd ? cd.tracksNumber : 0);
-  const [fetchDetails, setFetchDetails] = useState(true);
   const [errors, setErrors] = useState({
     title: "",
     author: "",
@@ -50,7 +49,7 @@ const CdForm = ({
     e.preventDefault();
     if (validate()) {
       setSending(true);
-      onSubmit({ artist, album: title, genre, tracksNumber }, fetchDetails);
+      onSubmit({ artist, album: title, genre, tracksNumber });
     }
   };
 
@@ -114,17 +113,6 @@ const CdForm = ({
           onChange={(e) => setTracksNumber(Number(e.target.value))}
           error={!!errors.tracks}
           helperText={errors.tracks}
-        />
-      </Box>
-      <Box sx={{ margin: "16px 0" }}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={fetchDetails}
-              onChange={() => setFetchDetails(!fetchDetails)}
-            />
-          }
-          label="Fetch additional info."
         />
       </Box>
       <Box sx={{ display: "flex", flexDirection: "row-reverse" }}>

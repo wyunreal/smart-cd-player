@@ -24,9 +24,9 @@ const useEditCdForm = () => {
       >
         <CdForm
           cd={cd}
-          onSubmit={(data, fetchCdDetails) =>
+          onSubmit={(data) =>
             new Promise<void>((resolve) => {
-              editCd(data, cdId, fetchCdDetails).then(() => {
+              editCd(data, cdId).then(() => {
                 setIsEditCdDialogOpen(false);
                 refreshCds();
                 resolve();

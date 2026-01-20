@@ -42,6 +42,13 @@ export type AlbumArt = {
   albumBig?: string;
   artistSmall?: string;
   artistBig?: string;
+  allImages?: Array<{
+    uri: string;
+    uri150: string;
+    width: number;
+    height: number;
+    type: string;
+  }>;
 };
 
 export type Cd = CdBasicInfo & {
