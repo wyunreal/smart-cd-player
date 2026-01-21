@@ -1,9 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { TextField, Button, Box, CircularProgress } from "@mui/material";
+import {
+  TextField,
+  Box,
+  CircularProgress,
+  Stack,
+  IconButton,
+} from "@mui/material";
 import { AddCdData } from "./types";
 import { StepErrors } from "@/app/components/client/flow";
+import { SearchOutlinedIcon } from "@/app/icons";
 
 export const validate = (data: AddCdData) => {
   let tempErrors = { cd: "" };
@@ -27,11 +34,13 @@ const SearchCdForm = ({
   const [barCode, setBarCode] = useState(data ? data.barCode : "");
   const [cd, setCd] = useState(data?.cd);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
 
   const searchByBarcode = async () => {
     if (!barCode.trim()) return;
 
     setLoading(true);
+    setSearchError("");
     try {
       const response = await fetch(
         `/api/discogs?barcode=${encodeURIComponent(barCode)}`,
@@ -41,12 +50,19 @@ const SearchCdForm = ({
       console.log("Discogs search result:", result);
 
       if (response.ok) {
-        console.log(`Found ${result.cds.length} CD(s)`);
+        setSearchError("");
+        onDataChanged({ ...data, barCode });
+      } else if (response.status === 429) {
+        setSearchError(
+          result.error ||
+            "Discogs API rate limit exceeded. Please try again later.",
+        );
       } else {
-        console.error("Search error:", result.error);
+        setSearchError(result.error || "Error performing search on Discogs");
       }
     } catch (error) {
-      console.error("Failed to search CD:", error);
+      console.error("Search error:", error);
+      setSearchError("Error performing search on Discogs");
     } finally {
       setLoading(false);
     }
@@ -62,35 +78,41 @@ const SearchCdForm = ({
   return (
     <Box sx={{ mt: 1 }}>
       <Box sx={{ margin: "16px 0" }}>
-        <TextField
-          required
-          fullWidth
-          id="barCode"
-          label="Bar Code"
-          name="barCode"
-          autoFocus
-          value={barCode}
-          onChange={(e) => {
-            setBarCode(e.target.value);
-            onDataChanged({ ...data, barCode: e.target.value });
-          }}
-          onKeyDown={handleKeyDown}
-          disabled={loading}
-          slotProps={{
-            input: {
-              endAdornment: loading ? <CircularProgress size={20} /> : null,
-            },
-          }}
-        />
+        <Stack direction="row" spacing={2}>
+          <TextField
+            required
+            fullWidth
+            id="barCode"
+            label="Bar Code"
+            name="barCode"
+            autoFocus
+            value={barCode}
+            onChange={(e) => {
+              setBarCode(e.target.value);
+            }}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <IconButton
+                    onClick={searchByBarcode}
+                    disabled={loading || !barCode.trim()}
+                  >
+                    {loading ? (
+                      <CircularProgress size={20} />
+                    ) : (
+                      <SearchOutlinedIcon />
+                    )}
+                  </IconButton>
+                ),
+              },
+            }}
+            error={!!errors?.cd || !!searchError}
+            helperText={errors?.cd || searchError}
+          />
+        </Stack>
       </Box>
-      <Button
-        variant="contained"
-        onClick={searchByBarcode}
-        disabled={loading || !barCode.trim()}
-        fullWidth
-      >
-        {loading ? "Searching..." : "Search CD"}
-      </Button>
     </Box>
   );
 };

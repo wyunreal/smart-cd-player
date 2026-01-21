@@ -17,31 +17,61 @@ const getDiscogsClient = () => {
   }
 };
 
-const searchByBarCode = async (barcode: string): Promise<DiscogsSearchResult> => {
+const DISCOGS_TIMEOUT = 10000; // 10 seconds timeout
+
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Discogs API request timeout")),
+        timeoutMs,
+      ),
+    ),
+  ]);
+};
+
+const searchByBarCode = async (
+  barcode: string,
+): Promise<DiscogsSearchResult> => {
   try {
     const dis = getDiscogsClient();
     const db = dis.database();
 
     let rateLimit: { limit: number; remaining: number } | undefined;
 
-    const searchResults = await new Promise<any>((resolve, reject) => {
-      db.search(
-        {
-          barcode: barcode,
-          type: "release",
-        },
-        (err, data, rateLimitInfo) => {
-          if (err) {
-            reject(err);
-          } else {
-            if (rateLimitInfo) {
-              rateLimit = rateLimitInfo;
+    const searchResults = await withTimeout(
+      new Promise<any>((resolve, reject) => {
+        db.search(
+          {
+            barcode: barcode,
+            type: "release",
+          },
+          (err, data, rateLimitInfo) => {
+            if (err) {
+              // Check if error is rate limit related
+              const errorMessage = err.message || String(err);
+              if (
+                errorMessage.includes("rate limit") ||
+                errorMessage.includes("429")
+              ) {
+                reject(
+                  new Error(`Discogs API rate limit exceeded: ${errorMessage}`),
+                );
+              } else {
+                reject(err);
+              }
+            } else {
+              if (rateLimitInfo) {
+                rateLimit = rateLimitInfo;
+              }
+              resolve(data);
             }
-            resolve(data);
-          }
-        }
-      );
-    });
+          },
+        );
+      }),
+      DISCOGS_TIMEOUT,
+    );
 
     if (!searchResults.results || searchResults.results.length === 0) {
       return { cds: [], rateLimit };
@@ -49,18 +79,34 @@ const searchByBarCode = async (barcode: string): Promise<DiscogsSearchResult> =>
 
     const cdPromises = searchResults.results.map(async (result: any) => {
       try {
-        const release = await new Promise<any>((resolve, reject) => {
-          db.getRelease(result.id, (err, data, rateLimitInfo) => {
-            if (err) {
-              reject(err);
-            } else {
-              if (rateLimitInfo) {
-                rateLimit = rateLimitInfo;
+        const release = await withTimeout(
+          new Promise<any>((resolve, reject) => {
+            db.getRelease(result.id, (err, data, rateLimitInfo) => {
+              if (err) {
+                // Check if error is rate limit related
+                const errorMessage = err.message || String(err);
+                if (
+                  errorMessage.includes("rate limit") ||
+                  errorMessage.includes("429")
+                ) {
+                  reject(
+                    new Error(
+                      `Discogs API rate limit exceeded: ${errorMessage}`,
+                    ),
+                  );
+                } else {
+                  reject(err);
+                }
+              } else {
+                if (rateLimitInfo) {
+                  rateLimit = rateLimitInfo;
+                }
+                resolve(data);
               }
-              resolve(data);
-            }
-          });
-        });
+            });
+          }),
+          DISCOGS_TIMEOUT,
+        );
 
         const artist =
           release.artists && release.artists.length > 0
@@ -122,6 +168,16 @@ const searchByBarCode = async (barcode: string): Promise<DiscogsSearchResult> =>
             : undefined,
         };
       } catch (error) {
+        // Check if it's a rate limit error and propagate it
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        if (
+          errorMessage.includes("rate limit") ||
+          errorMessage.includes("429")
+        ) {
+          throw error; // Re-throw rate limit errors
+        }
+        // For other errors, return null to skip this release
         return null;
       }
     });

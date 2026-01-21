@@ -13,6 +13,7 @@ import ListIcon from "@mui/icons-material/List";
 import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import PlaylistAddOutlinedIcon from "@mui/icons-material/PlaylistAddOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 
 export {
   AlbumIcon,
@@ -30,4 +31,5 @@ export {
   PlayCircleOutlineOutlinedIcon,
   SettingsOutlinedIcon,
   PlaylistAddOutlinedIcon,
+  SearchOutlinedIcon,
 };
