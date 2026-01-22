@@ -59,7 +59,7 @@ const PlayerSlots = ({
                 borderRadius: "16px",
                 zIndex: selected === i ? 100 : 0,
               }}
-              src={item.cd.art?.albumBig || "/cd-placeholder-big.png"}
+              src={item.cd.art?.album?.uri || "/cd-placeholder-big.png"}
               width={itemDimensions.width}
               height={itemDimensions.height}
             />

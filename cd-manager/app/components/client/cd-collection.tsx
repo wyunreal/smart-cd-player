@@ -221,7 +221,7 @@ const CdCollection = ({
               disableColumnResize
               rows={Object.values(cds).map((cd) => ({
                 ...cd,
-                albumArt: cd.art?.albumSmall,
+                albumArt: cd.art?.album?.uri150,
                 id: cd.id,
                 tracksNumber: cd.tracks.length,
               }))}

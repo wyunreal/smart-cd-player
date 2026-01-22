@@ -105,7 +105,7 @@ const SelectedSlotDetails = ({
               }}
             >
               <img
-                src={slot.cd.art?.artistSmall || "/cd-placeholder-small.png"}
+                src={slot.cd.art?.artist?.uri150 || "/cd-placeholder-small.png"}
                 width="70px"
                 height="70px"
                 style={{
@@ -129,7 +129,9 @@ const SelectedSlotDetails = ({
                   }
                   items={otherAlbums.map((s) => (
                     <img
-                      src={s.cd?.art?.albumSmall || "/cd-placeholder-small.png"}
+                      src={
+                        s.cd?.art?.album?.uri150 || "/cd-placeholder-small.png"
+                      }
                       width="70px"
                       height="70px"
                       style={{

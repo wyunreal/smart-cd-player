@@ -55,7 +55,7 @@ const CdDetailsDialog = ({
               }}
             >
               <img
-                src={cd.art?.albumBig || "/cd-placeholder-big.png"}
+                src={cd.art?.album?.uri || "/cd-placeholder-big.png"}
                 style={{
                   height: "230px",
                   width: "100%",
@@ -122,7 +122,7 @@ const CdDetailsDialog = ({
                 <Image
                   width={140}
                   height={140}
-                  src={cd.art?.albumBig || "/cd-placeholder-big.png"}
+                  src={cd.art?.album?.uri || "/cd-placeholder-big.png"}
                   alt="Album big art"
                   style={{
                     borderRadius: "6px",

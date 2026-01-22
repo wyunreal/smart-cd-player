@@ -63,7 +63,7 @@ const CdDetails = ({
                 >
                   <div style={{ filter: "blur(16px)" }}>
                     <img
-                      src={cd.art?.albumBig || "/cd-placeholder-big.png"}
+                      src={cd.art?.album?.uri || "/cd-placeholder-big.png"}
                       style={{
                         height: `${DETAILS_PANEL_WIDTH}px`,
                         width: "100%",
@@ -125,7 +125,7 @@ const CdDetails = ({
                     <Image
                       width={100}
                       height={100}
-                      src={cd.art?.albumBig || "/cd-placeholder-big.png"}
+                      src={cd.art?.album?.uri || "/cd-placeholder-big.png"}
                       alt="Album big art"
                       style={{
                         borderRadius: "6px",

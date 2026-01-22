@@ -39,27 +39,30 @@ export type CdBasicInfo = {
   tracks: { number: number; title: string }[];
 };
 
+export type Art = {
+  uri: string;
+  uri150: string;
+  width: number;
+  height: number;
+  type: string;
+};
+
 export type AlbumArt = {
-  albumSmall?: string;
-  albumBig?: string;
-  artistSmall?: string;
-  artistBig?: string;
-  allImages?: Array<{
-    uri: string;
-    uri150: string;
-    width: number;
-    height: number;
-    type: string;
-  }>;
+  album?: Art;
+  artist?: Art;
+  cd?: Art;
+  allImages?: Array<Art>;
 };
 
 export type Cd = CdBasicInfo & {
   id: number;
+  barCode?: string;
   art?: AlbumArt;
 };
 
 export type DiscogsSearchResult = {
   cds: Cd[];
+  cd?: Cd;
   rateLimit?: {
     limit: number;
     remaining: number;

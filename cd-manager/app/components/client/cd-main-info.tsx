@@ -20,7 +20,7 @@ const CdMainInfo = ({ cd }: { cd: Cd | null; onDialogClosed: () => void }) => {
             <Image
               width={100}
               height={100}
-              src={cd.art?.albumBig || "/cd-placeholder-big.png"}
+              src={cd.art?.album?.uri || "/cd-placeholder-big.png"}
               alt="Album big art"
               style={{
                 borderRadius: "6px",
