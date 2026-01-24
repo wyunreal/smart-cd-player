@@ -10,7 +10,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 
 const ITEMS_PER_PAGE = 30;
 
-const CdArtForm = ({ data }: StepProps<AddCdData>) => {
+const CdArtForm = ({ data, onDataChanged }: StepProps<AddCdData>) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -20,6 +20,26 @@ const CdArtForm = ({ data }: StepProps<AddCdData>) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const arts = data.arts || [];
+
+  const handleImageClick = (index: number) => {
+    if (data.selectedCdArtIndex === index) {
+      onDataChanged({
+        ...data,
+        selectedCdArtIndex: undefined,
+        cd: data.cd
+          ? { ...data.cd, art: { ...data.cd.art, cd: undefined } }
+          : undefined,
+      });
+    } else {
+      onDataChanged({
+        ...data,
+        selectedCdArtIndex: index,
+        cd: data.cd
+          ? { ...data.cd, art: { ...data.cd.art, cd: arts[index] } }
+          : undefined,
+      });
+    }
+  };
 
   // Load initial items
   useEffect(() => {
@@ -80,6 +100,7 @@ const CdArtForm = ({ data }: StepProps<AddCdData>) => {
         {displayedArts.map((art, index) => (
           <Box
             key={`${art.uri150}-${index}`}
+            onClick={() => handleImageClick(index)}
             sx={{
               width: "calc(25% - 8px)",
               aspectRatio: "1 / 1",
@@ -87,9 +108,13 @@ const CdArtForm = ({ data }: StepProps<AddCdData>) => {
               borderRadius: 1,
               overflow: "hidden",
               cursor: "pointer",
-              border: "2px solid transparent",
+              border:
+                data.selectedCdArtIndex === index ? "8px solid" : "2px solid",
+              borderColor:
+                data.selectedCdArtIndex === index
+                  ? "primary.main"
+                  : "transparent",
               "&:hover": {
-                border: "2px solid",
                 borderColor: "primary.main",
               },
             }}
