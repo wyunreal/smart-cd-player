@@ -3,7 +3,6 @@ import ResponsiveDialog from "../components/client/dialog/responsive-dialog";
 import Flow from "../components/client/flow";
 import { AddCdData } from "../forms/add-cd/types";
 import SearchCdForm from "../forms/add-cd/search-cd";
-import CdPreviewForm from "../forms/add-cd/cd-preview";
 import CdArtForm from "../forms/add-cd/cd-art";
 import { validate as validateCdSelection } from "../forms/add-cd/search-cd";
 
@@ -29,7 +28,7 @@ const useAddCdFlow = () => {
               validate: validateCdSelection,
             },
             {
-              title: "Album art",
+              title: "Select CD picture",
               content: CdArtForm,
               validate: () => null,
             },
@@ -43,7 +42,9 @@ const useAddCdFlow = () => {
           onDataSubmission={(data) =>
             new Promise<boolean>((resolve) => {
               console.log(`Adding CD ${data?.cd?.id}`);
-              resolve(true);
+              setTimeout(() => {
+                resolve(true);
+              }, 3000);
             })
           }
           onResultReception={(result) => {

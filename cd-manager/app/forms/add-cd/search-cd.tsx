@@ -7,13 +7,12 @@ import {
   CircularProgress,
   Stack,
   IconButton,
-  Avatar,
   Typography,
 } from "@mui/material";
 import { AddCdData } from "./types";
 import { StepErrors } from "@/app/components/client/flow";
 import { SearchOutlinedIcon } from "@/app/icons";
-import { Cd } from "@/api/types";
+import { AlbumArt, Art, Cd } from "@/api/types";
 import Album from "@/app/components/client/album";
 
 export const validate = (data: AddCdData) => {
@@ -80,10 +79,20 @@ const SearchCdForm = ({
       if (response.ok) {
         if (result.cd) {
           setCd(result.cd);
-          onDataChanged({ ...data, barCode, cd: result.cd });
+          onDataChanged({
+            ...data,
+            barCode: result.cd.barCode,
+            cd: result.cd,
+            arts: result.cds.reduce((acc: Art[], cd: Cd) => {
+              if (cd.art?.allImages?.length !== undefined) {
+                acc.push(...cd.art.allImages);
+              }
+              return acc;
+            }, []),
+          });
         } else {
           setCd(null);
-          onDataChanged({ ...data, barCode, cd: undefined });
+          onDataChanged({ ...data, barCode, cd: undefined, arts: [] });
           setSearchError("No CD found for the provided bar code.");
         }
       } else if (response.status === 429) {
