@@ -29,11 +29,6 @@ const useAddCdFlow = () => {
               validate: validateCdSelection,
             },
             {
-              title: "Preview",
-              content: CdPreviewForm,
-              validate: () => null,
-            },
-            {
               title: "Album art",
               content: CdArtForm,
               validate: () => null,

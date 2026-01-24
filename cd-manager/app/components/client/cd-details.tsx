@@ -19,6 +19,7 @@ import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { useContext, useEffect, useState } from "react";
 import { CloseIcon } from "@/app/icons";
 import CdDetailsDialog from "./cd-details-dialog";
+import Album from "./album";
 
 const DETAILS_PANEL_WIDTH = 300;
 
@@ -114,24 +115,10 @@ const CdDetails = ({
                   </Box>
                 </Box>
                 <div style={{ position: "absolute", top: 80, left: 16 }}>
-                  <Box
-                    sx={{
-                      borderRadius: "8px",
-                      borderColor: "white",
-                      border: "2px solid",
-                      height: 104,
-                    }}
-                  >
-                    <Image
-                      width={100}
-                      height={100}
-                      src={cd.art?.album?.uri || "/cd-placeholder-big.png"}
-                      alt="Album big art"
-                      style={{
-                        borderRadius: "6px",
-                      }}
-                    />
-                  </Box>
+                  <Album
+                    imageUri={cd.art?.album?.uri || "/cd-placeholder-big.png"}
+                    size={100}
+                  />
                 </div>
                 <div
                   style={{

@@ -9,6 +9,13 @@ const nextConfig = {
         pathname: "/image/**",
         search: "",
       },
+      {
+        protocol: "https",
+        hostname: "i.discogs.com",
+        port: "",
+        pathname: "/**",
+        search: "",
+      },
     ],
   },
 };

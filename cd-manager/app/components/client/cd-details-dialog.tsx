@@ -15,6 +15,7 @@ import ResponsiveDialog from "./dialog/responsive-dialog";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { useContext } from "react";
 import { PlayCircleOutlineOutlinedIcon } from "@/app/icons";
+import Album from "./album";
 
 const CdDetailsDialog = ({
   cdId,
@@ -111,22 +112,10 @@ const CdDetailsDialog = ({
               </Box>
             </Box>
             <div style={{ position: "absolute", top: 64, left: 2 }}>
-              <Box
-                sx={{
-                  borderRadius: "8px",
-                  borderColor: "white",
-                  border: "2px solid",
-                  height: 144,
-                }}
-              >
-                <Image
-                  width={140}
-                  height={140}
-                  src={cd.art?.album?.uri || "/cd-placeholder-big.png"}
-                  alt="Album big art"
-                  style={{
-                    borderRadius: "6px",
-                  }}
+              <Box>
+                <Album
+                  imageUri={cd.art?.album?.uri || "/cd-placeholder-big.png"}
+                  size={140}
                 />
               </Box>
             </div>

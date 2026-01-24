@@ -7,10 +7,14 @@ import {
   CircularProgress,
   Stack,
   IconButton,
+  Avatar,
+  Typography,
 } from "@mui/material";
 import { AddCdData } from "./types";
 import { StepErrors } from "@/app/components/client/flow";
 import { SearchOutlinedIcon } from "@/app/icons";
+import { Cd } from "@/api/types";
+import Album from "@/app/components/client/album";
 
 export const validate = (data: AddCdData) => {
   let tempErrors = { cd: "" };
@@ -22,17 +26,42 @@ export const validate = (data: AddCdData) => {
   return hasErrors ? tempErrors : null;
 };
 
+const CdRow = ({ cd }: { cd: Cd }) => {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+      }}
+    >
+      <Box sx={{ marginRight: "16px" }}>
+        <Album
+          imageUri={cd.art?.album?.uri150 || "/cd-placeholder-big.png"}
+          size={104}
+        />
+      </Box>
+      <Box sx={{ display: "flex", flexDirection: "column" }}>
+        <Typography>{cd.artist}</Typography>
+        <Typography fontSize={24}>{cd.title}</Typography>
+        <Typography>{`${cd.year} - ${cd.genre}`}</Typography>
+        <Typography>{`Tracks: ${cd.tracks.length}`}</Typography>
+      </Box>
+    </Box>
+  );
+};
+
 const SearchCdForm = ({
   data,
   errors,
   onDataChanged,
+  clearValidationErrors,
 }: {
   data?: AddCdData | null;
   errors: StepErrors;
   onDataChanged: (data: AddCdData) => void;
+  clearValidationErrors: () => void;
 }) => {
   const [barCode, setBarCode] = useState(data ? data.barCode : "");
-  const [cd, setCd] = useState(data?.cd);
+  const [cd, setCd] = useState<Cd | null | undefined>(data?.cd);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
 
@@ -42,16 +71,21 @@ const SearchCdForm = ({
     setLoading(true);
     setSearchError("");
     try {
+      clearValidationErrors();
       const response = await fetch(
         `/api/discogs?barcode=${encodeURIComponent(barCode)}`,
       );
       const result = await response.json();
 
-      console.log("Discogs search result:", result);
-
       if (response.ok) {
-        setSearchError("");
-        onDataChanged({ ...data, barCode });
+        if (result.cd) {
+          setCd(result.cd);
+          onDataChanged({ ...data, barCode, cd: result.cd });
+        } else {
+          setCd(null);
+          onDataChanged({ ...data, barCode, cd: undefined });
+          setSearchError("No CD found for the provided bar code.");
+        }
       } else if (response.status === 429) {
         setSearchError(
           result.error ||
@@ -61,7 +95,6 @@ const SearchCdForm = ({
         setSearchError(result.error || "Error performing search on Discogs");
       }
     } catch (error) {
-      console.error("Search error:", error);
       setSearchError("Error performing search on Discogs");
     } finally {
       setLoading(false);
@@ -112,6 +145,16 @@ const SearchCdForm = ({
             helperText={errors?.cd || searchError}
           />
         </Stack>
+      </Box>
+      <Box sx={{ margin: "16px 0" }}>
+        {cd && (
+          <>
+            <Box sx={{ marginBottom: "8px" }}>
+              <Typography>CD Found:</Typography>
+            </Box>
+            <CdRow cd={cd} />
+          </>
+        )}
       </Box>
     </Box>
   );

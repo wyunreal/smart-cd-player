@@ -18,6 +18,7 @@ export type StepProps<StepperData> = {
   data: StepperData;
   errors: StepErrors;
   onDataChanged: (data: StepperData) => void;
+  clearValidationErrors: () => void;
 };
 
 type Step<StepperData> = {
@@ -115,6 +116,10 @@ const Flow = <StepperData, Result>({
     timeout: TRANSITION_DURATION,
   });
 
+  const clearValidationErrors = () => {
+    setValidationErrors(null);
+  };
+
   return (
     <>
       {!isMobile && (
@@ -140,6 +145,7 @@ const Flow = <StepperData, Result>({
                   data={data}
                   errors={validationErrors}
                   onDataChanged={setData}
+                  clearValidationErrors={clearValidationErrors}
                 />
               ) : (
                 ResultScreen && <ResultScreen result={result} />
