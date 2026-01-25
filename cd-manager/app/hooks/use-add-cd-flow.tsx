@@ -7,10 +7,12 @@ import CdArtForm from "../forms/add-cd/cd-art";
 import { validate as validateCdSelection } from "../forms/add-cd/search-cd";
 import ArtistArtForm from "../forms/add-cd/artist-art";
 import { DataRepositoryContext } from "../providers/data-repository";
+import { useCdSelection } from "../providers/cd-selection-context";
 
 const useAddCdFlow = () => {
   const [isAddCdFlowOpen, setIsAddCdFlowOpen] = useState(false);
   const { refreshCds } = useContext(DataRepositoryContext);
+  const { selectCdById } = useCdSelection();
   const closeDialog = () => setIsAddCdFlowOpen(false);
   return {
     openAddCdFlow: () => {
@@ -22,7 +24,7 @@ const useAddCdFlow = () => {
         isOpen={isAddCdFlowOpen}
         onClose={closeDialog}
       >
-        <Flow<AddCdData, boolean>
+        <Flow<AddCdData, number | null>
           steps={[
             {
               title: "Search CD",
@@ -41,14 +43,14 @@ const useAddCdFlow = () => {
             },
           ]}
           ResultScreen={({ result }) =>
-            result ? <>CD added</> : <>CD not added</>
+            result !== null ? <>CD added</> : <>CD not added</>
           }
           initialData={{ barCode: "", cd: undefined }}
           operationName="Add CD to collection"
           closeActionName="Close"
           onDataSubmission={async (data) => {
             if (!data.cd) {
-              return false;
+              return null;
             }
             try {
               const response = await fetch("/api/cds", {
@@ -58,15 +60,23 @@ const useAddCdFlow = () => {
                 },
                 body: JSON.stringify(data.cd),
               });
-              return response.ok;
+              if (response.ok) {
+                const result = await response.json();
+                return result.id as number;
+              }
+              return null;
             } catch (error) {
               console.error("Error adding CD:", error);
-              return false;
+              return null;
             }
           }}
           onResultReception={(result) => {
-            if (result) {
+            if (result !== null) {
               refreshCds();
+              // Small delay to ensure the CD list is refreshed before selecting
+              setTimeout(() => {
+                selectCdById(result);
+              }, 100);
             }
           }}
           onClose={closeDialog}

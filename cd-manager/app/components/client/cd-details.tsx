@@ -33,7 +33,7 @@ const CdDetails = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { getCdById } = useContext(DataRepositoryContext);
-  const cd = cdId ? getCdById(cdId) : null;
+  const cd = cdId !== null ? getCdById(cdId) : null;
 
   const [animationDriver, setAnimationDriver] = useState<boolean>(false);
   useEffect(() => {

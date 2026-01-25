@@ -1,26 +1,25 @@
 "use client";
 
-import React, { useContext, useState } from "react";
+import React, { useContext } from "react";
 import { Box } from "@mui/material";
 import CdCollection from "../../components/client/cd-collection";
 import CdDetails from "../../components/client/cd-details";
 import FullScreenSpinner from "../../components/client/full-screen-spinner";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
+import { useCdSelection } from "@/app/providers/cd-selection-context";
 
 export default () => {
   const { cds } = useContext(DataRepositoryContext);
-  const [selectedCdId, setSelectedCdId] = useState<number | null>(null);
+  const { selectedCdId, clearSelection } = useCdSelection();
+
   return (
     <>
       {cds !== null ? (
         <Box sx={{ display: "flex", flexDirection: "row" }}>
-          <CdCollection
-            cds={cds}
-            onCdSelected={(cd) => setSelectedCdId(cd?.id || null)}
-          />
+          <CdCollection cds={cds} />
           <CdDetails
             cdId={selectedCdId}
-            onDialogClosed={() => setSelectedCdId(null)}
+            onDialogClosed={() => clearSelection()}
           />
         </Box>
       ) : (

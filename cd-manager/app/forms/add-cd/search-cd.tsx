@@ -12,7 +12,7 @@ import {
 import { AddCdData } from "./types";
 import { StepErrors } from "@/app/components/client/flow";
 import { SearchOutlinedIcon } from "@/app/icons";
-import { AlbumArt, Art, Cd } from "@/api/types";
+import { Art, Cd } from "@/api/types";
 import Album from "@/app/components/client/album";
 
 export const validate = (data: AddCdData) => {

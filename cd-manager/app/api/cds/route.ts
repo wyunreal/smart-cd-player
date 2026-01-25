@@ -12,8 +12,8 @@ export const GET = async () => {
 export const POST = async (request: NextRequest) => {
   try {
     const cd: Cd = await request.json();
-    await addCd(cd);
-    return Response.json({ success: true }, { status: 201 });
+    const newId = await addCd(cd);
+    return Response.json({ success: true, id: newId }, { status: 201 });
   } catch (error) {
     console.error("Error adding CD:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);

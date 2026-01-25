@@ -26,14 +26,9 @@ import useSnackbar from "@/app/hooks/use-snackbar";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 import useAddCdToPlayerFlow from "@/app/hooks/use-add-cd-to-player-flow";
+import { useCdSelection } from "@/app/providers/cd-selection-context";
 
-const CdCollection = ({
-  cds,
-  onCdSelected,
-}: {
-  cds: { [id: number]: Cd };
-  onCdSelected: (cd: Cd | null) => void;
-}) => {
+const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
   const { width, resizeRef } = useResizeObserver();
 
   const { openEditCdForm, editCdFormInstance } = useEditCdForm();
@@ -43,6 +38,7 @@ const CdCollection = ({
   const { openSnackbar, snackbarInstance } = useSnackbar();
 
   const { refreshCds } = useContext(DataRepositoryContext);
+  const { selectedCdId, selectCdById } = useCdSelection();
 
   const columns: GridColDef[] = [
     {
@@ -181,7 +177,10 @@ const CdCollection = ({
     },
   ];
 
-  const paginationModel = { page: 0, pageSize: 10 };
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
 
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -190,9 +189,20 @@ const CdCollection = ({
     }, 300);
   }, []);
 
-  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>(
-    [],
-  );
+  // Navigate to the page containing the selected CD
+  const cdIds = Object.keys(cds).map(Number);
+  useEffect(() => {
+    if (selectedCdId !== null && cdIds.includes(selectedCdId)) {
+      const index = cdIds.indexOf(selectedCdId);
+      const targetPage = Math.floor(index / paginationModel.pageSize);
+      if (targetPage !== paginationModel.page) {
+        setPaginationModel((prev) => ({ ...prev, page: targetPage }));
+      }
+    }
+  }, [selectedCdId, cdIds.length]);
+
+  const rowSelectionModel: GridRowSelectionModel =
+    selectedCdId !== null ? [selectedCdId] : [];
 
   return (
     <Box
@@ -226,9 +236,11 @@ const CdCollection = ({
                 tracksNumber: cd.tracks.length,
               }))}
               columns={columns}
-              initialState={{ pagination: { paginationModel } }}
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
               pageSizeOptions={[10]}
               rowSelection
+              rowSelectionModel={rowSelectionModel}
               isCellEditable={() => false}
               autoPageSize={false}
               sx={{
@@ -247,11 +259,10 @@ const CdCollection = ({
                   },
               }}
               onRowSelectionModelChange={(selection) => {
+                // Only update selection if user clicked on a row
+                // Don't clear selection when changing pages
                 if (selection.length > 0) {
-                  setSelectionModel(selection);
-                  onCdSelected(cds[selection[0] as number]);
-                } else {
-                  onCdSelected(null);
+                  selectCdById(selection[0] as number);
                 }
               }}
             />

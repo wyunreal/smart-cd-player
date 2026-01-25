@@ -29,12 +29,12 @@ const CdDetailsDialog = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { getCdById } = useContext(DataRepositoryContext);
-  const cd = cdId ? getCdById(cdId) : null;
+  const cd = cdId !== null ? getCdById(cdId) : null;
 
   return (
     <>
       <ResponsiveDialog
-        isOpen={cd !== null}
+        isOpen={cdId !== null}
         onClose={onDialogClosed}
         title={cd?.title || "Album details"}
         forcedHeight={isMobile ? undefined : 500}

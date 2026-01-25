@@ -1,6 +1,8 @@
 import { Client } from "disconnect";
 import { Art, ArtistPicturesResult, Cd, DiscogsSearchResult } from "../types";
 
+const MAX_ARTIST_PICTURES_AMOUNT = 24;
+
 const getDiscogsClient = () => {
   const userToken = process.env.DISCOGS_USER_TOKEN;
   const consumerKey = process.env.DISCOGS_CONSUMER_KEY;
@@ -268,13 +270,15 @@ const getArtistPicturesByName = async (
     );
 
     const images: Art[] =
-      artistDetails.images?.map((img: any) => ({
-        uri: img.uri,
-        uri150: img.uri150,
-        width: img.width,
-        height: img.height,
-        type: img.type,
-      })) || [];
+      artistDetails.images
+        ?.slice(0, MAX_ARTIST_PICTURES_AMOUNT)
+        .map((img: any) => ({
+          uri: img.uri,
+          uri150: img.uri150,
+          width: img.width,
+          height: img.height,
+          type: img.type,
+        })) || [];
 
     return {
       artistId: artistDetails.id,

@@ -11,15 +11,17 @@ export const getCdCollection: () => Promise<Cd[]> = async () => {
   return await readFile();
 };
 
-export const addCd = async (cdData: Cd) => {
+export const addCd = async (cdData: Cd): Promise<number> => {
   const data = await getCdCollection();
   const maxId = data.length > 0 ? Math.max(...data.map((cd) => cd.id)) : 0;
+  const newId = maxId + 1;
   const cdDetails = {
     ...cdData,
-    id: maxId + 1,
+    id: newId,
   };
 
   writeJsonToFile(FILE_PATH, [...data, cdDetails]);
+  return newId;
 };
 
 export const editCd = async (cdData: CdInputData, cdId: number) => {
