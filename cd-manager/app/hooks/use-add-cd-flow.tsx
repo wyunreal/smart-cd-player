@@ -10,6 +10,7 @@ import { DataRepositoryContext } from "../providers/data-repository";
 import { useCdSelection } from "../providers/cd-selection-context";
 import { Cd } from "@/api/types";
 import AddCdResult from "../forms/add-cd/result";
+import { addCd } from "@/api/cd-collection";
 
 const useAddCdFlow = () => {
   const [isAddCdFlowOpen, setIsAddCdFlowOpen] = useState(false);
@@ -54,25 +55,12 @@ const useAddCdFlow = () => {
               return null;
             }
             try {
-              const response = await fetch("/api/cds", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(data.cd),
-              });
-              if (response.ok) {
-                const result = await response.json();
-                if (result.id !== undefined) {
-                  setCreatedCdId(result.id);
-                  return {
-                    ...data.cd,
-                    id: result.id,
-                  };
-                }
-                return null;
-              }
-              return null;
+              const newId = await addCd(data.cd);
+              setCreatedCdId(newId);
+              return {
+                ...data.cd,
+                id: newId,
+              };
             } catch (error) {
               console.error("Error adding CD:", error);
               return null;
