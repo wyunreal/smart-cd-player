@@ -1,4 +1,4 @@
-import searchByBarCode from "@/api/discogs";
+import { searchByBarCode } from "@/api/discogs";
 import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";

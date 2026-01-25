@@ -8,11 +8,11 @@ import useTheme from "@mui/material/styles/useTheme";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import ImageSelector from "@/app/components/client/image-selector";
 
-const CdArtForm = ({ data, onDataChanged }: StepProps<AddCdData>) => {
+const ArtistArtForm = ({ data, onDataChanged }: StepProps<AddCdData>) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const arts = data.arts || [];
+  const arts = data.artistArts || [];
 
   const handleSelectionChange = (
     index: number | undefined,
@@ -20,9 +20,9 @@ const CdArtForm = ({ data, onDataChanged }: StepProps<AddCdData>) => {
   ) => {
     onDataChanged({
       ...data,
-      selectedCdArtIndex: index,
+      selectedArtistArtIndex: index,
       cd: data.cd
-        ? { ...data.cd, art: { ...data.cd.art, cd: image } }
+        ? { ...data.cd, art: { ...data.cd.art, artist: image } }
         : undefined,
     });
   };
@@ -30,11 +30,13 @@ const CdArtForm = ({ data, onDataChanged }: StepProps<AddCdData>) => {
   return (
     <>
       {isMobile && (
-        <Typography sx={{ mb: 1, mt: "-16px" }}>Select CD picture:</Typography>
+        <Typography sx={{ mb: 1, mt: "-16px" }}>
+          Select artist picture:
+        </Typography>
       )}
       <ImageSelector
         images={arts}
-        selectedIndex={data.selectedCdArtIndex}
+        selectedIndex={data.selectedArtistArtIndex}
         onSelectionChange={handleSelectionChange}
         maxHeight={isMobile ? "70vh" : "55vh"}
       />
@@ -42,4 +44,4 @@ const CdArtForm = ({ data, onDataChanged }: StepProps<AddCdData>) => {
   );
 };
 
-export default CdArtForm;
+export default ArtistArtForm;

@@ -11,19 +11,14 @@ export const getCdCollection: () => Promise<Cd[]> = async () => {
   return await readFile();
 };
 
-export const addCd = async (cdData: CdInputData) => {
+export const addCd = async (cdData: Cd) => {
+  const data = await getCdCollection();
+  const maxId = data.length > 0 ? Math.max(...data.map((cd) => cd.id)) : 0;
   const cdDetails = {
-    id: 0,
-    title: cdData.album,
-    artist: cdData.artist,
-    genre: cdData.genre,
-    tracks: Array.from({ length: cdData.tracksNumber }, (_, i) => ({
-      number: i + 1,
-      title: `Track ${i + 1}`,
-    })),
+    ...cdData,
+    id: maxId + 1,
   };
 
-  const data = await getCdCollection();
   writeJsonToFile(FILE_PATH, [...data, cdDetails]);
 };
 

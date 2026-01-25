@@ -1,5 +1,5 @@
 import { Client } from "disconnect";
-import { Cd, DiscogsSearchResult } from "../types";
+import { Art, ArtistPicturesResult, Cd, DiscogsSearchResult } from "../types";
 
 const getDiscogsClient = () => {
   const userToken = process.env.DISCOGS_USER_TOKEN;
@@ -190,4 +190,101 @@ const searchByBarCode = async (
   }
 };
 
-export default searchByBarCode;
+const getArtistPicturesByName = async (
+  artistName: string,
+): Promise<ArtistPicturesResult | null> => {
+  try {
+    const dis = getDiscogsClient();
+    const db = dis.database();
+
+    let rateLimit: { limit: number; remaining: number } | undefined;
+
+    // Search for the artist by name
+    const searchResults = await withTimeout(
+      new Promise<any>((resolve, reject) => {
+        db.search(
+          {
+            query: artistName,
+            type: "artist",
+          },
+          (err, data, rateLimitInfo) => {
+            if (err) {
+              const errorMessage = err.message || String(err);
+              if (
+                errorMessage.includes("rate limit") ||
+                errorMessage.includes("429")
+              ) {
+                reject(
+                  new Error(`Discogs API rate limit exceeded: ${errorMessage}`),
+                );
+              } else {
+                reject(err);
+              }
+            } else {
+              if (rateLimitInfo) {
+                rateLimit = rateLimitInfo;
+              }
+              resolve(data);
+            }
+          },
+        );
+      }),
+      DISCOGS_TIMEOUT,
+    );
+
+    if (!searchResults.results || searchResults.results.length === 0) {
+      return null;
+    }
+
+    // Get the first artist result
+    const artistResult = searchResults.results[0];
+    const artistId = artistResult.id;
+
+    // Get full artist details including images
+    const artistDetails = await withTimeout(
+      new Promise<any>((resolve, reject) => {
+        db.getArtist(artistId, (err, data, rateLimitInfo) => {
+          if (err) {
+            const errorMessage = err.message || String(err);
+            if (
+              errorMessage.includes("rate limit") ||
+              errorMessage.includes("429")
+            ) {
+              reject(
+                new Error(`Discogs API rate limit exceeded: ${errorMessage}`),
+              );
+            } else {
+              reject(err);
+            }
+          } else {
+            if (rateLimitInfo) {
+              rateLimit = rateLimitInfo;
+            }
+            resolve(data);
+          }
+        });
+      }),
+      DISCOGS_TIMEOUT,
+    );
+
+    const images: Art[] =
+      artistDetails.images?.map((img: any) => ({
+        uri: img.uri,
+        uri150: img.uri150,
+        width: img.width,
+        height: img.height,
+        type: img.type,
+      })) || [];
+
+    return {
+      artistId: artistDetails.id,
+      artistName: artistDetails.name,
+      images,
+      rateLimit,
+    };
+  } catch (error) {
+    throw new Error(`Error fetching artist pictures from Discogs: ${error}`);
+  }
+};
+
+export { searchByBarCode, getArtistPicturesByName };

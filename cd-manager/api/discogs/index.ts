@@ -1,5 +1,8 @@
 import { AlbumArt, Cd, DiscogsSearchResult } from "../types";
-import searchDiscogsByBarcode from "./client";
+import {
+  searchByBarCode as searchDiscogsByBarcode,
+  getArtistPicturesByName as getDiscogsArtistPicturesByName,
+} from "./client";
 
 /**
  * Finds the most frequent value in an array
@@ -190,7 +193,7 @@ const calculateConsensusCd = (
   };
 };
 
-const searchByBarCode = async (
+export const searchByBarCode = async (
   barcode: string,
 ): Promise<DiscogsSearchResult> => {
   const searchResult = await searchDiscogsByBarcode(barcode);
@@ -200,4 +203,4 @@ const searchByBarCode = async (
     : result;
 };
 
-export default searchByBarCode;
+export const getArtistPicturesByName = getDiscogsArtistPicturesByName;

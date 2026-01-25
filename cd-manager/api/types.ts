@@ -68,3 +68,13 @@ export type DiscogsSearchResult = {
     remaining: number;
   };
 };
+
+export type ArtistPicturesResult = {
+  artistId: number;
+  artistName: string;
+  images: Art[];
+  rateLimit?: {
+    limit: number;
+    remaining: number;
+  };
+};

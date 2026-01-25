@@ -72,13 +72,19 @@ const SearchCdForm = ({
     try {
       clearValidationErrors();
       const response = await fetch(
-        `/api/discogs?barcode=${encodeURIComponent(barCode)}`,
+        `/api/discogs/search?barcode=${encodeURIComponent(barCode)}`,
       );
       const result = await response.json();
 
       if (response.ok) {
         if (result.cd) {
           setCd(result.cd);
+
+          const artistResponse = await fetch(
+            `/api/discogs/artist/pictures?artistName=${encodeURIComponent(result.cd.artist)}`,
+          );
+          const artistResult = await artistResponse.json();
+
           onDataChanged({
             ...data,
             barCode: result.cd.barCode,
@@ -89,10 +95,19 @@ const SearchCdForm = ({
               }
               return acc;
             }, []),
+            artistArts: artistResult.images || [],
+            artistName: result.cd.artist,
           });
         } else {
           setCd(null);
-          onDataChanged({ ...data, barCode, cd: undefined, arts: [] });
+          onDataChanged({
+            ...data,
+            barCode,
+            cd: undefined,
+            arts: [],
+            artistArts: [],
+            artistName: "",
+          });
           setSearchError("No CD found for the provided bar code.");
         }
       } else if (response.status === 429) {
