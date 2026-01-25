@@ -242,32 +242,76 @@ const getArtistPicturesByName = async (
     const artistResult = searchResults.results[0];
     const artistId = artistResult.id;
 
+    // Build a fallback image from search result thumbnail if available
+    const fallbackImages: Art[] = artistResult.thumb
+      ? [
+          {
+            uri: artistResult.cover_image || artistResult.thumb,
+            uri150: artistResult.thumb,
+            width: 150,
+            height: 150,
+            type: "primary",
+          },
+        ]
+      : [];
+
+    // Check if we have enough rate limit remaining for another call
+    if (rateLimit && rateLimit.remaining <= 1) {
+      console.warn(
+        `Discogs rate limit nearly exhausted (${rateLimit.remaining}/${rateLimit.limit}). Returning fallback images.`,
+      );
+      return {
+        artistId: artistId,
+        artistName: artistResult.title,
+        images: fallbackImages,
+        rateLimit,
+      };
+    }
+
     // Get full artist details including images
-    const artistDetails = await withTimeout(
-      new Promise<any>((resolve, reject) => {
-        db.getArtist(artistId, (err, data, rateLimitInfo) => {
-          if (err) {
-            const errorMessage = err.message || String(err);
-            if (
-              errorMessage.includes("rate limit") ||
-              errorMessage.includes("429")
-            ) {
-              reject(
-                new Error(`Discogs API rate limit exceeded: ${errorMessage}`),
-              );
+    let artistDetails: any = null;
+    try {
+      artistDetails = await withTimeout(
+        new Promise<any>((resolve, reject) => {
+          db.getArtist(artistId, (err, data, rateLimitInfo) => {
+            if (err) {
+              const errorMessage = err.message || String(err);
+              if (
+                errorMessage.includes("rate limit") ||
+                errorMessage.includes("429")
+              ) {
+                // Don't reject, just resolve with null to use fallback
+                console.warn(
+                  `Discogs rate limit hit on getArtist: ${errorMessage}`,
+                );
+                resolve(null);
+              } else {
+                reject(err);
+              }
             } else {
-              reject(err);
+              if (rateLimitInfo) {
+                rateLimit = rateLimitInfo;
+              }
+              resolve(data);
             }
-          } else {
-            if (rateLimitInfo) {
-              rateLimit = rateLimitInfo;
-            }
-            resolve(data);
-          }
-        });
-      }),
-      DISCOGS_TIMEOUT,
-    );
+          });
+        }),
+        DISCOGS_TIMEOUT,
+      );
+    } catch (timeoutError) {
+      console.warn(`Timeout getting artist details, using fallback images`);
+      artistDetails = null;
+    }
+
+    // If we couldn't get artist details, return fallback
+    if (!artistDetails) {
+      return {
+        artistId: artistId,
+        artistName: artistResult.title,
+        images: fallbackImages,
+        rateLimit,
+      };
+    }
 
     const images: Art[] =
       artistDetails.images
@@ -283,7 +327,7 @@ const getArtistPicturesByName = async (
     return {
       artistId: artistDetails.id,
       artistName: artistDetails.name,
-      images,
+      images: images.length > 0 ? images : fallbackImages,
       rateLimit,
     };
   } catch (error) {

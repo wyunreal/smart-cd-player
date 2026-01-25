@@ -16,6 +16,7 @@ const useAddCdFlow = () => {
   const { refreshCds } = useContext(DataRepositoryContext);
   const { selectCdById } = useCdSelection();
   const closeDialog = () => setIsAddCdFlowOpen(false);
+  const [createdCdId, setCreatedCdId] = useState<number | null>(null);
   return {
     openAddCdFlow: () => {
       setIsAddCdFlowOpen(true);
@@ -63,6 +64,7 @@ const useAddCdFlow = () => {
               if (response.ok) {
                 const result = await response.json();
                 if (result.id !== undefined) {
+                  setCreatedCdId(result.id);
                   return {
                     ...data.cd,
                     id: result.id,
@@ -78,14 +80,18 @@ const useAddCdFlow = () => {
           }}
           onResultReception={(result) => {
             if (result !== null) {
+              setCreatedCdId(result.id);
+            }
+          }}
+          onClose={() => {
+            closeDialog();
+            if (createdCdId !== null) {
               refreshCds();
-              // Small delay to ensure the CD list is refreshed before selecting
               setTimeout(() => {
-                selectCdById(result.id);
+                selectCdById(createdCdId);
               }, 100);
             }
           }}
-          onClose={closeDialog}
         />
       </ResponsiveDialog>
     ),
