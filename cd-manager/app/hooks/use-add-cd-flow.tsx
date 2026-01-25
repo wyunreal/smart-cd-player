@@ -8,6 +8,8 @@ import { validate as validateCdSelection } from "../forms/add-cd/search-cd";
 import ArtistArtForm from "../forms/add-cd/artist-art";
 import { DataRepositoryContext } from "../providers/data-repository";
 import { useCdSelection } from "../providers/cd-selection-context";
+import { Cd } from "@/api/types";
+import AddCdResult from "../forms/add-cd/result";
 
 const useAddCdFlow = () => {
   const [isAddCdFlowOpen, setIsAddCdFlowOpen] = useState(false);
@@ -24,7 +26,7 @@ const useAddCdFlow = () => {
         isOpen={isAddCdFlowOpen}
         onClose={closeDialog}
       >
-        <Flow<AddCdData, number | null>
+        <Flow<AddCdData, Cd | null>
           steps={[
             {
               title: "Search CD",
@@ -42,9 +44,7 @@ const useAddCdFlow = () => {
               validate: () => null,
             },
           ]}
-          ResultScreen={({ result }) =>
-            result !== null ? <>CD added</> : <>CD not added</>
-          }
+          ResultScreen={AddCdResult}
           initialData={{ barCode: "", cd: undefined }}
           operationName="Add CD to collection"
           closeActionName="Close"
@@ -62,7 +62,13 @@ const useAddCdFlow = () => {
               });
               if (response.ok) {
                 const result = await response.json();
-                return result.id as number;
+                if (result.id !== undefined) {
+                  return {
+                    ...data.cd,
+                    id: result.id,
+                  };
+                }
+                return null;
               }
               return null;
             } catch (error) {
@@ -75,7 +81,7 @@ const useAddCdFlow = () => {
               refreshCds();
               // Small delay to ensure the CD list is refreshed before selecting
               setTimeout(() => {
-                selectCdById(result);
+                selectCdById(result.id);
               }, 100);
             }
           }}

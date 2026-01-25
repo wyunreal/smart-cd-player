@@ -14,6 +14,7 @@ import { StepErrors } from "@/app/components/client/flow";
 import { SearchOutlinedIcon } from "@/app/icons";
 import { Art, Cd } from "@/api/types";
 import Album from "@/app/components/client/album";
+import CdRow from "@/app/components/client/cd-row";
 
 export const validate = (data: AddCdData) => {
   let tempErrors = { cd: "" };
@@ -23,29 +24,6 @@ export const validate = (data: AddCdData) => {
   }
   const hasErrors = Object.values(tempErrors).some((x) => x !== "");
   return hasErrors ? tempErrors : null;
-};
-
-const CdRow = ({ cd }: { cd: Cd }) => {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-      }}
-    >
-      <Box sx={{ marginRight: "16px" }}>
-        <Album
-          imageUri={cd.art?.album?.uri150 || "/cd-placeholder-big.png"}
-          size={104}
-        />
-      </Box>
-      <Box sx={{ display: "flex", flexDirection: "column" }}>
-        <Typography>{cd.artist}</Typography>
-        <Typography fontSize={24}>{cd.title}</Typography>
-        <Typography>{`${cd.year} - ${cd.genre}`}</Typography>
-        <Typography>{`Tracks: ${cd.tracks.length}`}</Typography>
-      </Box>
-    </Box>
-  );
 };
 
 const SearchCdForm = ({
