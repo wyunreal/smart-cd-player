@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import searchByBarCode from "../api/discogs/client";
+import { searchByBarCode } from "../api/discogs/client";
 
 // Load environment variables
 dotenv.config({ path: ".env.local" });
