@@ -2,6 +2,7 @@
 
 import { readJsonFromFile, writeJsonToFile } from "./json-storage";
 import { Cd, CdInputData } from "./types";
+import { downloadImage } from "./file-storage";
 
 const DATA_DIR = process.env.DATA_DIR || "../data/db";
 const FILE_PATH = `${DATA_DIR}/cd-collection.json`;
@@ -19,6 +20,38 @@ export const addCd = async (cdData: Cd): Promise<number> => {
     ...cdData,
     id: newId,
   };
+
+  if (cdDetails.art) {
+    const downloadPromises = [];
+    const imageTypes: Array<{ art: typeof cdDetails.art.album; type: string }> =
+      [
+        { art: cdDetails.art.album, type: "album" },
+        { art: cdDetails.art.artist, type: "artist" },
+        { art: cdDetails.art.cd, type: "cd" },
+      ];
+
+    for (const { art, type } of imageTypes) {
+      if (art?.uri) {
+        const ext = art.uri.split(".").pop() || "jpg";
+        const filename = `${newId}-${type}.${ext}`;
+        const filename150 = `${newId}-${type}-150.${ext}`;
+
+        downloadPromises.push(downloadImage(art.uri, filename));
+
+        if (art.uri150) {
+          downloadPromises.push(downloadImage(art.uri150, filename150));
+        }
+
+        // Actualizar las URLs a las rutas locales
+        art.uri = `/api/images/${filename}`;
+        if (art.uri150) {
+          art.uri150 = `/api/images/${filename150}`;
+        }
+      }
+    }
+
+    await Promise.all(downloadPromises);
+  }
 
   writeJsonToFile(FILE_PATH, [...data, cdDetails]);
   return newId;
