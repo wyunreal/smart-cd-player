@@ -18,7 +18,7 @@ export const downloadImage = async (
   if (!fs.existsSync(FILES_DIR)) {
     fs.mkdirSync(FILES_DIR, { recursive: true });
   }
-  console.log("Downloading image from URL:", imageUrl);
+
   const filePath = path.join(FILES_DIR, fileName);
 
   try {

@@ -1,32 +1,25 @@
 import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
-import Credentials from "next-auth/providers/credentials";
 import type { Provider } from "next-auth/providers";
 
 const providers: Provider[] = [
-  GitHub({
-    clientId: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  }),
   Google({
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  }),
-  Credentials({
-    credentials: {
-      email: { label: "Email Address", type: "email" },
-      password: { label: "Password", type: "password" },
+    authorization: {
+      params: {
+        prompt: "consent",
+        access_type: "offline",
+        response_type: "code",
+      },
     },
-    authorize(c) {
-      if (c.password === "@demo1" && c.email === "toolpad-demo@mui.com") {
-        return {
-          id: "test",
-          name: "Toolpad Demo",
-          email: String(c.email),
-        };
-      }
-      return null;
+    profile(profile) {
+      return {
+        id: profile.sub,
+        name: profile.name,
+        email: profile.email,
+        image: profile.picture,
+      };
     },
   }),
 ];
@@ -46,6 +39,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/auth/signin",
   },
   callbacks: {
+    async jwt({ token, user, account, profile }) {
+      // En el primer inicio de sesión, incluir la imagen del usuario
+      if (user) {
+        token.picture = user.image;
+      }
+      // También desde el profile de OAuth
+      if (profile && profile.picture) {
+        token.picture = profile.picture;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      // Incluir la imagen del token JWT en la sesión
+      if (session.user) {
+        session.user.image = token.picture as string;
+      }
+      return session;
+    },
     authorized({ auth: session, request: { nextUrl } }) {
       const isLoggedIn = !!session?.user;
       const isPublicPage = nextUrl.pathname.startsWith("/public");

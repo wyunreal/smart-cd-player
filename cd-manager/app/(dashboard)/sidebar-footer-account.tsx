@@ -14,6 +14,7 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
 
 function AccountSidebarPreview(props: AccountPreviewProps & { mini: boolean }) {
   const { handleClick, open, mini } = props;
+  
   return (
     <Stack direction="column" p={0} overflow="hidden">
       <Divider />
