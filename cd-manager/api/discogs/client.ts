@@ -134,7 +134,6 @@ const searchByBarCode = async (
 
         const tracks =
           release.tracklist?.map((track: any, index: number) => {
-            // Extraer el número de disco del campo position, por ejemplo "2-03" o "1-01"
             let cdNumber = 1;
             if (typeof track.position === "string") {
               const match = track.position.match(/^(\d+)[-–]/); // Soporta guion y guion largo
