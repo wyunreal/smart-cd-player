@@ -17,14 +17,14 @@ export const getPlayerContent = async (
 };
 
 export const addCdToPlayer = async (
-  playerIndex: number,
+  playerRemote: number,
   cd: Cd,
-  slotIndex: number,
+  slot: number,
 ): Promise<void> => {
-  if (playerIndex < 0 || playerIndex >= DEFINITIONS_COUNT) {
+  if (playerRemote < 1 || playerRemote > DEFINITIONS_COUNT) {
     throw new Error("Invalid player index");
   }
   const playerContent = await readFile();
-  playerContent[playerIndex][slotIndex] = { slot: slotIndex, cdId: cd.id };
+  playerContent[playerRemote - 1][slot - 1] = { slot, cdId: cd.id };
   return writeJsonToFile(FILE_PATH, playerContent);
 };

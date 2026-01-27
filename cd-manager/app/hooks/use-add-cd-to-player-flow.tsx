@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import ResponsiveDialog from "../components/client/dialog/responsive-dialog";
 import Flow from "../components/client/flow";
 import { Cd } from "@/api/types";
 import { AddCdToPlayerData } from "../forms/add-cd-to-player/types";
 import SlotForm from "../forms/add-cd-to-player/slot-form";
-import Confirm from "../forms/add-cd-to-player/confirm";
+import { addCdToPlayer } from "@/api/cd-player-content";
+import { DataRepositoryContext } from "../providers/data-repository";
 
 const useAddCdToPlayerFlow = () => {
+  const { refreshPlayerContent } = useContext(DataRepositoryContext);
   const [isAddCdToPlayerFlowOpen, setIsAddCdToPlayerFlowOpen] = useState(false);
   const [cd, setCd] = useState<Cd | undefined>();
   const closeDialog = () => setIsAddCdToPlayerFlowOpen(false);
@@ -21,16 +23,11 @@ const useAddCdToPlayerFlow = () => {
         isOpen={isAddCdToPlayerFlowOpen}
         onClose={closeDialog}
       >
-        <Flow<AddCdToPlayerData, boolean>
+        <Flow<AddCdToPlayerData, AddCdToPlayerData | null>
           steps={[
             {
               title: "Select slot",
               content: SlotForm,
-              validate: () => null,
-            },
-            {
-              title: "Summary",
-              content: Confirm,
               validate: () => null,
             },
           ]}
@@ -40,16 +37,18 @@ const useAddCdToPlayerFlow = () => {
           initialData={{ cd }}
           operationName="Add CD"
           closeActionName="Confirm"
-          onDataSubmission={(data) =>
-            new Promise<boolean>((resolve) => {
-              console.log(
-                `Adding CD ${data?.cd?.id} to slot ${data?.slot} on player ${data?.player}`,
-              );
-              resolve(true);
-            })
-          }
-          onResultReception={(result) => {
-            console.log("Result received", result);
+          onDataSubmission={async (data) => {
+            try {
+              await addCdToPlayer(data.player ?? 1, data.cd!, data.slot ?? 1);
+              return data;
+            } catch (error) {
+              return null;
+            }
+          }}
+          onResultReception={(data) => {
+            if (data) {
+              refreshPlayerContent();
+            }
           }}
           onClose={closeDialog}
         />

@@ -106,6 +106,7 @@ const ResponsiveDialog = ({
                 : `calc(100vh - ${TITLE_BAR_HEIGHT}px)`
               : "300px",
             overflow: "hidden",
+            overflowY: isMobile ? "auto" : "hidden",
             [theme.breakpoints.up("md")]: {
               overflow: "hidden",
               minHeight: 0,

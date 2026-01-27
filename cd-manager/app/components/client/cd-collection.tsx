@@ -179,7 +179,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 10,
+    pageSize: 13,
   });
 
   const [visible, setVisible] = useState(false);
