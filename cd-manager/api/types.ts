@@ -36,7 +36,7 @@ export type CdBasicInfo = {
   genre: string;
   genres?: string[];
   styles?: string[];
-  tracks: { number: number; title: string }[];
+  tracks: { number: number; cd: number; title: string }[];
 };
 
 export type Art = {

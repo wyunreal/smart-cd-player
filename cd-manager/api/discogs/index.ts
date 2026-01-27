@@ -151,25 +151,38 @@ const calculateConsensusCd = (
     .flatMap((cd) => cd.styles || [])
     .filter((s): s is string => s !== undefined);
 
+  // filter cds with multi-disc tracks
+  const multiDiscCds = result.cds.filter((cd) =>
+    cd.tracks.some((track) => track.cd && track.cd > 1),
+  );
+  const cdsToUse = multiDiscCds.length > 0 ? multiDiscCds : result.cds;
+
   // For tracks - find consensus tracks at each position
-  const maxTracksCount = Math.max(...result.cds.map((cd) => cd.tracks.length));
-  const consensusTracks: Array<{ number: number; title: string }> = [];
+  const maxTracksCount = Math.max(...cdsToUse.map((cd) => cd.tracks.length));
+  const consensusTracks: Array<{ number: number; cd: number; title: string }> =
+    [];
 
   for (let i = 0; i < maxTracksCount; i++) {
-    const trackNumbers = result.cds
+    const trackNumbers = cdsToUse
       .map((cd) => cd.tracks[i]?.number)
       .filter((num): num is number => num !== undefined);
 
-    const trackTitles = result.cds
+    const trackTitles = cdsToUse
       .map((cd) => cd.tracks[i]?.title)
       .filter((title): title is string => title !== undefined);
 
+    const trackCds = cdsToUse
+      .map((cd) => cd.tracks[i]?.cd)
+      .filter((cdNum): cdNum is number => cdNum !== undefined);
+
     const consensusNumber = getMostFrequent(trackNumbers) || i + 1;
     const consensusTitle = getMostFrequent(trackTitles) || `Track ${i + 1}`;
+    const consensusCd = getMostFrequent(trackCds) || 1;
 
     consensusTracks.push({
       number: consensusNumber,
       title: consensusTitle,
+      cd: consensusCd,
     });
   }
 

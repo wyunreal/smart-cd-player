@@ -133,10 +133,21 @@ const searchByBarCode = async (
         const styles = release.styles || [];
 
         const tracks =
-          release.tracklist?.map((track: any, index: number) => ({
-            number: index + 1,
-            title: track.title,
-          })) || [];
+          release.tracklist?.map((track: any, index: number) => {
+            // Extraer el número de disco del campo position, por ejemplo "2-03" o "1-01"
+            let cdNumber = 1;
+            if (typeof track.position === "string") {
+              const match = track.position.match(/^(\d+)[-–]/); // Soporta guion y guion largo
+              if (match) {
+                cdNumber = parseInt(match[1], 10);
+              }
+            }
+            return {
+              number: index + 1,
+              cd: cdNumber,
+              title: track.title,
+            };
+          }) || [];
 
         const primaryImage = release.images?.find(
           (img: any) => img.type === "primary",
