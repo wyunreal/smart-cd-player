@@ -29,6 +29,8 @@ export type CdInputData = {
   tracksNumber: number;
 };
 
+export type Track = { number: number; cd: number; title: string };
+
 export type CdBasicInfo = {
   title: string;
   artist: string;
@@ -36,7 +38,7 @@ export type CdBasicInfo = {
   genre: string;
   genres?: string[];
   styles?: string[];
-  tracks: { number: number; cd: number; title: string }[];
+  tracks: Track[];
 };
 
 export type Art = {
@@ -58,6 +60,7 @@ export type Cd = CdBasicInfo & {
   id: number;
   barCode?: string;
   art?: AlbumArt;
+  diskNumber?: number;
 };
 
 export type DiscogsSearchResult = {

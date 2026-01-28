@@ -1,7 +1,7 @@
 "use server";
 
 import { readJsonFromFile, writeJsonToFile } from "./json-storage";
-import { Cd, CdInputData } from "./types";
+import { AlbumArt, Art, Cd, CdInputData } from "./types";
 import { downloadImage } from "./file-storage";
 
 const DATA_DIR = process.env.DATA_DIR || "../data/db";
@@ -12,49 +12,48 @@ export const getCdCollection: () => Promise<Cd[]> = async () => {
   return await readFile();
 };
 
-export const addCd = async (cdData: Cd): Promise<number> => {
+export const addCd = async (cds: Cd[]): Promise<number[]> => {
   const data = await getCdCollection();
   const maxId = data.length > 0 ? Math.max(...data.map((cd) => cd.id)) : 0;
-  const newId = maxId + 1;
-  const cdDetails = {
-    ...cdData,
-    id: newId,
-  };
+  for (let i = 0; i < cds.length; i++) {
+    const newId = maxId + 1 + i;
+    cds[i].id = newId;
 
-  if (cdDetails.art) {
-    const downloadPromises = [];
-    const imageTypes: Array<{ art: typeof cdDetails.art.album; type: string }> =
-      [
-        { art: cdDetails.art.album, type: "album" },
-        { art: cdDetails.art.artist, type: "artist" },
-        { art: cdDetails.art.cd, type: "cd" },
+    if (cds[i].art) {
+      const downloadPromises = [];
+      const imageTypes: Array<{
+        art: Art | undefined;
+        type: "album" | "artist" | "cd";
+      }> = [
+        { art: cds[i].art?.album, type: "album" },
+        { art: cds[i].art?.artist, type: "artist" },
+        { art: cds[i].art?.cd, type: "cd" },
       ];
 
-    for (const { art, type } of imageTypes) {
-      if (art?.uri) {
-        const ext = art.uri.split(".").pop() || "jpg";
-        const filename = `${newId}-${type}.${ext}`;
-        const filename150 = `${newId}-${type}-150.${ext}`;
+      for (const { art, type } of imageTypes) {
+        if (art?.uri) {
+          const ext = art.uri.split(".").pop() || "jpg";
+          const filename = `${newId}-${type}.${ext}`;
+          const filename150 = `${newId}-${type}-150.${ext}`;
 
-        downloadPromises.push(downloadImage(art.uri, filename));
+          downloadPromises.push(downloadImage(art.uri, filename));
 
-        if (art.uri150) {
-          downloadPromises.push(downloadImage(art.uri150, filename150));
-        }
+          if (art.uri150) {
+            downloadPromises.push(downloadImage(art.uri150, filename150));
+          }
 
-        // Actualizar las URLs a las rutas locales
-        art.uri = `/api/images/${filename}`;
-        if (art.uri150) {
-          art.uri150 = `/api/images/${filename150}`;
+          art.uri = `/api/images/${filename}`;
+          if (art.uri150) {
+            art.uri150 = `/api/images/${filename150}`;
+          }
         }
       }
+
+      await Promise.all(downloadPromises);
     }
-
-    await Promise.all(downloadPromises);
   }
-
-  writeJsonToFile(FILE_PATH, [...data, cdDetails]);
-  return newId;
+  writeJsonToFile(FILE_PATH, [...data, ...cds]);
+  return cds.map((cd) => cd.id);
 };
 
 export const editCd = async (cdData: CdInputData, cdId: number) => {
@@ -72,13 +71,10 @@ export const editCd = async (cdData: CdInputData, cdId: number) => {
     genre: cdData.genre,
   };
 
-  if (
-    !cdDetails.tracks ||
-    cdDetails.tracks.length === 0 ||
-    cdData.tracksNumber !== cdDetails.tracks.length
-  ) {
+  if (!cdDetails.tracks || cdDetails.tracks.length === 0) {
     cdDetails.tracks = Array.from({ length: cdData.tracksNumber }, (_, i) => ({
       number: i + 1,
+      cd: 1,
       title: `Track ${i + 1}`,
     }));
   }

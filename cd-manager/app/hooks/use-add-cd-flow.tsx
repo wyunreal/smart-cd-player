@@ -8,7 +8,7 @@ import { validate as validateCdSelection } from "../forms/add-cd/search-cd";
 import ArtistArtForm from "../forms/add-cd/artist-art";
 import { DataRepositoryContext } from "../providers/data-repository";
 import { useCdSelection } from "../providers/cd-selection-context";
-import { Cd } from "@/api/types";
+import { Cd, Track } from "@/api/types";
 import AddCdResult from "../forms/add-cd/result";
 import { addCd } from "@/api/cd-collection";
 
@@ -18,6 +18,32 @@ const useAddCdFlow = () => {
   const { selectCdById } = useCdSelection();
   const closeDialog = () => setIsAddCdFlowOpen(false);
   const [createdCdId, setCreatedCdId] = useState<number | null>(null);
+
+  const splitCdIntoMultipleIfNeeded = (cd: Cd): Cd[] => {
+    const cdTracksMap: { [diskNumber: number]: Track[] } = cd.tracks.reduce(
+      (map, track) => {
+        const diskNumber = track.cd || 1;
+        if (!map[diskNumber]) {
+          map[diskNumber] = [];
+        }
+        map[diskNumber].push(track);
+        return map;
+      },
+      {} as { [diskNumber: number]: Track[] },
+    );
+    const cds: Cd[] = Object.entries(cdTracksMap).map(
+      ([diskNumberStr, tracks]) => {
+        const diskNumber = parseInt(diskNumberStr, 10);
+        return {
+          ...cd,
+          tracks,
+          diskNumber: diskNumber,
+        };
+      },
+    );
+    return cds;
+  };
+
   return {
     openAddCdFlow: () => {
       setIsAddCdFlowOpen(true);
@@ -55,11 +81,12 @@ const useAddCdFlow = () => {
               return null;
             }
             try {
-              const newId = await addCd(data.cd);
-              setCreatedCdId(newId);
+              const cds = splitCdIntoMultipleIfNeeded(data.cd);
+              const cdIds = await addCd(cds);
+              setCreatedCdId(cdIds[0]);
               return {
                 ...data.cd,
-                id: newId,
+                id: cdIds[0],
               };
             } catch (error) {
               console.error("Error adding CD:", error);
