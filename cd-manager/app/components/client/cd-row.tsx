@@ -17,7 +17,11 @@ const CdRow = ({ cd }: { cd: Cd }) => {
       </Box>
       <Box sx={{ display: "flex", flexDirection: "column" }}>
         <Typography>{cd.artist}</Typography>
-        <Typography fontSize={24}>{cd.title}</Typography>
+        <Typography fontSize={24}>
+          {(cd.diskAmount || 1) > 1
+            ? `${cd.title}, Disc ${cd.diskNumber}`
+            : cd.title}
+        </Typography>
         <Typography>{`${cd.year} - ${cd.genre}`}</Typography>
         <Typography>{`Tracks: ${cd.tracks.length}`}</Typography>
       </Box>

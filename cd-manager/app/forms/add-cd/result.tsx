@@ -30,7 +30,7 @@ const AddCdResult = ({ result }: { result: Cd | null }) =>
       </Stack>
     </Stack>
   ) : (
-    <Alert severity="error">This is an error Alert.</Alert>
+    <Alert severity="error">Error adding CD. Please try again.</Alert>
   );
 
 export default AddCdResult;

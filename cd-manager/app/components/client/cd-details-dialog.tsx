@@ -36,7 +36,11 @@ const CdDetailsDialog = ({
       <ResponsiveDialog
         isOpen={cdId !== null}
         onClose={onDialogClosed}
-        title={cd?.title || "Album details"}
+        title={
+          (cd?.diskAmount || 1) > 1
+            ? `${cd?.title}, Disc ${cd?.diskNumber}`
+            : cd?.title || "Album details"
+        }
         forcedHeight={isMobile ? undefined : 500}
         noHeader
       >
@@ -137,7 +141,9 @@ const CdDetailsDialog = ({
                   textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                 }}
               >
-                {cd.title}
+                {(cd.diskAmount || 1) > 1
+                  ? `${cd.title}, Disc ${cd.diskNumber}`
+                  : cd.title}
               </Typography>
               <Typography
                 variant={isMobile ? "h4" : "h4"}

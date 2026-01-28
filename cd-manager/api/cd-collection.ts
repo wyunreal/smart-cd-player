@@ -36,10 +36,10 @@ export const addCd = async (cds: Cd[]): Promise<number[]> => {
           const filename = `${newId}-${type}.${ext}`;
           const filename150 = `${newId}-${type}-150.${ext}`;
 
-          downloadPromises.push(downloadImage(art.uri, filename));
+          downloadPromises.push(downloadImage(`${art.uri}`, filename));
 
           if (art.uri150) {
-            downloadPromises.push(downloadImage(art.uri150, filename150));
+            downloadPromises.push(downloadImage(`${art.uri150}`, filename150));
           }
 
           art.uri = `/api/images/${filename}`;
@@ -70,14 +70,6 @@ export const editCd = async (cdData: CdInputData, cdId: number) => {
     artist: cdData.artist,
     genre: cdData.genre,
   };
-
-  if (!cdDetails.tracks || cdDetails.tracks.length === 0) {
-    cdDetails.tracks = Array.from({ length: cdData.tracksNumber }, (_, i) => ({
-      number: i + 1,
-      cd: 1,
-      title: `Track ${i + 1}`,
-    }));
-  }
 
   cdDetails.id = cdId;
   cds[index] = cdDetails;

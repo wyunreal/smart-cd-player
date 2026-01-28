@@ -137,7 +137,9 @@ const CdDetails = ({
                       textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                     }}
                   >
-                    {cd.title}
+                    {(cd.diskAmount || 1) > 1
+                      ? `${cd.title}, Disc ${cd.diskNumber}`
+                      : cd.title}
                   </Typography>
                 </div>
                 <div

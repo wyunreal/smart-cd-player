@@ -4,7 +4,6 @@ import { Cd } from "@/api/types";
 import {
   DeleteOutlinedIcon,
   EditOutlinedIcon,
-  ImageOutlinedIcon,
   MoreVertIcon,
   PlaylistAddOutlinedIcon,
 } from "@/app/icons";
@@ -120,7 +119,6 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
                         {
                           album: cd.title,
                           artist: cd.artist,
-                          tracksNumber: cd.tracks.length,
                           genre: cd.genre,
                         },
                         cd.id,
@@ -231,6 +229,10 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
               disableColumnResize
               rows={Object.values(cds).map((cd) => ({
                 ...cd,
+                title:
+                  (cd.diskAmount || 1) > 1
+                    ? `${cd.title}, Disc ${cd.diskNumber}`
+                    : cd.title,
                 albumArt: cd.art?.album?.uri150,
                 id: cd.id,
                 tracksNumber: cd.tracks.length,

@@ -26,7 +26,6 @@ export type CdInputData = {
   album: string;
   year?: number;
   genre: string;
-  tracksNumber: number;
 };
 
 export type Track = { number: number; cd: number; title: string };
@@ -60,6 +59,7 @@ export type Cd = CdBasicInfo & {
   id: number;
   barCode?: string;
   art?: AlbumArt;
+  diskAmount?: number;
   diskNumber?: number;
 };
 

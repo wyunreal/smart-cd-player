@@ -22,7 +22,6 @@ const CdForm = ({
   const [title, setTitle] = useState(cd ? cd.album : "");
   const [artist, setArtist] = useState(cd ? cd.artist : "");
   const [genre, setGenre] = useState(cd ? cd.genre : "");
-  const [tracksNumber, setTracksNumber] = useState(cd ? cd.tracksNumber : 0);
   const [errors, setErrors] = useState({
     title: "",
     author: "",
@@ -37,8 +36,6 @@ const CdForm = ({
     if (!title) tempErrors.title = "Title is required";
     if (!artist) tempErrors.author = "Artist is required";
     if (!genre) tempErrors.genre = "Genre is required";
-    if (tracksNumber < 1)
-      tempErrors.tracks = "Please specify a positive number";
     setErrors(tempErrors);
     return Object.values(tempErrors).every((x) => x === "");
   };
@@ -47,7 +44,7 @@ const CdForm = ({
     e.preventDefault();
     if (validate()) {
       setSending(true);
-      onSubmit({ artist, album: title, genre, tracksNumber });
+      onSubmit({ artist, album: title, genre });
     }
   };
 
@@ -99,18 +96,6 @@ const CdForm = ({
               helperText={errors.genre}
             />
           )}
-          sx={{ marginRight: 2 }}
-        />
-        <TextField
-          required
-          type="number"
-          id="tracks"
-          label="Tracks number"
-          name="tracks"
-          value={tracksNumber}
-          onChange={(e) => setTracksNumber(Number(e.target.value))}
-          error={!!errors.tracks}
-          helperText={errors.tracks}
         />
       </Box>
       <Box sx={{ display: "flex", flexDirection: "row-reverse" }}>

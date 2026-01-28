@@ -50,7 +50,7 @@ const Page = () => {
         return [selectedSlot[0], selectedSlot[1], slot];
       }
     },
-    [selectedSlot]
+    [selectedSlot],
   );
 
   const theme = useTheme();
@@ -99,8 +99,8 @@ const Page = () => {
                       setSelectedSlot(
                         buildSelectedSlot(
                           slot,
-                          (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2
-                        )
+                          (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2,
+                        ),
                       );
                     }}
                     containerWidth={width}
@@ -125,7 +125,9 @@ const Page = () => {
                     {currentSlotNumber}
                   </Typography>
                   <Typography variant="h5" sx={{ textAlign: "center" }}>
-                    {currentSlot?.cd?.title || "No disk"}
+                    {(currentSlot?.cd?.diskAmount || 1) > 1
+                      ? `${currentSlot?.cd?.title}, Disc ${currentSlot?.cd?.diskNumber}`
+                      : currentSlot?.cd?.title || "No disk"}
                   </Typography>
                   <Typography variant="body1" sx={{ textAlign: "center" }}>
                     {currentSlot?.cd?.artist || "No artist"}
@@ -147,8 +149,8 @@ const Page = () => {
                         setSelectedSlot(
                           buildSelectedSlot(
                             slot.slot - 1,
-                            (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2
-                          )
+                            (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2,
+                          ),
                         );
                       }}
                     />
@@ -171,8 +173,8 @@ const Page = () => {
                     setSelectedSlot(
                       buildSelectedSlot(
                         v as number,
-                        (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2
-                      )
+                        (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2,
+                      ),
                     );
                   }}
                   sx={{

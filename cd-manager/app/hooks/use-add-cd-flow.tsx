@@ -36,8 +36,14 @@ const useAddCdFlow = () => {
         const diskNumber = parseInt(diskNumberStr, 10);
         return {
           ...cd,
-          tracks,
+          tracks: [...tracks], // shallow copy of tracks
+          art: {
+            album: cd.art?.album && { ...cd.art?.album },
+            cd: cd.art?.cd && { ...cd.art?.cd },
+            artist: cd.art?.artist && { ...cd.art?.artist },
+          }, // shallow copy of art
           diskNumber: diskNumber,
+          diskAmount: Object.keys(cdTracksMap).length,
         };
       },
     );
