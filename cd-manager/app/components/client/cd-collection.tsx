@@ -31,6 +31,10 @@ import {
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 import useAddCdToPlayerFlow from "@/app/hooks/use-add-cd-to-player-flow";
 import { useCdSelection } from "@/app/providers/cd-selection-context";
+import { get } from "http";
+
+const GRID_HEADER_HEIGHT = 55;
+const GRID_ROW_HEIGHT = 52;
 
 const isCdInUse = (cdId: number, playerContent: PlayerSlot[][]): boolean => {
   for (let i = 0; i < playerContent.length; i++) {
@@ -44,8 +48,16 @@ const isCdInUse = (cdId: number, playerContent: PlayerSlot[][]): boolean => {
   return false;
 };
 
+const getPageSize = (height: number): number => {
+  return height > 0
+    ? Math.floor(
+        (height - GRID_HEADER_HEIGHT - GRID_ROW_HEIGHT) / GRID_ROW_HEIGHT,
+      )
+    : 12;
+};
+
 const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
-  const { width, resizeRef } = useResizeObserver();
+  const { height, width, resizeRef } = useResizeObserver();
 
   const menuInstancesRef = React.useRef<{ [cdId: number]: React.ReactNode }>(
     {},
@@ -246,7 +258,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 12,
+    pageSize: getPageSize(height),
   });
 
   const [visible, setVisible] = useState(false);
@@ -255,6 +267,13 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
       setVisible(true);
     }, 300);
   }, []);
+
+  useEffect(() => {
+    setPaginationModel((prev) => ({
+      ...prev,
+      pageSize: getPageSize(height),
+    }));
+  }, [height]);
 
   // Navigate to the page containing the selected CD
   const cdIds = Object.keys(cds).map(Number);
@@ -266,7 +285,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
         setPaginationModel((prev) => ({ ...prev, page: targetPage }));
       }
     }
-  }, [selectedCdId, cdIds.length]);
+  }, [selectedCdId, cdIds.length, paginationModel.pageSize]);
 
   const rowSelectionModel: GridRowSelectionModel =
     selectedCdId !== null ? [selectedCdId] : [];
@@ -276,6 +295,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
       sx={{
         flex: 1,
         position: "relative",
+        height: "100%",
         ...(visible
           ? {
               animation: "fadeInFromNone 0.3s ease-out;",
@@ -291,9 +311,9 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
           : { opacity: 0 }),
       }}
     >
-      <Box sx={{ position: "absolute", inset: 0 }}>
-        <Paper sx={{ flex: 1 }}>
-          <div ref={resizeRef}>
+      <Box sx={{ position: "absolute", inset: 0, height: "100%" }}>
+        <Paper sx={{ flex: 1, height: "100%" }}>
+          <div ref={resizeRef} style={{ height: "100%" }}>
             <DataGrid
               disableColumnResize
               rows={Object.values(cds).map((cd) => ({
@@ -305,7 +325,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
               columns={columns}
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
-              pageSizeOptions={[12]}
+              pageSizeOptions={[getPageSize(height)]}
               rowSelection
               rowSelectionModel={rowSelectionModel}
               isCellEditable={() => false}

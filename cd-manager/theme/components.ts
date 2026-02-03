@@ -112,6 +112,15 @@ const getComponentsOverrides = (theme: Theme) => {
           },
         },
       },
+      MuiDataGrid: {
+        styleOverrides: {
+          root: {
+            "& .MuiDataGrid-filler": {
+              "--rowBorderColor": "transparent !important",
+            },
+          },
+        },
+      },
     },
   };
 };

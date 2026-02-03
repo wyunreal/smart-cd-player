@@ -15,7 +15,7 @@ export default () => {
   return (
     <>
       {cds !== null ? (
-        <Box sx={{ display: "flex", flexDirection: "row" }}>
+        <Box sx={{ display: "flex", flexDirection: "row", height: "100%" }}>
           <CdCollection cds={cds} />
           <CdDetails
             cdId={selectedCdId}

@@ -91,7 +91,7 @@ const CdDetails = ({
                   >
                     <List
                       sx={{
-                        maxHeight: "calc(100vh - 400px)",
+                        maxHeight: "calc(100vh - 404px)",
                         maxWidth: DETAILS_PANEL_WIDTH,
                         overflow: "auto",
                         "&::-webkit-scrollbar": {
