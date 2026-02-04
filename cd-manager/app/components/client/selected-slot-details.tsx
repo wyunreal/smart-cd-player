@@ -33,6 +33,7 @@ const SelectedSlotDetails = ({
   relatedSlots: PlayerSlot[];
   onRelatedAlbumClick: (slot: PlayerSlot) => void;
 }) => {
+  console.log("SelectedSlotDetails rendered with slot:", relatedSlots);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const otherAlbums = relatedSlots.filter(

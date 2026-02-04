@@ -44,7 +44,7 @@ type DataRepositoryContextProps = CdCollectionProps &
   PlayerContentProps;
 
 const calculateContentByArtist = (
-  slots: PlayerSlot[]
+  slots: PlayerSlot[],
 ): PlayerContentByArtist => {
   let contentByArtist: PlayerContentByArtist = {};
   for (const slot of slots) {
@@ -92,7 +92,7 @@ export const DataRepositoryProvider = ({
           acc[cd.id] = cd;
           return acc;
         },
-        {} as { [id: number]: Cd }
+        {} as { [id: number]: Cd },
       );
       setCds(cdsById);
     });
@@ -114,7 +114,7 @@ export const DataRepositoryProvider = ({
     getPlayerDefinitions().then((playerDef) => {
       setPlayerDefinitions(playerDef);
       const selectedPlayerDefinition = playerDef.find(
-        (def) => def.remoteIndex === selectedPlayer
+        (def) => def.remoteIndex === selectedPlayer,
       );
       if (!selectedPlayerDefinition) {
         if (playerDef.length > 0) {
@@ -128,7 +128,7 @@ export const DataRepositoryProvider = ({
   const getPlayerDefinitionsByStatus = useCallback(
     (isActive: boolean) =>
       playerDefinitions.filter((def) => def.active === isActive),
-    [playerDefinitions]
+    [playerDefinitions],
   );
 
   /**
@@ -163,12 +163,13 @@ export const DataRepositoryProvider = ({
         ? Array.from({ length: 3 }).map((_, index: number) => {
             let slots: PlayerSlot[] = Array.from(
               { length: playerDefinitions[index].capacity },
-              (_, slotIndex: number) => ({ slot: slotIndex + 1, cd: null })
+              (_, slotIndex: number) => ({ slot: slotIndex + 1, cd: null }),
             );
             let minSlot = playerDefinitions[index].capacity;
             let maxSlot = 1;
             for (const slot of rawContent[index]) {
-              slots[slot.slot - 1].cd = cds[slot.cdId];
+              const cd = slot.cdId ? cds[slot.cdId] : null;
+              slots[slot.slot - 1].cd = cd;
               if (slot.slot < minSlot) {
                 minSlot = slot.slot;
               }
@@ -179,7 +180,7 @@ export const DataRepositoryProvider = ({
             slots = slots.slice(minSlot - 1, maxSlot);
             return slots.length > 0 ? slots : [{ slot: 0, cd: null }];
           })
-        : [[], [], []]
+        : [[], [], []],
     );
   }, [playerDefinitions, rawContent, cds]);
 

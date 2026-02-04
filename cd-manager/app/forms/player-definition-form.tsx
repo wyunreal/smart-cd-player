@@ -14,7 +14,7 @@ import {
   Switch,
 } from "@mui/material";
 import { PlayerDefinition } from "@/api/types";
-import { DEFINITIONS_COUNT, VALID_CAPACITY } from "@/api/cd-player-definitions";
+import { DEFINITIONS_COUNT, VALID_CAPACITY } from "@/api/constants";
 
 const PlayerDefinitionForm = ({
   playerDefinitions,
@@ -28,7 +28,7 @@ const PlayerDefinitionForm = ({
       remoteIndex: i + 1,
       capacity: VALID_CAPACITY[0],
       active: true,
-    }))
+    })),
   );
 
   useEffect(() => {

@@ -1,4 +1,6 @@
-import { DEFINITIONS_COUNT } from "./cd-player-definitions";
+"use server";
+
+import { DEFINITIONS_COUNT } from "./constants";
 import { readJsonFromFile, writeJsonToFile } from "./json-storage";
 import { Cd, CdSlot } from "./types";
 
@@ -25,6 +27,32 @@ export const addCdToPlayer = async (
     throw new Error("Invalid player index");
   }
   const playerContent = await readFile();
-  playerContent[playerRemote - 1][slot - 1] = { slot, cdId: cd.id };
+  const existingSlotIndex = playerContent[playerRemote - 1].findIndex(
+    (s) => s.slot === slot,
+  );
+  if (existingSlotIndex !== -1) {
+    playerContent[playerRemote - 1][existingSlotIndex] = { slot, cdId: cd.id };
+  } else {
+    playerContent[playerRemote - 1].push({ slot, cdId: cd.id });
+  }
+  playerContent[playerRemote - 1].sort((a, b) => a.slot - b.slot);
+  return writeJsonToFile(FILE_PATH, playerContent);
+};
+
+export const removeCdFromPlayer = async (cdId: number): Promise<void> => {
+  const playerContent = await readFile();
+  const playerContentIndex = playerContent.findIndex((slots) =>
+    slots.some((slot) => slot.cdId === cdId),
+  );
+  if (playerContentIndex === -1) {
+    throw new Error("CD not found in any player");
+  }
+  const slotIndex = playerContent[playerContentIndex].findIndex(
+    (slot) => slot.cdId === cdId,
+  );
+  if (slotIndex === -1) {
+    throw new Error("CD not found in the player");
+  }
+  playerContent[playerContentIndex].splice(slotIndex, 1);
   return writeJsonToFile(FILE_PATH, playerContent);
 };

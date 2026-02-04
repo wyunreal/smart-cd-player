@@ -7,11 +7,13 @@ import SlotForm from "../forms/add-cd-to-player/slot-form";
 import { addCdToPlayer } from "@/api/cd-player-content";
 import { DataRepositoryContext } from "../providers/data-repository";
 
-const useAddCdToPlayerFlow = ({
-  onAfterFlowExecuted,
-}: {
-  onAfterFlowExecuted?: () => void;
-}) => {
+const useAddCdToPlayerFlow = (
+  props?:
+    | {
+        onAfterFlowExecuted?: () => void;
+      }
+    | undefined,
+) => {
   const { refreshPlayerContent } = useContext(DataRepositoryContext);
   const [isAddCdToPlayerFlowOpen, setIsAddCdToPlayerFlowOpen] = useState(false);
   const [cd, setCd] = useState<Cd | undefined>();
@@ -53,8 +55,8 @@ const useAddCdToPlayerFlow = ({
             if (data) {
               refreshPlayerContent();
             }
-            if (onAfterFlowExecuted) {
-              onAfterFlowExecuted();
+            if (props?.onAfterFlowExecuted) {
+              props.onAfterFlowExecuted();
             }
           }}
           onClose={closeDialog}

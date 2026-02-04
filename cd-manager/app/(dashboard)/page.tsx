@@ -146,9 +146,12 @@ const Page = () => {
                           : []
                       }
                       onRelatedAlbumClick={(slot) => {
+                        const slotIndex = playerContent[
+                          selectedPlayerRemoteIndex - 1
+                        ].findIndex((s) => s.slot === slot.slot);
                         setSelectedSlot(
                           buildSelectedSlot(
-                            slot.slot - 1,
+                            slotIndex,
                             (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2,
                           ),
                         );

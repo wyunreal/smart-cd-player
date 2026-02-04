@@ -18,7 +18,13 @@ import {
   GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import Image from "next/image";
-import React, { useContext, useEffect, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import Menu from "./menu";
 import useEditCdForm from "@/app/hooks/use-edit-cd-form";
 import useConfirmDialog from "@/app/hooks/use-confirm-dialog";
@@ -31,7 +37,7 @@ import {
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 import useAddCdToPlayerFlow from "@/app/hooks/use-add-cd-to-player-flow";
 import { useCdSelection } from "@/app/providers/cd-selection-context";
-import { get } from "http";
+import { removeCdFromPlayer } from "@/api/cd-player-content";
 
 const GRID_HEADER_HEIGHT = 55;
 const GRID_ROW_HEIGHT = 52;
@@ -59,84 +65,68 @@ const getPageSize = (height: number): number => {
 const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
   const { height, width, resizeRef } = useResizeObserver();
 
-  const menuInstancesRef = React.useRef<{ [cdId: number]: React.ReactNode }>(
-    {},
-  );
-  const avatarInstancesRef = React.useRef<{ [cdId: number]: React.ReactNode }>(
-    {},
-  );
-
-  const cleanCdDataRefs = () => {
-    menuInstancesRef.current = {};
-    avatarInstancesRef.current = {};
-  };
-
   const { openEditCdForm, editCdFormInstance } = useEditCdForm();
   const { confirmDialog, confirmDialogInstance } = useConfirmDialog();
   const { openAddCdToPlayerFlow, addCdToPlayerFlowInstance } =
-    useAddCdToPlayerFlow({ onAfterFlowExecuted: cleanCdDataRefs });
+    useAddCdToPlayerFlow();
   const { openSnackbar, snackbarInstance } = useSnackbar();
 
-  const { refreshCds, playerContent } = useContext(DataRepositoryContext);
+  const { refreshCds, refreshPlayerContent, playerContent } = useContext(
+    DataRepositoryContext,
+  );
   const { selectedCdId, selectCdById } = useCdSelection();
 
-  const getAvatarInstanceForCd = (cdId: number) => {
-    if (avatarInstancesRef.current[cdId]) {
-      return avatarInstancesRef.current[cdId];
-    }
+  // Solo cambiar cuando width cruza el umbral de 600px
+  const isWide = width > 600;
 
-    const cd = cds[cdId];
+  const renderAlbumArt = useCallback(
+    (params: GridRenderCellParams<any, string>) => {
+      const cd = cds[Number(params.id)];
+      return (
+        <Box my="5px" ml="-4px">
+          <Avatar variant="rounded">
+            <Image
+              width={40}
+              height={40}
+              src={cd.art?.album?.uri150 || "/cd-placeholder-small.png"}
+              alt="Album cover"
+            />
+          </Avatar>
+        </Box>
+      );
+    },
+    [cds],
+  );
 
-    const avatarInstance = (
-      <Box my="5px" ml="-4px">
-        <Avatar variant="rounded">
-          <Image
-            width={40}
-            height={40}
-            src={cd.art?.album?.uri150 || "/cd-placeholder-small.png"}
-            alt="Album cover"
-          />
-        </Avatar>
-      </Box>
-    );
-    avatarInstancesRef.current[cdId] = avatarInstance;
-    return avatarInstance;
-  };
-
-  const getMenuInstanceForCdId = (cdId: number) => {
-    if (menuInstancesRef.current[cdId]) {
-      return menuInstancesRef.current[cdId];
-    }
-
-    const menuId = `cd-menu-${cdId}`;
-    const manageCdSlotMenuItem = isCdInUse(cdId, playerContent)
-      ? {
-          type: "action" as "action",
-          icon: <PlaylistRemoveOutlinedIcon />,
-          caption: "Remove from player",
-          handler: () => {
-            if (cdId !== undefined) {
-              const cd = cds[cdId];
-              alert(
-                `Removing CD ${cd.artist} - ${cd.title} from player is not implemented yet.`,
-              );
-              // remember to call cleanCdDataRefs() and refreshCds() after implementing
-            }
-          },
-        }
-      : {
-          type: "action" as "action",
-          icon: <PlaylistAddOutlinedIcon />,
-          caption: "Add to player",
-          handler: () => {
-            if (cdId !== undefined) {
-              const cd = cds[cdId];
+  const renderMenu = useCallback(
+    (params: GridRenderCellParams<any, string>) => {
+      const cdId = Number(params.value);
+      const cd = cds[cdId];
+      const menuId = `cd-menu-${cdId}`;
+      const manageCdSlotMenuItem = isCdInUse(cdId, playerContent)
+        ? {
+            type: "action" as "action",
+            icon: <PlaylistRemoveOutlinedIcon />,
+            caption: "Remove from player",
+            handler: async () => {
+              await removeCdFromPlayer(cd.id);
+              refreshCds();
+              refreshPlayerContent();
+              openSnackbar({
+                text: `Album ${cd.artist} - ${cd.title} removed from player`,
+              });
+            },
+          }
+        : {
+            type: "action" as "action",
+            icon: <PlaylistAddOutlinedIcon />,
+            caption: "Add to player",
+            handler: () => {
               openAddCdToPlayerFlow({ cd });
-            }
-          },
-        };
-    const menuInstance = (
-      <>
+            },
+          };
+
+      return (
         <Menu
           icon={<MoreVertIcon />}
           menuId={menuId}
@@ -146,17 +136,14 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
               icon: <EditOutlinedIcon />,
               caption: "Edit",
               handler: () => {
-                if (cdId !== undefined) {
-                  const cd = cds[cdId];
-                  openEditCdForm(
-                    {
-                      album: cd.title,
-                      artist: cd.artist,
-                      genre: cd.genre,
-                    },
-                    cd.id,
-                  );
-                }
+                openEditCdForm(
+                  {
+                    album: cd.title,
+                    artist: cd.artist,
+                    genre: cd.genre,
+                  },
+                  cd.id,
+                );
               },
             },
             {
@@ -164,97 +151,101 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
               icon: <DeleteOutlinedIcon />,
               caption: "Delete",
               handler: () => {
-                if (cdId !== undefined) {
-                  const cd = cds[cdId];
-                  confirmDialog({
-                    title: "Delete album",
-                    text: (
-                      <>
-                        <p>{`Are you sure you want to delete the album  ${cd.artist} - ${cd.title} ?`}</p>
-                        <p>This action cannot be undone.</p>
-                      </>
-                    ),
-                    okButtonText: "Yes, delete",
-                    cancelButtonText: "No, cancel",
-                    onConfirm: () => {
-                      deleteCd(cd.id).then(() => {
-                        refreshCds();
-                        cleanCdDataRefs();
-                        openSnackbar({
-                          text: `Album ${cd.artist} - ${cd.title} deleted`,
-                        });
+                confirmDialog({
+                  title: "Delete album",
+                  text: (
+                    <>
+                      <p>{`Are you sure you want to delete the album  ${cd.artist} - ${cd.title} ?`}</p>
+                      <p>This action cannot be undone.</p>
+                    </>
+                  ),
+                  okButtonText: "Yes, delete",
+                  cancelButtonText: "No, cancel",
+                  onConfirm: () => {
+                    deleteCd(cd.id).then(() => {
+                      refreshCds();
+                      openSnackbar({
+                        text: `Album ${cd.artist} - ${cd.title} deleted`,
                       });
-                    },
-                  });
-                }
+                    });
+                  },
+                });
               },
             },
             { type: "divider" },
             manageCdSlotMenuItem,
           ]}
         />
-      </>
-    );
-    menuInstancesRef.current[cdId] = menuInstance;
-    return menuInstance;
-  };
+      );
+    },
+    [
+      cds,
+      playerContent,
+      openEditCdForm,
+      confirmDialog,
+      openAddCdToPlayerFlow,
+      refreshCds,
+      refreshPlayerContent,
+      openSnackbar,
+    ],
+  );
 
-  const columns: GridColDef[] = [
-    {
-      field: "albumArt",
-      headerName: "",
-      width: 40,
-      hideable: false,
-      disableColumnMenu: true,
-      sortable: false,
-      renderCell: (params: GridRenderCellParams<any, string>) =>
-        getAvatarInstanceForCd(Number(params.id)),
-    },
-    {
-      field: "title",
-      headerName: "Album",
-      flex: 2,
-      hideable: false,
-    },
-    ...(width > 600
-      ? [
-          {
-            field: "artist",
-            headerName: "Artist",
-            flex: 2,
-            hideable: false,
-          },
-        ]
-      : []),
-    ...(width > 600
-      ? [
-          {
-            field: "genre",
-            headerName: "Genre",
-            flex: 1,
-            hideable: false,
-          },
-        ]
-      : []),
-    {
-      field: "tracksNumber",
-      headerName: "Tracks",
-      type: "number",
-      width: 80,
-      hideable: false,
-    },
-    {
-      field: "id",
-      headerName: "",
-      width: 60,
-      hideable: false,
-      disableColumnMenu: true,
-      sortable: false,
-      renderCell: (params: GridRenderCellParams<any, string>) => {
-        return getMenuInstanceForCdId(Number(params.value));
+  const columns: GridColDef[] = useMemo(
+    () => [
+      {
+        field: "albumArt",
+        headerName: "",
+        width: 40,
+        hideable: false,
+        disableColumnMenu: true,
+        sortable: false,
+        renderCell: renderAlbumArt,
       },
-    },
-  ];
+      {
+        field: "title",
+        headerName: "Album",
+        flex: 2,
+        hideable: false,
+      },
+      ...(isWide
+        ? [
+            {
+              field: "artist",
+              headerName: "Artist",
+              flex: 2,
+              hideable: false,
+            },
+          ]
+        : []),
+      ...(isWide
+        ? [
+            {
+              field: "genre",
+              headerName: "Genre",
+              flex: 1,
+              hideable: false,
+            },
+          ]
+        : []),
+      {
+        field: "tracksNumber",
+        headerName: "Tracks",
+        type: "number",
+        width: 80,
+        hideable: false,
+      },
+      {
+        field: "id",
+        headerName: "",
+        width: 60,
+        hideable: false,
+        disableColumnMenu: true,
+        sortable: false,
+        renderCell: renderMenu,
+      },
+    ],
+    [isWide, renderAlbumArt, renderMenu],
+  );
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
