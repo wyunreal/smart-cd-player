@@ -270,13 +270,12 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
   }, []);
 
   useEffect(() => {
-    setPaginationModel((prev) => ({
-      ...prev,
-      pageSize: getPageSize(height),
-    }));
+    const newPageSize = getPageSize(height);
+    setPaginationModel((prev) => 
+      prev.pageSize === newPageSize ? prev : { ...prev, pageSize: newPageSize }
+    );
   }, [height]);
 
-  // Navigate to the page containing the selected CD
   const cdIds = Object.keys(cds).map(Number);
   useEffect(() => {
     if (selectedCdId !== null && cdIds.includes(selectedCdId)) {
@@ -286,10 +285,43 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
         setPaginationModel((prev) => ({ ...prev, page: targetPage }));
       }
     }
-  }, [selectedCdId, cdIds.length, paginationModel.pageSize]);
+  }, [selectedCdId, cdIds.length, paginationModel.pageSize]); // Optimized deps
 
-  const rowSelectionModel: GridRowSelectionModel =
-    selectedCdId !== null ? [selectedCdId] : [];
+  const rowSelectionModel: GridRowSelectionModel = useMemo(
+    () => (selectedCdId !== null ? [selectedCdId] : []),
+    [selectedCdId]
+  );
+
+  const gridSx = useMemo(
+    () => ({
+      border: 0,
+      borderRadius: "8px",
+      "& .MuiDataGrid-columnSeparator": {
+        display: "none",
+      },
+      [`& .${gridClasses.cell}:focus, & .${gridClasses.cell}:focus-within`]: {
+        outline: "none",
+      },
+      [`& .${gridClasses.columnHeader}:focus, & .${gridClasses.columnHeader}:focus-within`]:
+        {
+          outline: "none",
+        },
+    }),
+    []
+  );
+
+  const onRowSelectionModelChange = useCallback(
+    (selection: GridRowSelectionModel) => {
+      if (selection.length > 0) {
+        selectCdById(Number(selection[0]));
+      }
+    },
+    [selectCdById]
+  );
+
+  const pageSizeOptions = useMemo(() => [getPageSize(height)], [height]);
+  const isCellEditable = useCallback(() => false, []);
+
 
   return (
     <Box
@@ -321,33 +353,13 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
               columns={columns}
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
-              pageSizeOptions={[getPageSize(height)]}
+              pageSizeOptions={pageSizeOptions}
               rowSelection
               rowSelectionModel={rowSelectionModel}
-              isCellEditable={useCallback(() => false, [])}
+              isCellEditable={isCellEditable}
               autoPageSize={false}
-              sx={{
-                border: 0,
-                borderRadius: "8px",
-                "& .MuiDataGrid-columnSeparator": {
-                  display: "none",
-                },
-                [`& .${gridClasses.cell}:focus, & .${gridClasses.cell}:focus-within`]:
-                  {
-                    outline: "none",
-                  },
-                [`& .${gridClasses.columnHeader}:focus, & .${gridClasses.columnHeader}:focus-within`]:
-                  {
-                    outline: "none",
-                  },
-              }}
-              onRowSelectionModelChange={(selection) => {
-                // Only update selection if user clicked on a row
-                // Don't clear selection when changing pages
-                if (selection.length > 0) {
-                  selectCdById(Number(selection[0]));
-                }
-              }}
+              sx={gridSx}
+              onRowSelectionModelChange={onRowSelectionModelChange}
             />
           </div>
         </Paper>

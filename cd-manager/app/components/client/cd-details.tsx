@@ -35,7 +35,7 @@ const CdDetails = ({
   const { getCdById } = useContext(DataRepositoryContext);
   const cd = cdId !== null ? getCdById(cdId) : null;
 
-  const [animationDriver, setAnimationDriver] = useState<boolean>(false);
+  const [animationDriver, setAnimationDriver] = useState<boolean>(!!cd);
   useEffect(() => {
     if (cd !== null) {
       setAnimationDriver(true);
