@@ -41,17 +41,7 @@ import { removeCdFromPlayer } from "@/api/cd-player-content";
 const GRID_HEADER_HEIGHT = 55;
 const GRID_ROW_HEIGHT = 52;
 
-const isCdInUse = (cdId: number, playerContent: PlayerSlot[][]): boolean => {
-  for (let i = 0; i < playerContent.length; i++) {
-    const content = playerContent[i];
-    for (let j = 0; j < content.length; j++) {
-      if (content[j]?.cd?.id === cdId) {
-        return true;
-      }
-    }
-  }
-  return false;
-};
+
 
 const getPageSize = (height: number): number => {
   return height > 0
@@ -78,31 +68,42 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
   // Solo cambiar cuando width cruza el umbral de 600px
   const isWide = width > 600;
 
+  // Pre-calculate used CD IDs for O(1) access
+  const usedCdIds = useMemo(() => {
+    const ids = new Set<number>();
+    playerContent.forEach((player) => {
+      player.forEach((slot) => {
+        if (slot?.cd?.id) {
+          ids.add(slot.cd.id);
+        }
+      });
+    });
+    return ids;
+  }, [playerContent]);
+
   const renderAlbumArt = useCallback(
     (params: GridRenderCellParams<Cd, string>) => {
-      const cd = cds[Number(params.id)];
+      // Use params.value (url) directly or params.row (cd) to avoid 'cds' dependency
+      const imgUrl = params.value || "/cd-placeholder-small.png";
       return (
         <Box my="5px" ml="-4px">
           <Avatar variant="rounded">
-            <Image
-              width={40}
-              height={40}
-              src={cd.art?.album?.uri150 || "/cd-placeholder-small.png"}
-              alt="Album cover"
-            />
+            <Image width={40} height={40} src={imgUrl} alt="Album cover" />
           </Avatar>
         </Box>
       );
     },
-    [cds],
+    [],
   );
 
   const renderMenu = useCallback(
     (params: GridRenderCellParams<Cd, string>) => {
-      const cdId = Number(params.value);
-      const cd = cds[cdId];
+      const cd = params.row; // Use row data directly without 'cds' lookup dependency
+      const cdId = cd.id;
       const menuId = `cd-menu-${cdId}`;
-      const manageCdSlotMenuItem: MenuOption = isCdInUse(cdId, playerContent)
+      const isUsed = usedCdIds.has(cdId);
+      
+      const manageCdSlotMenuItem: MenuOption = isUsed
         ? {
             type: "action",
             icon: <PlaylistRemoveOutlinedIcon />,
@@ -178,8 +179,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
       );
     },
     [
-      cds,
-      playerContent,
+      usedCdIds, // Dependent on playerContent, but faster check
       openEditCdForm,
       confirmDialog,
       openAddCdToPlayerFlow,
@@ -246,6 +246,17 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     [isWide, renderAlbumArt, renderMenu],
   );
 
+  const rows = useMemo(
+    () =>
+      Object.values(cds).map((cd) => ({
+        ...cd,
+        albumArt: cd.art?.album?.uri150,
+        id: cd.id,
+        tracksNumber: cd.tracks.length,
+      })),
+    [cds],
+  );
+
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: getPageSize(height),
@@ -306,19 +317,14 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
           <div ref={resizeRef} style={{ height: "100%" }}>
             <DataGrid
               disableColumnResize
-              rows={Object.values(cds).map((cd) => ({
-                ...cd,
-                albumArt: cd.art?.album?.uri150,
-                id: cd.id,
-                tracksNumber: cd.tracks.length,
-              }))}
+              rows={rows}
               columns={columns}
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
               pageSizeOptions={[getPageSize(height)]}
               rowSelection
               rowSelectionModel={rowSelectionModel}
-              isCellEditable={() => false}
+              isCellEditable={useCallback(() => false, [])}
               autoPageSize={false}
               sx={{
                 border: 0,
