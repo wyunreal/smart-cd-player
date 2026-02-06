@@ -52,7 +52,7 @@ const CdDetails = ({
             width: `${DETAILS_PANEL_WIDTH + 16}px`,
           }}
         >
-          <Box sx={{ mx: 2, position: "absolute" }}>
+          <Box sx={{ mx: 2, position: "absolute", width: `${DETAILS_PANEL_WIDTH}px` }}>
             <Fade timeout={500} in={animationDriver}>
               <Paper>
                 <div
