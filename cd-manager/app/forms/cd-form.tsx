@@ -32,7 +32,7 @@ const CdForm = ({
   const [sending, setSending] = useState(false);
 
   const validate = () => {
-    let tempErrors = { title: "", author: "", genre: "", tracks: "" };
+    const tempErrors = { title: "", author: "", genre: "", tracks: "" };
     if (!title) tempErrors.title = "Title is required";
     if (!artist) tempErrors.author = "Artist is required";
     if (!genre) tempErrors.genre = "Genre is required";
@@ -83,7 +83,7 @@ const CdForm = ({
         <Autocomplete
           fullWidth
           value={genre}
-          onChange={(event: any, newValue: string | null) => {
+          onChange={(event: React.SyntheticEvent, newValue: string | null) => {
             setGenre(newValue ? capitalizeFirstLetter(newValue) : "");
           }}
           options={musicGenres}

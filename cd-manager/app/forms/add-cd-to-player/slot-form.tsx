@@ -4,7 +4,6 @@ import CdRow from "@/app/components/client/cd-row";
 import { useContext, useEffect, useState } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import {
-  Box,
   MenuItem,
   Select,
   Stack,
@@ -62,9 +61,9 @@ const SlotForm = ({ data, onDataChanged }: StepProps<AddCdToPlayerData>) => {
             label="Select player"
             value={selectedplayerRemote}
             onChange={(e) => {
-              setSelectedPlayerRemote(e.target.value as number);
+              setSelectedPlayerRemote(Number(e.target.value));
               setSlot((currentSlot) => {
-                const slotCount = getSlotCount(e.target.value as number);
+                const slotCount = getSlotCount(Number(e.target.value));
                 return currentSlot <= slotCount && currentSlot >= 1
                   ? currentSlot
                   : 1;

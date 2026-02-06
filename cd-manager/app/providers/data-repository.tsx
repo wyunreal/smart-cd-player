@@ -46,7 +46,7 @@ type DataRepositoryContextProps = CdCollectionProps &
 const calculateContentByArtist = (
   slots: PlayerSlot[],
 ): PlayerContentByArtist => {
-  let contentByArtist: PlayerContentByArtist = {};
+  const contentByArtist: PlayerContentByArtist = {};
   for (const slot of slots) {
     if (slot.cd) {
       if (contentByArtist[slot.cd.artist] === undefined) {
@@ -87,13 +87,10 @@ export const DataRepositoryProvider = ({
   }, []);
   useEffect(() => {
     getCdCollection().then((cds) => {
-      const cdsById = cds.reduce(
-        (acc, cd) => {
-          acc[cd.id] = cd;
-          return acc;
-        },
-        {} as { [id: number]: Cd },
-      );
+      const cdsById = cds.reduce<Record<number, Cd>>((acc, cd) => {
+        acc[cd.id] = cd;
+        return acc;
+      }, {});
       setCds(cdsById);
     });
   }, [cdsCacheVersion]);

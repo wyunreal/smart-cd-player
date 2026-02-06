@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import useTheme from "@mui/material/styles/useTheme";
 
-type BaseAction = {
+export type BaseAction = {
   type: "action";
   caption: string;
   icon?: React.ReactNode;
@@ -21,11 +21,11 @@ export type HandlerAction = BaseAction & {
 };
 
 type BaseMenuOption = HandlerAction;
-type MenuOption = BaseMenuOption & {
+export type MenuOption = BaseMenuOption & {
   alertIcon?: React.ReactNode;
 };
 
-type MenuDivider = {
+export type MenuDivider = {
   type: "divider";
 };
 

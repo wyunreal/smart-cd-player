@@ -54,6 +54,14 @@ const Page = () => {
   );
 
   const theme = useTheme();
+  const getPlayerIndex = (remoteIndex: number): 0 | 1 | 2 => {
+    const index = remoteIndex - 1;
+    if (index === 0 || index === 1 || index === 2) {
+      return index;
+    }
+    return 0;
+  };
+
   return (
     <Box
       sx={{
@@ -91,15 +99,13 @@ const Page = () => {
               >
                 <Box ref={resizeRef}>
                   <PlayerSlots
-                    selectedPlayer={
-                      (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2
-                    }
+                    selectedPlayer={getPlayerIndex(selectedPlayerRemoteIndex)}
                     selectedSlot={selectedSlot[selectedPlayerRemoteIndex - 1]}
                     handleSelectedSlotChange={(slot) => {
                       setSelectedSlot(
                         buildSelectedSlot(
                           slot,
-                          (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2,
+                          getPlayerIndex(selectedPlayerRemoteIndex),
                         ),
                       );
                     }}
@@ -152,7 +158,7 @@ const Page = () => {
                         setSelectedSlot(
                           buildSelectedSlot(
                             slotIndex,
-                            (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2,
+                            getPlayerIndex(selectedPlayerRemoteIndex),
                           ),
                         );
                       }}
@@ -163,7 +169,7 @@ const Page = () => {
               <Box mt={2} mb={1} mx={1}>
                 <Slider
                   valueLabelDisplay="auto"
-                  valueLabelFormat={(v) => currentSlotNumber.toString()}
+                  valueLabelFormat={() => currentSlotNumber.toString()}
                   value={selectedSlot[selectedPlayerRemoteIndex - 1]}
                   step={1}
                   min={0}
@@ -175,8 +181,8 @@ const Page = () => {
                   onChange={(e, v) => {
                     setSelectedSlot(
                       buildSelectedSlot(
-                        v as number,
-                        (selectedPlayerRemoteIndex - 1) as 0 | 1 | 2,
+                        typeof v === "number" ? v : 0,
+                        getPlayerIndex(selectedPlayerRemoteIndex),
                       ),
                     );
                   }}

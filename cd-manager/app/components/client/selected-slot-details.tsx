@@ -128,8 +128,9 @@ const SelectedSlotDetails = ({
                       ? `calc(${width / 2}px - 144px)`
                       : `calc(${width}px - 144px)`
                   }
-                  items={otherAlbums.map((s) => (
+                  items={otherAlbums.map((s, i) => (
                     <img
+                      key={s.cd?.id || i}
                       src={
                         s.cd?.art?.album?.uri150 || "/cd-placeholder-small.png"
                       }

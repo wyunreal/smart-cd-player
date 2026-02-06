@@ -8,7 +8,7 @@ import FullScreenSpinner from "../../components/client/full-screen-spinner";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { useCdSelection } from "@/app/providers/cd-selection-context";
 
-export default () => {
+const CollectionPage = () => {
   const { cds } = useContext(DataRepositoryContext);
   const { selectedCdId, clearSelection } = useCdSelection();
 
@@ -28,3 +28,5 @@ export default () => {
     </>
   );
 };
+
+export default CollectionPage;

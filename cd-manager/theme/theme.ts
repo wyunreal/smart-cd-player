@@ -86,7 +86,7 @@ export const theme = getComponentsOverrides(
             },
           },
         },
-        cssVariables: { colorSchemeSelector: "class" },
+        cssVariables: { colorSchemeSelector: "data-toolpad-color-scheme" },
         breakpoints: {
           values: {
             xs: 0,

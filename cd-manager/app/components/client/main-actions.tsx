@@ -10,7 +10,7 @@ import {
 import { usePathname } from "next/navigation";
 import { useContext } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
-import { SettingsIcon } from "@/app/icons";
+
 import useEditPlayerDefinitionForm from "@/app/hooks/use-edit-player-definition-form";
 import useAddCdFlow from "@/app/hooks/use-add-cd-flow";
 

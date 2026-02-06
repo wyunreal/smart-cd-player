@@ -13,11 +13,10 @@ import { AddCdData } from "./types";
 import { StepErrors } from "@/app/components/client/flow";
 import { SearchOutlinedIcon } from "@/app/icons";
 import { Art, Cd } from "@/api/types";
-import Album from "@/app/components/client/album";
 import CdRow from "@/app/components/client/cd-row";
 
 export const validate = (data: AddCdData) => {
-  let tempErrors = { cd: "" };
+  const tempErrors = { cd: "" };
   if (!data.cd) {
     tempErrors.cd =
       "CD not selected yet, please perform a search by entering a valid CD bar code.";
@@ -96,7 +95,7 @@ const SearchCdForm = ({
       } else {
         setSearchError(result.error || "Error performing search on Discogs");
       }
-    } catch (error) {
+    } catch {
       setSearchError("Error performing search on Discogs");
     } finally {
       setLoading(false);

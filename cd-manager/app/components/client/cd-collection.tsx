@@ -4,12 +4,11 @@ import { Cd } from "@/api/types";
 import {
   DeleteOutlinedIcon,
   EditOutlinedIcon,
-  ImageOutlinedIcon,
   MoreVertIcon,
   PlaylistAddOutlinedIcon,
   PlaylistRemoveOutlinedIcon,
 } from "@/app/icons";
-import { Avatar, Box, Divider, Paper } from "@mui/material";
+import { Avatar, Box, Paper } from "@mui/material";
 import {
   DataGrid,
   gridClasses,
@@ -25,7 +24,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import Menu from "./menu";
+import Menu, { MenuOption } from "./menu";
 import useEditCdForm from "@/app/hooks/use-edit-cd-form";
 import useConfirmDialog from "@/app/hooks/use-confirm-dialog";
 import { deleteCd } from "@/api/cd-collection";
@@ -80,7 +79,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
   const isWide = width > 600;
 
   const renderAlbumArt = useCallback(
-    (params: GridRenderCellParams<any, string>) => {
+    (params: GridRenderCellParams<Cd, string>) => {
       const cd = cds[Number(params.id)];
       return (
         <Box my="5px" ml="-4px">
@@ -99,13 +98,13 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
   );
 
   const renderMenu = useCallback(
-    (params: GridRenderCellParams<any, string>) => {
+    (params: GridRenderCellParams<Cd, string>) => {
       const cdId = Number(params.value);
       const cd = cds[cdId];
       const menuId = `cd-menu-${cdId}`;
-      const manageCdSlotMenuItem = isCdInUse(cdId, playerContent)
+      const manageCdSlotMenuItem: MenuOption = isCdInUse(cdId, playerContent)
         ? {
-            type: "action" as "action",
+            type: "action",
             icon: <PlaylistRemoveOutlinedIcon />,
             caption: "Remove from player",
             handler: async () => {
@@ -118,7 +117,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
             },
           }
         : {
-            type: "action" as "action",
+            type: "action",
             icon: <PlaylistAddOutlinedIcon />,
             caption: "Add to player",
             handler: () => {
@@ -340,7 +339,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
                 // Only update selection if user clicked on a row
                 // Don't clear selection when changing pages
                 if (selection.length > 0) {
-                  selectCdById(selection[0] as number);
+                  selectCdById(Number(selection[0]));
                 }
               }}
             />

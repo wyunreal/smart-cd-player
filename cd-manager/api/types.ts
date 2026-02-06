@@ -1,9 +1,44 @@
 // Player definitions
 
+export const enum PlayerCommand {
+  PowerSwitch,
+  Play,
+  Pause,
+  Stop,
+  NextTrack,
+  PreviousTrack,
+  FastForward,
+  FastBackward,
+  NextDisk,
+  PreviousDisk,
+  DiskSelect,
+  TrackSelect,
+  Number0,
+  Number1,
+  Number2,
+  Number3,
+  Number4,
+  Number5,
+  Number6,
+  Number7,
+  Number8,
+  Number9,
+  Enter,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  PlayModeContinue,
+  PlayModeShuffle,
+  PlayModeProgram,
+  PlayModeRepeat,
+}
+
 export type PlayerDefinition = {
   active: boolean;
   remoteIndex: number;
   capacity: number;
+  playerApiBaseUrl?: string;
 };
 
 // Player content

@@ -47,7 +47,7 @@ const useAddCdToPlayerFlow = (
             try {
               await addCdToPlayer(data.player ?? 1, data.cd!, data.slot ?? 1);
               return data;
-            } catch (error) {
+            } catch {
               return null;
             }
           }}

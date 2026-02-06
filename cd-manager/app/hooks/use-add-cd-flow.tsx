@@ -20,7 +20,7 @@ const useAddCdFlow = () => {
   const [createdCdId, setCreatedCdId] = useState<number | null>(null);
 
   const splitCdIntoMultipleIfNeeded = (cd: Cd): Cd[] => {
-    const cdTracksMap: { [diskNumber: number]: Track[] } = cd.tracks.reduce(
+    const cdTracksMap = cd.tracks.reduce<Record<number, Track[]>>(
       (map, track) => {
         const diskNumber = track.cd || 1;
         if (!map[diskNumber]) {
@@ -29,7 +29,7 @@ const useAddCdFlow = () => {
         map[diskNumber].push(track);
         return map;
       },
-      {} as { [diskNumber: number]: Track[] },
+      {},
     );
     const cds: Cd[] = Object.entries(cdTracksMap).map(
       ([diskNumberStr, tracks]) => {

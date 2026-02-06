@@ -25,7 +25,7 @@ const CarouselSlides = ({
   }, [selected]);
 
   const handleScrollSnapChanged = useCallback(
-    (event: any) => {
+    () => {
       if (onSelectedChange && containerWidth > 0) {
         onSelectedChange(
           Math.round(
@@ -73,7 +73,7 @@ const CarouselSlides = ({
   );
 };
 
-const Carousel = <T extends {}>({
+const Carousel = <T extends object>({
   items,
   renderItem,
   slideDimensions,

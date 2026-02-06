@@ -41,7 +41,7 @@ type StepperProps<StepperData, Result> = {
 
 const TRANSITION_DURATION: number = 250;
 
-const forwardTransitionStyles: any = {
+const forwardTransitionStyles: { [key: string]: React.CSSProperties } = {
   entering: {
     transition: `${TRANSITION_DURATION}ms ease-in-out`,
     opacity: 1,
@@ -64,7 +64,7 @@ const forwardTransitionStyles: any = {
   },
 };
 
-const backwardTransitionStyles: any = {
+const backwardTransitionStyles: { [key: string]: React.CSSProperties } = {
   entering: {
     transition: `${TRANSITION_DURATION}ms ease-in-out`,
     opacity: 1,
