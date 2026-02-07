@@ -7,7 +7,7 @@ import { DialogContextProvider } from "./dialog-context";
 import { TransitionProps } from "@mui/material/transitions";
 import { AppBar, DialogTitle, IconButton, Slide } from "@mui/material";
 import { CloseIcon } from "@/app/icons";
-import type {} from "@mui/material/themeCssVarsAugmentation";
+import type { } from "@mui/material/themeCssVarsAugmentation";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 
 const PADDING = 16;
@@ -56,12 +56,13 @@ const ResponsiveDialog = ({
           "& .MuiDialog-paper": isMobile
             ? { borderRadius: 0 }
             : {
-                width: "600px",
-                height: forcedHeight ?? height + TITLE_BAR_HEIGHT + 3 * PADDING,
-                transition: "height 0.5s",
-                overflow: "hidden",
-                backgroundColor: theme.vars.palette.section.background,
-              },
+              width: "600px",
+              height: forcedHeight ?? height + TITLE_BAR_HEIGHT + 3 * PADDING,
+              maxHeight: "80vh",
+              transition: "height 0.5s",
+              overflow: "hidden",
+              backgroundColor: theme.vars.palette.section.background,
+            },
         }}
       >
         {!noHeader ? (
@@ -105,10 +106,15 @@ const ResponsiveDialog = ({
                 ? "100vh"
                 : `calc(100vh - ${TITLE_BAR_HEIGHT}px)`
               : "300px",
-            overflow: "hidden",
-            overflowY: isMobile ? "auto" : "hidden",
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            "&::-webkit-scrollbar": {
+              display: "none",
+            },
             [theme.breakpoints.up("md")]: {
-              overflow: "hidden",
               minHeight: 0,
             },
           }}

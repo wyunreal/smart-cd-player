@@ -16,6 +16,8 @@ export const getPlayerDefinitions = async (): Promise<PlayerDefinition[]> => {
       remoteIndex: i + 1,
       capacity: VALID_CAPACITY[0],
       active: true,
+      irCommandsUrl: "",
+      irSendCommandUrl: "",
     }));
   }
 };

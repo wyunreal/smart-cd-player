@@ -39,6 +39,8 @@ export type PlayerDefinition = {
   remoteIndex: number;
   capacity: number;
   playerApiBaseUrl?: string;
+  irCommandsUrl?: string;
+  irSendCommandUrl?: string;
 };
 
 // Player content

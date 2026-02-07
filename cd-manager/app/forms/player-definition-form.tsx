@@ -12,6 +12,7 @@ import {
   SelectChangeEvent,
   FormControlLabel,
   Switch,
+  TextField,
 } from "@mui/material";
 import { PlayerDefinition } from "@/api/types";
 import { DEFINITIONS_COUNT, VALID_CAPACITY } from "@/api/constants";
@@ -80,6 +81,28 @@ const PlayerDefinitionForm = ({
                 ))}
               </Select>
             </FormControl>
+            <Box sx={{ marginTop: 1, marginBottom: 2 }}>
+              <TextField
+                fullWidth
+                label="Available IR Commands URL"
+                value={definition.irCommandsUrl || ""}
+                onChange={(event) => {
+                  definitions[index].irCommandsUrl = event.target.value;
+                  setDefinitions([...definitions]);
+                }}
+              />
+            </Box>
+            <Box sx={{ marginTop: 1, marginBottom: 2 }}>
+              <TextField
+                fullWidth
+                label="Send IR Command URL"
+                value={definition.irSendCommandUrl || ""}
+                onChange={(event) => {
+                  definitions[index].irSendCommandUrl = event.target.value;
+                  setDefinitions([...definitions]);
+                }}
+              />
+            </Box>
           </Box>
         </Box>
       ))}
