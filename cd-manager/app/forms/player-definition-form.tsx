@@ -13,6 +13,8 @@ import {
   FormControlLabel,
   Switch,
   TextField,
+  Typography,
+  Stack,
 } from "@mui/material";
 import { PlayerDefinition } from "@/api/types";
 import { DEFINITIONS_COUNT, VALID_CAPACITY } from "@/api/constants";
@@ -43,17 +45,89 @@ const PlayerDefinitionForm = ({
     setSending(true);
     onSubmit(definitions);
   };
+  // Helpers to manage URL parsing and construction
+  const getDeviceName = (url: string | undefined): string => {
+    if (!url) return "";
+    try {
+      const urlObj = new URL(url);
+      return urlObj.searchParams.get("device") || "";
+    } catch {
+      const match = url.match(/[?&]device=([^&]*)/);
+      return match ? match[1] : "";
+    }
+  };
+
+  const getBaseUrl = (url: string | undefined): string => {
+    if (!url) return "";
+    return url.split("?")[0];
+  };
+
+  const constructSendUrl = (baseUrl: string, deviceName: string): string => {
+    if (!baseUrl) return "";
+    if (!deviceName) return baseUrl;
+    return `${baseUrl}?device=${deviceName}`;
+  };
+
+  // Derived global values (using the first definition as source of truth)
+  const globalIrCommandsUrl = definitions[0]?.irCommandsUrl || "";
+  const globalIrSendCommandBaseUrl = getBaseUrl(
+    definitions[0]?.irSendCommandUrl,
+  );
+
+  const handleGlobalIrCommandsUrlChange = (value: string) => {
+    const newDefinitions = definitions.map((def) => ({
+      ...def,
+      irCommandsUrl: value,
+    }));
+    setDefinitions(newDefinitions);
+  };
+
+  const handleGlobalIrSendCommandBaseUrlChange = (value: string) => {
+    const newDefinitions = definitions.map((def) => ({
+      ...def,
+      irSendCommandUrl: constructSendUrl(
+        value,
+        getDeviceName(def.irSendCommandUrl),
+      ),
+    }));
+    setDefinitions(newDefinitions);
+  };
+
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+      <Typography sx={{ mb: 2 }}>IR remote configuration</Typography>
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          fullWidth
+          label="Configured commands URL"
+          value={globalIrCommandsUrl}
+          onChange={(e) => handleGlobalIrCommandsUrlChange(e.target.value)}
+        />
+      </Box>
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          fullWidth
+          label="Send command base URL"
+          value={globalIrSendCommandBaseUrl}
+          onChange={(e) =>
+            handleGlobalIrSendCommandBaseUrlChange(e.target.value)
+          }
+        />
+      </Box>
+
       {definitions.map((definition, index) => (
-        <Box key={index} sx={{ marginBottom: 2 }}>
+        <Box key={index} sx={{ marginBottom: 1, marginTop: 1 }}>
           <FormControlLabel
             control={
               <Switch
                 checked={definition.active}
                 onChange={(event) => {
-                  definitions[index].active = !!event.target.checked;
-                  setDefinitions([...definitions]);
+                  const newDefinitions = [...definitions];
+                  newDefinitions[index] = {
+                    ...newDefinitions[index],
+                    active: !!event.target.checked,
+                  };
+                  setDefinitions(newDefinitions);
                 }}
               />
             }
@@ -62,46 +136,52 @@ const PlayerDefinitionForm = ({
             sx={{ margin: 0 }}
           />
           <Box sx={{ marginTop: 1, marginBottom: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel id="player1-capacity-label">Capacity</InputLabel>
-              <Select
-                labelId="player1-capacity-label"
-                id="player1-capacity"
-                value={(definition.capacity || VALID_CAPACITY[0]).toString()}
-                label="Capacity"
-                onChange={(event: SelectChangeEvent) => {
-                  definitions[index].capacity = Number(event.target.value);
-                  setDefinitions([...definitions]);
-                }}
-              >
-                {VALID_CAPACITY.map((capacity, index) => (
-                  <MenuItem key={index} value={capacity.toString()}>
-                    {capacity}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Box sx={{ marginTop: 1, marginBottom: 2 }}>
+            <Stack direction="row" spacing={2}>
+              <FormControl fullWidth>
+                <InputLabel id={`player${index + 1}-capacity-label`}>
+                  Capacity
+                </InputLabel>
+                <Select
+                  labelId={`player${index + 1}-capacity-label`}
+                  id={`player${index + 1}-capacity`}
+                  value={(definition.capacity || VALID_CAPACITY[0]).toString()}
+                  label="Capacity"
+                  onChange={(event: SelectChangeEvent) => {
+                    const newDefinitions = [...definitions];
+                    newDefinitions[index] = {
+                      ...newDefinitions[index],
+                      capacity: Number(event.target.value),
+                    };
+                    setDefinitions(newDefinitions);
+                  }}
+                >
+                  {VALID_CAPACITY.map((capacity, capIndex) => (
+                    <MenuItem key={capIndex} value={capacity.toString()}>
+                      {capacity}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <TextField
                 fullWidth
-                label="Available IR Commands URL"
-                value={definition.irCommandsUrl || ""}
+                label="Device Name"
+                value={getDeviceName(definition.irSendCommandUrl)}
                 onChange={(event) => {
-                  definitions[index].irCommandsUrl = event.target.value;
-                  setDefinitions([...definitions]);
+                  const newDeviceName = event.target.value;
+                  const newDefinitions = [...definitions];
+                  newDefinitions[index] = {
+                    ...newDefinitions[index],
+                    irSendCommandUrl: constructSendUrl(
+                      globalIrSendCommandBaseUrl,
+                      newDeviceName,
+                    ),
+                  };
+                  setDefinitions(newDefinitions);
                 }}
               />
-            </Box>
+            </Stack>
             <Box sx={{ marginTop: 1, marginBottom: 2 }}>
-              <TextField
-                fullWidth
-                label="Send IR Command URL"
-                value={definition.irSendCommandUrl || ""}
-                onChange={(event) => {
-                  definitions[index].irSendCommandUrl = event.target.value;
-                  setDefinitions([...definitions]);
-                }}
-              />
+              <Typography fontSize="small">{`Send command URL: ${definition.irSendCommandUrl || "..."}`}</Typography>
             </Box>
           </Box>
         </Box>
