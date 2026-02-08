@@ -2,11 +2,20 @@
 
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-toolpad-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+## Coding Guidelines
+
+- **No Classes**: Avoid using ES6 classes. Use plain objects and factory functions instead.
+
 ## Setup
 
 Run `npx auth secret` to generate a secret and replace the value in the .env.local file with it.
 
 Add the CLIENT_ID and CLIENT_SECRET from your OAuth provider to the .env.local file.
+
+
+## Documentation
+
+- [IR Remote Client](./docs/ir-remote-client.md)
 
 ## Getting Started
 

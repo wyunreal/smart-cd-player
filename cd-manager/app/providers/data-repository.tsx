@@ -1,6 +1,7 @@
 import { getCdCollection } from "@/api/cd-collection";
 import { getPlayerContent } from "@/api/cd-player-content";
 import { getPlayerDefinitions } from "@/api/cd-player-definitions";
+import { createIrRemoteClient, IrRemoteClient } from "@/api/player-remote/client";
 import { Cd, CdSlot, PlayerDefinition } from "@/api/types";
 import React, {
   createContext,
@@ -16,6 +17,7 @@ export type PlayerDefinitionsProps = {
   selectedPlayer: number | null;
   setSelectedPlayer: (player: number) => void;
   refreshPlayerDefinitions: () => void;
+  irRemoteClients: IrRemoteClient[];
 };
 
 export type CdCollectionProps = {
@@ -60,16 +62,17 @@ const calculateContentByArtist = (
 
 export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   cds: null,
-  refreshCds: () => {},
+  refreshCds: () => { },
   getCdById: () => null,
   playerDefinitions: null,
   getPlayerDefinitionsByStatus: () => [],
   selectedPlayer: null,
-  setSelectedPlayer: () => {},
-  refreshPlayerDefinitions: () => {},
+  setSelectedPlayer: () => { },
+  refreshPlayerDefinitions: () => { },
+  irRemoteClients: [],
   playerContent: [[], [], []],
   playerContentByArtist: [{}, {}, {}],
-  refreshPlayerContent: () => {},
+  refreshPlayerContent: () => { },
 });
 
 export const DataRepositoryProvider = ({
@@ -129,6 +132,22 @@ export const DataRepositoryProvider = ({
   );
 
   /**
+   * IR Remote Clients
+   */
+  const [irRemoteClients, setIrRemoteClients] = useState<IrRemoteClient[]>([]);
+  useEffect(() => {
+    const clients = playerDefinitions.map((def) => {
+      const client = createIrRemoteClient(def);
+      // Fire and forget initialization
+      client.init().catch((err) =>
+        console.error("IR Remote Client init failed", err)
+      );
+      return client;
+    });
+    setIrRemoteClients(clients);
+  }, [playerDefinitions]);
+
+  /**
    * Player Content data
    */
   const [contentCacheVersion, setContentCacheVersion] = useState(0);
@@ -158,25 +177,25 @@ export const DataRepositoryProvider = ({
         playerDefinitions.length !== 0 &&
         cds !== null
         ? Array.from({ length: 3 }).map((_, index: number) => {
-            let slots: PlayerSlot[] = Array.from(
-              { length: playerDefinitions[index].capacity },
-              (_, slotIndex: number) => ({ slot: slotIndex + 1, cd: null }),
-            );
-            let minSlot = playerDefinitions[index].capacity;
-            let maxSlot = 1;
-            for (const slot of rawContent[index]) {
-              const cd = slot.cdId ? cds[slot.cdId] : null;
-              slots[slot.slot - 1].cd = cd;
-              if (slot.slot < minSlot) {
-                minSlot = slot.slot;
-              }
-              if (slot.slot > maxSlot) {
-                maxSlot = slot.slot;
-              }
+          let slots: PlayerSlot[] = Array.from(
+            { length: playerDefinitions[index].capacity },
+            (_, slotIndex: number) => ({ slot: slotIndex + 1, cd: null }),
+          );
+          let minSlot = playerDefinitions[index].capacity;
+          let maxSlot = 1;
+          for (const slot of rawContent[index]) {
+            const cd = slot.cdId ? cds[slot.cdId] : null;
+            slots[slot.slot - 1].cd = cd;
+            if (slot.slot < minSlot) {
+              minSlot = slot.slot;
             }
-            slots = slots.slice(minSlot - 1, maxSlot);
-            return slots.length > 0 ? slots : [{ slot: 0, cd: null }];
-          })
+            if (slot.slot > maxSlot) {
+              maxSlot = slot.slot;
+            }
+          }
+          slots = slots.slice(minSlot - 1, maxSlot);
+          return slots.length > 0 ? slots : [{ slot: 0, cd: null }];
+        })
         : [[], [], []],
     );
   }, [playerDefinitions, rawContent, cds]);
@@ -200,6 +219,7 @@ export const DataRepositoryProvider = ({
         selectedPlayer,
         setSelectedPlayer,
         refreshPlayerDefinitions,
+        irRemoteClients,
         playerContent,
         playerContentByArtist,
         refreshPlayerContent,
