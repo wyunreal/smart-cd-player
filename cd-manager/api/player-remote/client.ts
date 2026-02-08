@@ -5,9 +5,14 @@ type CommandResponse = {
     commands: string[];
 };
 
+export type IrCommandSequenceItem = {
+    command: PlayerCommand;
+    delayAfterMs: number;
+};
+
 export type IrRemoteClient = {
     init: () => Promise<void>;
-    emit: (command: PlayerCommand) => Promise<boolean>;
+    sendOrder: (sequence: IrCommandSequenceItem[]) => Promise<boolean>;
     isCommandSupported: (command: PlayerCommand) => boolean;
 };
 
@@ -90,32 +95,39 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
         }
     };
 
-    const emit = async (command: PlayerCommand): Promise<boolean> => {
+    const sendOrder = async (sequence: IrCommandSequenceItem[]): Promise<boolean> => {
         if (!definition.irSendCommandUrl) {
             throw new Error("IR Remote Client: No irSendCommandUrl configured.");
         }
 
-        const commandId = command;
+        for (const item of sequence) {
+            const commandId = item.command;
 
-        const url = new URL(definition.irSendCommandUrl);
-        url.searchParams.append("command", commandId.toString());
+            const url = new URL(definition.irSendCommandUrl);
+            url.searchParams.append("command", commandId.toString());
 
-        try {
-            // Use Proxy
-            const response = await fetch(getProxyUrl(url.toString()), {
-                method: "GET",
-            });
+            try {
+                // Use Proxy
+                const response = await fetch(getProxyUrl(url.toString()), {
+                    method: "GET",
+                });
 
-            if (!response.ok) {
-                throw new Error(`Failed to emit command: ${response.status} ${response.statusText}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to emit command: ${response.status} ${response.statusText}`);
+                }
+                
+                // Wait for the specified duration before next command (or finishing)
+                if (item.delayAfterMs > 0) {
+                     await new Promise(resolve => setTimeout(resolve, item.delayAfterMs));
+                }
+
+            } catch (error) {
+                handleNetworkError(error, "emitting command");
+                throw error;
             }
-
-            return true;
-
-        } catch (error) {
-            handleNetworkError(error, "emitting command");
-            throw error;
         }
+
+        return true;
     };
 
     const isCommandSupported = (command: PlayerCommand): boolean => {
@@ -124,7 +136,7 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
 
     return {
         init,
-        emit,
+        sendOrder,
         isCommandSupported,
     };
 };

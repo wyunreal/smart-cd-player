@@ -43,9 +43,12 @@ if (client && client.isCommandSupported(PlayerCommand.Play)) {
     // ...
 }
 
-// Emitting a command
+// Emitting a complex order
 if (client) {
-    await client.emit(PlayerCommand.Play);
+    await client.sendOrder([
+        { command: PlayerCommand.Play, delayAfterMs: 1000 },
+        { command: PlayerCommand.NextTrack, delayAfterMs: 0 }
+    ]);
 }
 ```
 

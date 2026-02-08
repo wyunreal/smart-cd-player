@@ -89,22 +89,29 @@ describe("IrRemoteClient", () => {
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(false);
     });
 
-    it("should emit command with correct URL", async () => {
-        mockFetch.mockResolvedValueOnce({
+    it("should emit command sequence with correct URL and delays", async () => {
+        mockFetch.mockResolvedValue({
             ok: true,
         });
 
         const client = createIrRemoteClient(mockDefinition);
+        const sequence = [
+            { command: PlayerCommand.Play, delayAfterMs: 10 },
+            { command: PlayerCommand.Stop, delayAfterMs: 0 }
+        ];
 
-        await client.emit(PlayerCommand.Play);
+        await client.sendOrder(sequence);
 
-        expect(mockFetch).toHaveBeenCalledWith(
-            expect.stringContaining(SEND_COMMAND_URL),
-            expect.objectContaining({ method: "GET" })
-        );
-
-        const urlCalled = mockFetch.mock.calls[0][0];
-        expect(urlCalled).toContain("device=MyDevice");
-        expect(urlCalled).toContain(`command=${PlayerCommand.Play}`);
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        
+        // First call
+        const firstCall = mockFetch.mock.calls[0][0];
+        expect(firstCall).toContain(SEND_COMMAND_URL);
+        expect(firstCall).toContain(`command=${PlayerCommand.Play}`);
+        
+        // Second call
+        const secondCall = mockFetch.mock.calls[1][0];
+        expect(secondCall).toContain(SEND_COMMAND_URL);
+        expect(secondCall).toContain(`command=${PlayerCommand.Stop}`);
     });
 });

@@ -27,11 +27,13 @@ const SelectedSlotDetails = ({
   width,
   relatedSlots,
   onRelatedAlbumClick,
+  onTrackPlay,
 }: {
   slot: PlayerSlot;
   width: number;
   relatedSlots: PlayerSlot[];
   onRelatedAlbumClick: (slot: PlayerSlot) => void;
+  onTrackPlay: (trackNumber: number) => void;
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -185,17 +187,17 @@ const SelectedSlotDetails = ({
                   <div style={{ maxHeight: 0 }}>
                     <List>
                       <Divider />
-                      {slot.cd.tracks.map((track, index) => (
-                        <div key={index}>
+                      {slot.cd.tracks.map((track, i) => (
+                        <div key={i}>
                           <ListItem sx={{ paddingX: 0, paddingY: "4px" }}>
                             <IconButton
                               sx={{ mr: isMobile ? 0 : 1 }}
-                              onClick={() => alert(`Play track &{index}`)}
+                              onClick={() => onTrackPlay(i + 1)}
                             >
                               <PlayCircleOutlineOutlinedIcon
                                 fontSize="small"
                                 color="primary"
-                              />
+                                />
                             </IconButton>
                             <ListItemText>
                               <Typography variant="body2">
@@ -241,7 +243,7 @@ const SelectedSlotDetails = ({
               cdId={cdIdForTracksDialog}
               onDialogClosed={() => setCdIdForTracksDialog(null)}
               onTrackPlayClick={(trackIndex) => {
-                alert(`Track ${trackIndex} clicked`);
+                onTrackPlay(trackIndex + 1);
               }}
             />
           </Box>

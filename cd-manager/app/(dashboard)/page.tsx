@@ -1,5 +1,6 @@
 "use client";
 
+import { PlayerCommand } from "@/api/types";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { Box, Fade, Slider, Typography, useTheme } from "@mui/material";
 import React, { useCallback, useContext, useEffect, useState } from "react";
@@ -7,6 +8,7 @@ import BottomSheet from "../components/client/bottom-sheet";
 import useResizeObserver from "../hooks/use-resize-observer";
 import PlayerSlots from "../components/client/player-slots";
 import SelectedSlotDetails from "../components/client/selected-slot-details";
+import { getPlayTrackOrder } from "@/api/player-remote/command-factory";
 
 const Page = () => {
   const {
@@ -14,6 +16,7 @@ const Page = () => {
     playerContentByArtist,
     playerDefinitions,
     selectedPlayer,
+    irRemoteClients,
   } = useContext(DataRepositoryContext);
   const [selectedPlayerRemoteIndex, setSelectedPlayerRemoteIndex] =
     useState<number>(1);
@@ -61,6 +64,25 @@ const Page = () => {
     }
     return 0;
   };
+
+  const handleTrackPlay = useCallback(
+    async (trackNumber: number) => {
+      // trackNumber is 1-based
+      
+      const clientIndex = getPlayerIndex(selectedPlayerRemoteIndex);
+      const client = irRemoteClients[clientIndex];
+      if (!client) return;
+
+      const sequence = getPlayTrackOrder(trackNumber);
+
+      try {
+          await client.sendOrder(sequence);
+      } catch (e) {
+          console.error("Failed to sequence commands", e);
+      }
+    },
+    [irRemoteClients, selectedPlayerRemoteIndex]
+  );
 
   return (
     <Box
@@ -162,6 +184,7 @@ const Page = () => {
                           ),
                         );
                       }}
+                      onTrackPlay={handleTrackPlay}
                     />
                   </BottomSheet>
                 )}
