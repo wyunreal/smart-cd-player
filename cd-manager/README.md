@@ -15,7 +15,10 @@ Add the CLIENT_ID and CLIENT_SECRET from your OAuth provider to the .env.local f
 
 ## Documentation
 
+
 - [IR Remote Client](./docs/ir-remote-client.md)
+- [Kubernetes Deployment](./docs/kubernetes.md)
+
 
 ## Getting Started
 
