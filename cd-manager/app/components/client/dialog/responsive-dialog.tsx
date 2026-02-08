@@ -58,7 +58,7 @@ const ResponsiveDialog = ({
             : {
               width: "600px",
               height: forcedHeight ?? height + TITLE_BAR_HEIGHT + 3 * PADDING,
-              maxHeight: "80vh",
+              maxHeight: "90vh",
               transition: "height 0.5s",
               overflow: "hidden",
               backgroundColor: theme.vars.palette.section.background,

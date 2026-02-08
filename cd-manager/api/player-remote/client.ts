@@ -36,6 +36,11 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
         }
     };
 
+    const getProxyUrl = (targetUrl: string): string => {
+        const params = new URLSearchParams({ url: targetUrl });
+        return `/api/proxy-remote?${params.toString()}`;
+    };
+
     const init = async (): Promise<void> => {
         if (!definition.irCommandsUrl) {
             console.warn("IR Remote Client: No irCommandsUrl configured.");
@@ -52,7 +57,8 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
         }
 
         try {
-            const response = await fetch(definition.irCommandsUrl);
+            // Use Proxy
+            const response = await fetch(getProxyUrl(definition.irCommandsUrl));
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch commands: ${response.status} ${response.statusText}`);
@@ -80,7 +86,7 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
                 console.warn("IR Remote Client: Invalid response format", data);
             }
         } catch (error) {
-            handleNetworkError(error, "fetching commands");
+             handleNetworkError(error, "fetching commands");
         }
     };
 
@@ -95,9 +101,9 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
         url.searchParams.append("command", commandId.toString());
 
         try {
-            const response = await fetch(url.toString(), {
+            // Use Proxy
+            const response = await fetch(getProxyUrl(url.toString()), {
                 method: "GET",
-                mode: "cors",
             });
 
             if (!response.ok) {

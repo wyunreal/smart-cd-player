@@ -136,13 +136,19 @@ export const DataRepositoryProvider = ({
    */
   const [irRemoteClients, setIrRemoteClients] = useState<IrRemoteClient[]>([]);
   useEffect(() => {
-    const clients = playerDefinitions.map((def) => {
+    const clients: IrRemoteClient[] = [];
+    playerDefinitions.forEach((def) => {
+      // Skip initialization if player is not active or missing URL
+      if (!def.active || !def.irCommandsUrl) {
+         return;
+      }
+      
       const client = createIrRemoteClient(def);
-      // Fire and forget initialization
+      // Fire and forget initialization with error handling
       client.init().catch((err) =>
-        console.error("IR Remote Client init failed", err)
+        console.warn(`IR Remote Client init failed for player ${def.remoteIndex}:`, err)
       );
-      return client;
+      clients.push(client);
     });
     setIrRemoteClients(clients);
   }, [playerDefinitions]);
