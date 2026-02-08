@@ -1,0 +1,11 @@
+{
+    "name": "Scheduler",
+    "keywords": "scheduler event timer1 TimerOne",
+    "description": "Allow to use the built-in Timer through a synchronous events based interface",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/wyunreal/Scheduler.git"
+    },
+    "frameworks": "arduino",
+    "platforms": ["atmelavr", "teensy"]
+}

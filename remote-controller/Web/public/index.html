@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Wreef monitor</title>
+        <style>
+            .flow-exit {
+                opacity: 1;
+                transform: scale(1);
+            }
+            .flow-exit-active {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            .flow-enter {
+                opacity: 0;
+                transform: translate3d(150px, 0, 0);
+            }
+            .flow-enter-active {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+            .flow-enter-active,
+            .flow-exit-active {
+                transition-duration: var(--flow-transition-duration, 250ms);
+                transition-property: all;
+                transition-timing-function: ease-in-out;
+            }
+
+            .tab-exit {
+                opacity: 1;
+                transform: scale(1);
+            }
+            .tab-exit-active {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            .tab-enter {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            .tab-enter-active {
+                opacity: 1;
+                transform: scale(1);
+            }
+            .tab-enter-active,
+            .tab-exit-active {
+                transition-duration: var(--tab-transition-duration, 250ms);
+                transition-property: all;
+                transition-timing-function: ease-in-out;
+            }
+
+            @media (prefers-color-scheme: dark) {
+                .body-background {
+                    background-color: #0f152e;
+                    color: #cdd5f4;
+                }
+            }
+            @media only screen and (max-width: 899px) {
+                .body-background {
+                    background-color: #f5f5f5;
+                }
+            }
+            @media only screen and (max-width: 899px) and (prefers-color-scheme: dark) {
+                .body-background {
+                    background-color: #0a0e1f;
+                }
+            }
+            .wreef-loader {
+                font-family: -apple-system, BlinkMacSystemFont, avenir next,
+                    avenir, segoe ui, helvetica neue, helvetica, Cantarell,
+                    Ubuntu, roboto, noto, arial, sans-serif;
+                margin-top: 64px;
+                width: 100%;
+                text-align: center;
+            }
+            .loader-spinner {
+                display: inline-block;
+                position: relative;
+                width: 48px;
+                height: 48px;
+            }
+            .loader-spinner div {
+                position: absolute;
+                border: 4px solid #cdd5f4;
+                opacity: 1;
+                border-radius: 50%;
+                animation: loader-spinner 2s cubic-bezier(0, 0.2, 0.8, 1)
+                    infinite;
+            }
+            @media (prefers-color-scheme: light) {
+                .loader-spinner div {
+                    border-color: black;
+                }
+            }
+            .loader-spinner div:nth-child(2) {
+                animation-delay: -1s;
+            }
+            @keyframes loader-spinner {
+                0% {
+                    top: 16px;
+                    left: 16px;
+                    width: 0;
+                    height: 0;
+                    opacity: 0;
+                }
+                4.9% {
+                    top: 16px;
+                    left: 16px;
+                    width: 0;
+                    height: 0;
+                    opacity: 0;
+                }
+                5% {
+                    top: 16px;
+                    left: 16px;
+                    width: 0;
+                    height: 0;
+                    opacity: 1;
+                }
+                100% {
+                    top: 0px;
+                    left: 0px;
+                    width: 32px;
+                    height: 32px;
+                    opacity: 0;
+                }
+            }
+            .wreef-hide {
+                display: none;
+            }
+            .wreef-start-button {
+                width: 32px;
+                margin-left: -10px;
+                padding: 8px 24px;
+                border-radius: 8px;
+                text-decoration: none;
+                cursor: pointer;
+                border: 1px solid;
+                text-align: center;
+                -webkit-tap-highlight-color: transparent;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+        </style>
+        <!-- Meta Tags-->
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <meta
+            name="theme-color"
+            media="(prefers-color-scheme: light)"
+            content="#3871E0"
+        />
+        <meta
+            name="theme-color"
+            media="(prefers-color-scheme: dark)"
+            content="#0F152E"
+        />
+        <script defer="defer" src="/time-zones.js?version=2"></script>
+        <link rel="preconnect" href="https://fonts.gstatic.com" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+
+    <body style="touch-action: pan-x pan-y" class="body-background">
+        <div id="root">
+            <div id="wreef-loader" class="wreef-hide">
+                <div class="wreef-loader">
+                    <div>
+                        <div class="loader-spinner">
+                            <div></div>
+                            <div></div>
+                        </div>
+                    </div>
+                    <p>WReef monitor is loading ...</p>
+                    <p style="margin-top: 32px">
+                        <a
+                            id="start-button"
+                            class="wreef-hide wreef-start-button"
+                            onclick="document.location.reload()"
+                            >Start</a
+                        >
+                    </p>
+                </div>
+                <script>
+                    setTimeout(function () {
+                        var elem = document.querySelector('#start-button');
+                        if (elem) {
+                            elem.classList.remove('wreef-hide');
+                        }
+                    }, 15000);
+                    setTimeout(function () {
+                        var elem = document.querySelector('#wreef-loader');
+                        if (elem) {
+                            elem.classList.remove('wreef-hide');
+                        }
+                    }, 2000);
+                </script>
+            </div>
+        </div>
+    </body>
+</html>
