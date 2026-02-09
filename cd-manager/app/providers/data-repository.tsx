@@ -41,9 +41,15 @@ export type PlayerContentProps = {
   refreshPlayerContent: () => void;
 };
 
+export type PlayerStateProps = {
+  selectedPlayerSlots: number[];
+  setSelectedPlayerSlots: (slots: number[]) => void;
+};
+
 type DataRepositoryContextProps = CdCollectionProps &
   PlayerDefinitionsProps &
-  PlayerContentProps;
+  PlayerContentProps &
+  PlayerStateProps;
 
 const calculateContentByArtist = (
   slots: PlayerSlot[],
@@ -73,6 +79,8 @@ export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   playerContent: [[], [], []],
   playerContentByArtist: [{}, {}, {}],
   refreshPlayerContent: () => { },
+  selectedPlayerSlots: [0, 0, 0],
+  setSelectedPlayerSlots: () => { },
 });
 
 export const DataRepositoryProvider = ({
@@ -214,6 +222,30 @@ export const DataRepositoryProvider = ({
     ]);
   }, [playerContent]);
 
+  /**
+   * Player State
+   */
+  const [selectedPlayerSlots, setSelectedPlayerSlots] = useState<number[]>([
+    0, 0, 0,
+  ]);
+
+  // Validate selected slots against content
+  useEffect(() => {
+    if (playerContent.some((content) => content.length > 0)) {
+       setSelectedPlayerSlots((prev) => {
+        return prev.map((slot, index) => {
+            const content = playerContent[index];
+            if (content.length === 0) return 0;
+            // available slots are 0 to content.length - 1
+            if (slot >= content.length) {
+                return 0;
+            }
+            return slot;
+        });
+       });
+    }
+  }, [playerContent]);
+
   return (
     <DataRepositoryContext.Provider
       value={{
@@ -229,6 +261,8 @@ export const DataRepositoryProvider = ({
         playerContent,
         playerContentByArtist,
         refreshPlayerContent,
+        selectedPlayerSlots,
+        setSelectedPlayerSlots,
       }}
     >
       {children}

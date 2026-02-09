@@ -22,7 +22,7 @@ const CarouselSlides = ({
       left: (selected * containerWidth) / 2,
       behavior: "smooth",
     });
-  }, [selected]);
+  }, [selected, scrollContanierRef, containerWidth]);
 
   const handleScrollSnapChanged = useCallback(
     () => {
@@ -34,7 +34,7 @@ const CarouselSlides = ({
         );
       }
     },
-    [containerWidth, scrollContanierRef]
+    [containerWidth, scrollContanierRef, onSelectedChange]
   );
 
   useEffect(() => {

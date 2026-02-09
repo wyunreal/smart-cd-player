@@ -17,6 +17,8 @@ const Page = () => {
     playerDefinitions,
     selectedPlayer,
     irRemoteClients,
+    selectedPlayerSlots,
+    setSelectedPlayerSlots,
   } = useContext(DataRepositoryContext);
   const [selectedPlayerRemoteIndex, setSelectedPlayerRemoteIndex] =
     useState<number>(1);
@@ -32,11 +34,10 @@ const Page = () => {
     }
   }, [selectedPlayer]);
 
-  const [selectedSlot, setSelectedSlot] = useState<number[]>([0, 0, 0]);
   const currentSlot =
     selectedPlayerRemoteIndex !== null
       ? playerContent[selectedPlayerRemoteIndex - 1][
-          selectedSlot[selectedPlayerRemoteIndex - 1]
+        selectedPlayerSlots[selectedPlayerRemoteIndex - 1]
         ]
       : null;
   const currentSlotNumber = currentSlot?.slot || 0;
@@ -46,14 +47,14 @@ const Page = () => {
   const buildSelectedSlot = useCallback(
     (slot: number, selectedPlayer: 0 | 1 | 2) => {
       if (selectedPlayer === 0) {
-        return [slot, selectedSlot[1], selectedSlot[2]];
+        return [slot, selectedPlayerSlots[1], selectedPlayerSlots[2]];
       } else if (selectedPlayer === 1) {
-        return [selectedSlot[0], slot, selectedSlot[2]];
+        return [selectedPlayerSlots[0], slot, selectedPlayerSlots[2]];
       } else {
-        return [selectedSlot[0], selectedSlot[1], slot];
+        return [selectedPlayerSlots[0], selectedPlayerSlots[1], slot];
       }
     },
-    [selectedSlot],
+    [selectedPlayerSlots],
   );
 
   const theme = useTheme();
@@ -122,9 +123,9 @@ const Page = () => {
                 <Box ref={resizeRef}>
                   <PlayerSlots
                     selectedPlayer={getPlayerIndex(selectedPlayerRemoteIndex)}
-                    selectedSlot={selectedSlot[selectedPlayerRemoteIndex - 1]}
+                    selectedSlot={selectedPlayerSlots[selectedPlayerRemoteIndex - 1]}
                     handleSelectedSlotChange={(slot) => {
-                      setSelectedSlot(
+                      setSelectedPlayerSlots(
                         buildSelectedSlot(
                           slot,
                           getPlayerIndex(selectedPlayerRemoteIndex),
@@ -177,7 +178,7 @@ const Page = () => {
                         const slotIndex = playerContent[
                           selectedPlayerRemoteIndex - 1
                         ].findIndex((s) => s.slot === slot.slot);
-                        setSelectedSlot(
+                        setSelectedPlayerSlots(
                           buildSelectedSlot(
                             slotIndex,
                             getPlayerIndex(selectedPlayerRemoteIndex),
@@ -193,7 +194,7 @@ const Page = () => {
                 <Slider
                   valueLabelDisplay="auto"
                   valueLabelFormat={() => currentSlotNumber.toString()}
-                  value={selectedSlot[selectedPlayerRemoteIndex - 1]}
+                  value={selectedPlayerSlots[selectedPlayerRemoteIndex - 1]}
                   step={1}
                   min={0}
                   max={
@@ -202,7 +203,7 @@ const Page = () => {
                       : 0
                   }
                   onChange={(e, v) => {
-                    setSelectedSlot(
+                    setSelectedPlayerSlots(
                       buildSelectedSlot(
                         typeof v === "number" ? v : 0,
                         getPlayerIndex(selectedPlayerRemoteIndex),

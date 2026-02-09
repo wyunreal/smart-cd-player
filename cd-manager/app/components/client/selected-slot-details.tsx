@@ -37,9 +37,6 @@ const SelectedSlotDetails = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const otherAlbums = relatedSlots.filter(
-    (s) => s.cd?.title !== slot.cd?.title,
-  );
 
   const [cdIdForTracksDialog, setCdIdForTracksDialog] = useState<number | null>(
     null,
@@ -93,8 +90,8 @@ const SelectedSlotDetails = ({
               }}
             >
               <Typography variant="h6">
-                {otherAlbums.length > 0
-                  ? `More from ${slot.cd.artist}`
+                {relatedSlots.length > 0
+                  ? `All from ${relatedSlots[0].cd?.artist}`
                   : slot.cd.artist}
               </Typography>
             </Box>
@@ -107,7 +104,7 @@ const SelectedSlotDetails = ({
               }}
             >
               <img
-                src={slot.cd.art?.artist?.uri150 || "/cd-placeholder-small.png"}
+                src={relatedSlots.length > 0 ? relatedSlots[0].cd?.art?.artist?.uri150 || "/cd-placeholder-small.png" : "/cd-placeholder-small.png"}
                 width="70px"
                 height="70px"
                 style={{
@@ -116,20 +113,20 @@ const SelectedSlotDetails = ({
                 }}
               />
 
-              {otherAlbums.length > 0 && (
+              {relatedSlots.length > 0 && (
                 <Box m={2} display={"flex"}>
                   <ArrowForwardIcon />
                 </Box>
               )}
 
-              {otherAlbums.length > 0 ? (
+              {relatedSlots.length > 0 ? (
                 <HorizontalScroll
                   width={
                     isHorizontalLayout
                       ? `calc(${width / 2}px - 144px)`
                       : `calc(${width}px - 144px)`
                   }
-                  items={otherAlbums.map((s, i) => (
+                  items={relatedSlots.map((s, i) => (
                     <img
                       key={s.cd?.id || i}
                       src={
@@ -142,6 +139,7 @@ const SelectedSlotDetails = ({
                         borderRadius: "8px",
                         marginRight: "16px",
                         border: `2px solid ${theme.vars.palette.text.primary}`,
+                        cursor: "pointer",
                       }}
                       onClick={() => onRelatedAlbumClick(s)}
                     />
