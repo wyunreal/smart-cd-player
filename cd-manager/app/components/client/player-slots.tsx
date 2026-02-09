@@ -14,12 +14,14 @@ const PlayerSlots = ({
   selectedPlayer,
   containerWidth,
   selectedSlot,
+  isPlayDiskButtonVisible,
   handleSelectedSlotChange,
   handleAlbumPlay,
 }: {
   selectedPlayer: 0 | 1 | 2;
   containerWidth: number;
   selectedSlot: number;
+  isPlayDiskButtonVisible: boolean;
   handleSelectedSlotChange: (slot: number) => void;
   handleAlbumPlay: () => void;
 }) => {
@@ -68,7 +70,7 @@ const PlayerSlots = ({
               width={itemDimensions.width}
               height={itemDimensions.height}
             />
-            {selected === i && <IconButton
+            {selected === i && isPlayDiskButtonVisible && <IconButton
               onClick={() => handleAlbumPlay()}
               sx={{
                 position: "absolute",

@@ -65,40 +65,38 @@ const Page = () => {
     return 0;
   };
 
+  const currentRemoteClientIndex = getPlayerIndex(selectedPlayerRemoteIndex);
+  const currentRemoteClient = irRemoteClients[currentRemoteClientIndex];
+
   const handleTrackPlay = useCallback(
     async (trackNumber: number) => {
-      const clientIndex = getPlayerIndex(selectedPlayerRemoteIndex);
-      const client = irRemoteClients[clientIndex];
-      if (!client) return;
+      if (!currentRemoteClient) return;
 
       const sequence = getPlayTrackOrder(trackNumber);
 
       try {
-          await client.sendOrder(sequence);
+          await currentRemoteClient.sendOrder(sequence);
       } catch (e) {
           console.error("Failed to sequence commands", e);
       }
     },
-    [irRemoteClients, selectedPlayerRemoteIndex]
+    [currentRemoteClient]
   );
 
     const handleAlbumPlay = useCallback(
     async () => {
-      const clientIndex = getPlayerIndex(selectedPlayerRemoteIndex);
-      const client = irRemoteClients[clientIndex];
-
-      if (!client) return;
+      if (!currentRemoteClient) return;
       if (!currentSlot) return;
 
       const sequence = getPlayDiscOrder(currentSlot.slot);
 
       try {
-          await client.sendOrder(sequence);
+          await currentRemoteClient.sendOrder(sequence);
       } catch (e) {
           console.error("Failed to sequence commands", e);
       }
     },
-    [irRemoteClients, selectedPlayerRemoteIndex, currentSlot]
+    [currentRemoteClient, currentSlot]
   );
 
   return (
@@ -140,6 +138,15 @@ const Page = () => {
                   <PlayerSlots
                     selectedPlayer={getPlayerIndex(selectedPlayerRemoteIndex)}
                     selectedSlot={selectedPlayerSlots[selectedPlayerRemoteIndex - 1]}
+                    isPlayDiskButtonVisible={
+                      currentSlot && currentRemoteClient
+                        ? (() => {
+                            const sequence = getPlayDiscOrder(currentSlot.slot);
+                            const canExecute = currentRemoteClient.canExecuteSequence(sequence);
+                            console.log("Page: Checking Play Button Visibility", { slot: currentSlot.slot, canExecute, sequenceLength: sequence.length });
+                            return canExecute;
+                        })()
+                        : false}
                     handleSelectedSlotChange={(slot) => {
                       setSelectedPlayerSlots(
                         buildSelectedSlot(

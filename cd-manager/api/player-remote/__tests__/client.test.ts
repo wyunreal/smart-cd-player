@@ -188,4 +188,26 @@ describe("IrRemoteClient", () => {
             expect(client.canExecuteSequence([])).toBe(true);
         });
     });
+    it("should handle relative URLs correctly", async () => {
+        const relativeDefinition = {
+            ...mockDefinition,
+            irCommandsUrl: "/api/commands",
+            irSendCommandUrl: "/api/remote?device=MyDevice"
+        };
+        
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                status: "success",
+                commands: [`MyDevice${PlayerCommand.Play}`]
+            }),
+        });
+
+        const client = createIrRemoteClient(relativeDefinition);
+        await client.init();
+
+        const expectedUrl = `/api/proxy-remote?url=${encodeURIComponent("/api/commands")}`;
+        expect(mockFetch).toHaveBeenCalledWith(expectedUrl);
+        expect(client.isCommandSupported(PlayerCommand.Play)).toBe(true);
+    });
 });

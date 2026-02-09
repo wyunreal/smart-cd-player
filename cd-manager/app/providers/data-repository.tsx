@@ -143,8 +143,12 @@ export const DataRepositoryProvider = ({
    * IR Remote Clients
    */
   const [irRemoteClients, setIrRemoteClients] = useState<IrRemoteClient[]>([]);
+  const [, setIrClientsVersion] = useState(0); // Add versions to force updates
+  
   useEffect(() => {
     const clients: IrRemoteClient[] = [];
+    const initPromises: Promise<void>[] = [];
+    
     playerDefinitions.forEach((def) => {
       // Skip initialization if player is not active or missing URL
       if (!def.active || !def.irCommandsUrl) {
@@ -152,13 +156,22 @@ export const DataRepositoryProvider = ({
       }
       
       const client = createIrRemoteClient(def);
-      // Fire and forget initialization with error handling
-      client.init().catch((err) =>
-        console.warn(`IR Remote Client init failed for player ${def.remoteIndex}:`, err)
-      );
+      const initPromise = client.init()
+        .then(() => {
+            // Force update when a client initializes
+            setIrClientsVersion(v => v + 1);
+        })
+        .catch((err) =>
+            console.warn(`IR Remote Client init failed for player ${def.remoteIndex}:`, err)
+        );
+      initPromises.push(initPromise);
       clients.push(client);
     });
     setIrRemoteClients(clients);
+    
+    // Also force update when all done, just in case
+    Promise.allSettled(initPromises).then(() => setIrClientsVersion(v => v + 1));
+    
   }, [playerDefinitions]);
 
   /**

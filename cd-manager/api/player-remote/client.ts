@@ -1,7 +1,7 @@
 import { PlayerCommand, PlayerDefinition } from "../types";
 
 type CommandResponse = {
-    status: "success" | "failure";
+    status?: "success" | "failure";
     commands: string[];
 };
 
@@ -35,9 +35,11 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
     const getDeviceName = (): string | null => {
         if (!definition.irSendCommandUrl) return null;
         try {
-            const url = new URL(definition.irSendCommandUrl);
+            // Provide a dummy base for relative URLs
+            const url = new URL(definition.irSendCommandUrl, "http://localhost");
             return url.searchParams.get("device");
-        } catch {
+        } catch (e) {
+            console.warn("IR Remote Client: Failed to parse device name from URL", definition.irSendCommandUrl, e);
             return null;
         }
     };
@@ -72,7 +74,8 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
 
             const data: CommandResponse = await response.json();
 
-            if (data.status === "success" && Array.isArray(data.commands)) {
+            // Check for success or missing status, but commands array must exist
+            if ((!data.status || data.status === "success") && Array.isArray(data.commands)) {
                 availableCommands.clear();
 
                 data.commands.forEach((cmdString) => {
@@ -86,7 +89,8 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
                         }
                     }
                 });
-
+                
+                console.log(`IR Remote Client (${deviceName}): Initialized with ${availableCommands.size} commands.`, Array.from(availableCommands));
                 initialized = true;
             } else {
                 console.warn("IR Remote Client: Invalid response format", data);
@@ -136,7 +140,12 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
     };
 
     const canExecuteSequence = (sequence: IrCommandSequenceItem[]): boolean => {
-        return sequence.every(item => isCommandSupported(item.command));
+        const supported = sequence.every(item => isCommandSupported(item.command));
+        if (!supported) {
+            const unsupported = sequence.filter(item => !isCommandSupported(item.command));
+            console.log("IR Remote Client: Sequence not supported. Unsupported commands:", unsupported);
+        }
+        return supported;
     };
 
     return {
