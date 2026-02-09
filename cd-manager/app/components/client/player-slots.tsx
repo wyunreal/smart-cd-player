@@ -4,20 +4,24 @@ import {
   DataRepositoryContext,
   PlayerSlot,
 } from "@/app/providers/data-repository";
-import { alpha, Box, useTheme } from "@mui/material";
+import { alpha, Box, IconButton, useTheme } from "@mui/material";
 import React, { useContext } from "react";
 import Carousel from "./carousel";
+import { PlayArrowOutlinedIcon } from "@/app/icons";
+import { PlayArrowRounded } from "@mui/icons-material";
 
 const PlayerSlots = ({
   selectedPlayer,
   containerWidth,
   selectedSlot,
   handleSelectedSlotChange,
+  handleAlbumPlay,
 }: {
   selectedPlayer: 0 | 1 | 2;
   containerWidth: number;
   selectedSlot: number;
   handleSelectedSlotChange: (slot: number) => void;
+  handleAlbumPlay: () => void;
 }) => {
   const { playerContent } = useContext(DataRepositoryContext);
 
@@ -54,6 +58,7 @@ const PlayerSlots = ({
           }}
         >
           {item.cd ? (
+            <div style={{ position: "relative" }}>
             <img
               style={{
                 borderRadius: "16px",
@@ -63,6 +68,22 @@ const PlayerSlots = ({
               width={itemDimensions.width}
               height={itemDimensions.height}
             />
+            {selected === i && <IconButton
+              onClick={() => handleAlbumPlay()}
+              sx={{
+                position: "absolute",
+                right: "24px",
+                bottom: "24px",
+                zIndex: selected === i ? 100 : 0,
+                backgroundColor: alpha(theme.palette.background.paper, 0.4),
+                "&:hover": {
+                  backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                },
+              }}
+            >
+              <PlayArrowRounded fontSize="large" />
+            </IconButton>}
+            </div>
           ) : (
             <svg
               width={`calc(${itemDimensions.width}/1.5`}

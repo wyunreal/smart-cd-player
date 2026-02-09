@@ -15,23 +15,23 @@ const getDigitCommandsSequenceForNumber = (number: number, delayAfterMs: number)
 
 export const getPlayTrackOrder = (trackNumber: number): IrCommandSequenceItem[] => {
   const sequence: IrCommandSequenceItem[] = [];
-  sequence.push(...getDigitCommandsSequenceForNumber(trackNumber, 100));
-  sequence.push({ command: PlayerCommand.Play, delayAfterMs: 0 });
+  sequence.push(...getDigitCommandsSequenceForNumber(trackNumber, 500));
+  sequence.push({ command: PlayerCommand.Play, delayAfterMs: 500 });
   return sequence;
 };
 
 export const getSelectDiscOrder = (slotNumber: number): IrCommandSequenceItem[] => {
   const sequence: IrCommandSequenceItem[] = [];
-  sequence.push({ command: PlayerCommand.DiskSelect, delayAfterMs: 100 });
-  sequence.push(...getDigitCommandsSequenceForNumber(slotNumber, 100));
-  sequence.push({command: PlayerCommand.Enter, delayAfterMs: 8000});
+  sequence.push({ command: PlayerCommand.DiskSelect, delayAfterMs: 500 });
+  sequence.push(...getDigitCommandsSequenceForNumber(slotNumber, 500));
+  sequence.push({command: PlayerCommand.Enter, delayAfterMs: 500});
   return sequence;
 };
 
 export const getPlayDiscOrder = (slotNumber: number): IrCommandSequenceItem[] => {
   const sequence: IrCommandSequenceItem[] = [];
   sequence.push(...getSelectDiscOrder(slotNumber));
-  sequence.push({ command: PlayerCommand.Play, delayAfterMs: 300 });
+  sequence.push({ command: PlayerCommand.Play, delayAfterMs: 500 });
   return sequence;
 };
 

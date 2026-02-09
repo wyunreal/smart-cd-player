@@ -1,6 +1,5 @@
 "use client";
 
-import { PlayerCommand } from "@/api/types";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { Box, Fade, Slider, Typography, useTheme } from "@mui/material";
 import React, { useCallback, useContext, useEffect, useState } from "react";
@@ -8,7 +7,7 @@ import BottomSheet from "../components/client/bottom-sheet";
 import useResizeObserver from "../hooks/use-resize-observer";
 import PlayerSlots from "../components/client/player-slots";
 import SelectedSlotDetails from "../components/client/selected-slot-details";
-import { getPlayTrackOrder } from "@/api/player-remote/command-factory";
+import { getPlayDiscOrder, getPlayTrackOrder } from "@/api/player-remote/command-factory";
 
 const Page = () => {
   const {
@@ -68,8 +67,6 @@ const Page = () => {
 
   const handleTrackPlay = useCallback(
     async (trackNumber: number) => {
-      // trackNumber is 1-based
-      
       const clientIndex = getPlayerIndex(selectedPlayerRemoteIndex);
       const client = irRemoteClients[clientIndex];
       if (!client) return;
@@ -83,6 +80,25 @@ const Page = () => {
       }
     },
     [irRemoteClients, selectedPlayerRemoteIndex]
+  );
+
+    const handleAlbumPlay = useCallback(
+    async () => {
+      const clientIndex = getPlayerIndex(selectedPlayerRemoteIndex);
+      const client = irRemoteClients[clientIndex];
+
+      if (!client) return;
+      if (!currentSlot) return;
+
+      const sequence = getPlayDiscOrder(currentSlot.slot);
+
+      try {
+          await client.sendOrder(sequence);
+      } catch (e) {
+          console.error("Failed to sequence commands", e);
+      }
+    },
+    [irRemoteClients, selectedPlayerRemoteIndex, currentSlot]
   );
 
   return (
@@ -132,6 +148,7 @@ const Page = () => {
                         ),
                       );
                     }}
+                    handleAlbumPlay={handleAlbumPlay}
                     containerWidth={width}
                   />
                 </Box>
