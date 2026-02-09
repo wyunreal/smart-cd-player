@@ -14,6 +14,7 @@ export type IrRemoteClient = {
     init: () => Promise<void>;
     sendOrder: (sequence: IrCommandSequenceItem[]) => Promise<boolean>;
     isCommandSupported: (command: PlayerCommand) => boolean;
+    canExecuteSequence: (sequence: IrCommandSequenceItem[]) => boolean;
 };
 
 export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClient => {
@@ -134,9 +135,14 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
         return availableCommands.has(command);
     };
 
+    const canExecuteSequence = (sequence: IrCommandSequenceItem[]): boolean => {
+        return sequence.every(item => isCommandSupported(item.command));
+    };
+
     return {
         init,
         sendOrder,
         isCommandSupported,
+        canExecuteSequence,
     };
 };
