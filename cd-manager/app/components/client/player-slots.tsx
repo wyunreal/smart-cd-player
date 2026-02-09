@@ -7,8 +7,8 @@ import {
 import { alpha, Box, IconButton, useTheme } from "@mui/material";
 import React, { useContext } from "react";
 import Carousel from "./carousel";
-import { PlayArrowOutlinedIcon } from "@/app/icons";
 import { PlayArrowRounded } from "@mui/icons-material";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 const PlayerSlots = ({
   selectedPlayer,
@@ -26,6 +26,8 @@ const PlayerSlots = ({
   handleAlbumPlay: () => void;
 }) => {
   const { playerContent } = useContext(DataRepositoryContext);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const slotsDimension =
     containerWidth < 420
@@ -36,7 +38,6 @@ const PlayerSlots = ({
           ? "280px"
           : "340px";
 
-  const theme = useTheme();
   return (
     <Carousel<PlayerSlot>
       items={playerContent[selectedPlayer]}
@@ -74,8 +75,9 @@ const PlayerSlots = ({
               onClick={() => handleAlbumPlay()}
               sx={{
                 position: "absolute",
-                right: "24px",
-                bottom: "24px",
+                right: isMobile ? "50%": "24px",
+                bottom: isMobile ? "50%": "24px",
+                transform: isMobile ? "translate(50%, 50%)" : "none",
                 zIndex: selected === i ? 100 : 0,
                 backgroundColor: alpha(theme.palette.background.paper, 0.4),
                 "&:hover": {
