@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
 import {
   alpha,
   Box,
@@ -13,7 +14,6 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-
 
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { useContext, useEffect, useState } from "react";
@@ -52,7 +52,13 @@ const CdDetails = ({
             width: `${DETAILS_PANEL_WIDTH + 16}px`,
           }}
         >
-          <Box sx={{ mx: 2, position: "absolute", width: `${DETAILS_PANEL_WIDTH}px` }}>
+          <Box
+            sx={{
+              mx: 2,
+              position: "absolute",
+              width: `${DETAILS_PANEL_WIDTH}px`,
+            }}
+          >
             <Fade timeout={500} in={animationDriver}>
               <Paper>
                 <div

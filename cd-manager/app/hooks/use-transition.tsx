@@ -18,7 +18,7 @@ const getTransitionStyles = (
   forwardStyles: TransitionStyles,
   backwardStyles: TransitionStyles | undefined,
   state: State,
-  direction: Direction
+  direction: Direction,
 ): React.CSSProperties => {
   if (direction === "forward" || !backwardStyles) {
     return forwardStyles[state] || {};
@@ -46,7 +46,7 @@ const useTransition = ({
     forwardStyles,
     backwardStyles,
     state,
-    direction
+    direction,
   );
 
   React.useEffect(() => {
@@ -65,7 +65,7 @@ const useTransition = ({
         }, timeout || 250);
       }
     }
-  }, [currentExitId, newEnterId, direction, timeout]);
+  }, [currentExitId, newEnterId, direction, timeout, initialized]);
 
   const goForward = (performTransition: () => void) => {
     setDirection("forward");
@@ -75,7 +75,7 @@ const useTransition = ({
         setNewEnterId((s) => s + 1);
         performTransition();
       },
-      (timeout || 250) + 50
+      (timeout || 250) + 50,
     );
   };
 
@@ -87,7 +87,7 @@ const useTransition = ({
         setNewEnterId((s) => s - 1);
         performTransition();
       },
-      (timeout || 250) + 50
+      (timeout || 250) + 50,
     );
   };
 

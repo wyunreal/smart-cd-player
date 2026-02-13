@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
 "use client";
 
 import {
@@ -62,31 +63,36 @@ const PlayerSlots = ({
         >
           {item.cd ? (
             <div style={{ position: "relative" }}>
-            <img
-              style={{
-                borderRadius: "16px",
-                zIndex: selected === i ? 100 : 0,
-              }}
-              src={item.cd.art?.album?.uri || "/cd-placeholder-big.png"}
-              width={itemDimensions.width}
-              height={itemDimensions.height}
-            />
-            {selected === i && isPlayDiskButtonVisible && <IconButton
-              onClick={() => handleAlbumPlay()}
-              sx={{
-                position: "absolute",
-                right: isMobile ? "50%": "24px",
-                bottom: isMobile ? "50%": "24px",
-                transform: isMobile ? "translate(50%, 50%)" : "none",
-                zIndex: selected === i ? 100 : 0,
-                backgroundColor: alpha(theme.palette.background.paper, 0.4),
-                "&:hover": {
-                  backgroundColor: alpha(theme.palette.background.paper, 0.8),
-                },
-              }}
-            >
-              <PlayArrowRounded fontSize="large" />
-            </IconButton>}
+              <img
+                style={{
+                  borderRadius: "16px",
+                  zIndex: selected === i ? 100 : 0,
+                }}
+                src={item.cd.art?.album?.uri || "/cd-placeholder-big.png"}
+                width={itemDimensions.width}
+                height={itemDimensions.height}
+              />
+              {selected === i && isPlayDiskButtonVisible && (
+                <IconButton
+                  onClick={() => handleAlbumPlay()}
+                  sx={{
+                    position: "absolute",
+                    right: isMobile ? "50%" : "24px",
+                    bottom: isMobile ? "50%" : "24px",
+                    transform: isMobile ? "translate(50%, 50%)" : "none",
+                    zIndex: selected === i ? 100 : 0,
+                    backgroundColor: alpha(theme.palette.background.paper, 0.4),
+                    "&:hover": {
+                      backgroundColor: alpha(
+                        theme.palette.background.paper,
+                        0.8,
+                      ),
+                    },
+                  }}
+                >
+                  <PlayArrowRounded fontSize="large" />
+                </IconButton>
+              )}
             </div>
           ) : (
             <svg

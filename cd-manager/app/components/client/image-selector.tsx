@@ -110,6 +110,7 @@ const ImageSelector = ({
             },
           }}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
           <Box
             component="img"
             src={image.uri150}

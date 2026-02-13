@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
 import { PlayerSlot } from "@/app/providers/data-repository";
 import {
   ArrowForwardIcon,
@@ -104,7 +105,12 @@ const SelectedSlotDetails = ({
               }}
             >
               <img
-                src={relatedSlots.length > 0 ? relatedSlots[0].cd?.art?.artist?.uri150 || "/cd-placeholder-small.png" : "/cd-placeholder-small.png"}
+                src={
+                  relatedSlots.length > 0
+                    ? relatedSlots[0].cd?.art?.artist?.uri150 ||
+                      "/cd-placeholder-small.png"
+                    : "/cd-placeholder-small.png"
+                }
                 width="70px"
                 height="70px"
                 style={{
@@ -195,7 +201,7 @@ const SelectedSlotDetails = ({
                               <PlayCircleOutlineOutlinedIcon
                                 fontSize="small"
                                 color="primary"
-                                />
+                              />
                             </IconButton>
                             <ListItemText>
                               <Typography variant="body2">

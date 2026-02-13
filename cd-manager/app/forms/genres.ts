@@ -1,4 +1,4 @@
-export default [
+const genres = [
   "2 tone",
   "2-step",
   "aak",
@@ -2005,3 +2005,4 @@ export default [
   "zouk love",
   "zydeco",
 ];
+export default genres;

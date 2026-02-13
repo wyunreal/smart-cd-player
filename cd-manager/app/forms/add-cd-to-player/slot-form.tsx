@@ -42,12 +42,14 @@ const SlotForm = ({ data, onDataChanged }: StepProps<AddCdToPlayerData>) => {
   )?.cd;
 
   useEffect(() => {
-    onDataChanged({
-      ...data,
-      player: selectedplayerRemote,
-      slot,
-    });
-  }, [selectedplayerRemote, slot]);
+    if (data.player !== selectedplayerRemote || data.slot !== slot) {
+      onDataChanged({
+        ...data,
+        player: selectedplayerRemote,
+        slot,
+      });
+    }
+  }, [data, onDataChanged, selectedplayerRemote, slot]);
 
   return (
     data.cd && (

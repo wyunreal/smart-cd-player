@@ -29,9 +29,7 @@ import useEditCdForm from "@/app/hooks/use-edit-cd-form";
 import useConfirmDialog from "@/app/hooks/use-confirm-dialog";
 import { deleteCd } from "@/api/cd-collection";
 import useSnackbar from "@/app/hooks/use-snackbar";
-import {
-  DataRepositoryContext,
-} from "@/app/providers/data-repository";
+import { DataRepositoryContext } from "@/app/providers/data-repository";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 import useAddCdToPlayerFlow from "@/app/hooks/use-add-cd-to-player-flow";
 import { useCdSelection } from "@/app/providers/cd-selection-context";
@@ -39,8 +37,6 @@ import { removeCdFromPlayer } from "@/api/cd-player-content";
 
 const GRID_HEADER_HEIGHT = 55;
 const GRID_ROW_HEIGHT = 52;
-
-
 
 const getPageSize = (height: number): number => {
   return height > 0
@@ -101,7 +97,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
       const cdId = cd.id;
       const menuId = `cd-menu-${cdId}`;
       const isUsed = usedCdIds.has(cdId);
-      
+
       const manageCdSlotMenuItem: MenuOption = isUsed
         ? {
             type: "action",
@@ -270,12 +266,12 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
 
   useEffect(() => {
     const newPageSize = getPageSize(height);
-    setPaginationModel((prev) => 
-      prev.pageSize === newPageSize ? prev : { ...prev, pageSize: newPageSize }
+    setPaginationModel((prev) =>
+      prev.pageSize === newPageSize ? prev : { ...prev, pageSize: newPageSize },
     );
   }, [height]);
 
-  const cdIds = Object.keys(cds).map(Number);
+  const cdIds = useMemo(() => Object.keys(cds).map(Number), [cds]);
   useEffect(() => {
     if (selectedCdId !== null && cdIds.includes(selectedCdId)) {
       const index = cdIds.indexOf(selectedCdId);
@@ -284,11 +280,11 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
         setPaginationModel((prev) => ({ ...prev, page: targetPage }));
       }
     }
-  }, [selectedCdId, cdIds.length, paginationModel.pageSize]); // Optimized deps
+  }, [selectedCdId, cdIds, paginationModel.pageSize, paginationModel.page]);
 
   const rowSelectionModel: GridRowSelectionModel = useMemo(
     () => (selectedCdId !== null ? [selectedCdId] : []),
-    [selectedCdId]
+    [selectedCdId],
   );
 
   const gridSx = useMemo(
@@ -306,7 +302,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
           outline: "none",
         },
     }),
-    []
+    [],
   );
 
   const onRowSelectionModelChange = useCallback(
@@ -315,12 +311,11 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
         selectCdById(Number(selection[0]));
       }
     },
-    [selectCdById]
+    [selectCdById],
   );
 
   const pageSizeOptions = useMemo(() => [getPageSize(height)], [height]);
   const isCellEditable = useCallback(() => false, []);
-
 
   return (
     <Box

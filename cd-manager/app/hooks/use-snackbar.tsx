@@ -22,7 +22,7 @@ const useSnackbar = () => {
       }, props.autoHideDuration || 3000);
       return () => clearTimeout(timer);
     }
-  }, [open]);
+  }, [open, props.autoHideDuration]);
 
   return {
     openSnackbar: (props: SnackbarProps) => {

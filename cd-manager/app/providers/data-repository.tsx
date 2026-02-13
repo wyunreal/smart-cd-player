@@ -1,7 +1,10 @@
 import { getCdCollection } from "@/api/cd-collection";
 import { getPlayerContent } from "@/api/cd-player-content";
 import { getPlayerDefinitions } from "@/api/cd-player-definitions";
-import { createIrRemoteClient, IrRemoteClient } from "@/api/player-remote/client";
+import {
+  createIrRemoteClient,
+  IrRemoteClient,
+} from "@/api/player-remote/client";
 import { Cd, CdSlot, PlayerDefinition } from "@/api/types";
 import React, {
   createContext,
@@ -68,19 +71,19 @@ const calculateContentByArtist = (
 
 export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   cds: null,
-  refreshCds: () => { },
+  refreshCds: () => {},
   getCdById: () => null,
   playerDefinitions: null,
   getPlayerDefinitionsByStatus: () => [],
   selectedPlayer: null,
-  setSelectedPlayer: () => { },
-  refreshPlayerDefinitions: () => { },
+  setSelectedPlayer: () => {},
+  refreshPlayerDefinitions: () => {},
   irRemoteClients: [],
   playerContent: [[], [], []],
   playerContentByArtist: [{}, {}, {}],
-  refreshPlayerContent: () => { },
+  refreshPlayerContent: () => {},
   selectedPlayerSlots: [0, 0, 0],
-  setSelectedPlayerSlots: () => { },
+  setSelectedPlayerSlots: () => {},
 });
 
 export const DataRepositoryProvider = ({
@@ -121,18 +124,21 @@ export const DataRepositoryProvider = ({
   useEffect(() => {
     getPlayerDefinitions().then((playerDef) => {
       setPlayerDefinitions(playerDef);
-      const selectedPlayerDefinition = playerDef.find(
-        (def) => def.remoteIndex === selectedPlayer,
-      );
-      if (!selectedPlayerDefinition) {
-        if (playerDef.length > 0) {
-          setSelectedPlayer(playerDef[0].remoteIndex);
-        } else {
-          setSelectedPlayer(null);
-        }
-      }
     });
   }, [definititionsCacheVersion]);
+
+  useEffect(() => {
+    const selectedPlayerDefinition = playerDefinitions.find(
+      (def) => def.remoteIndex === selectedPlayer,
+    );
+    if (!selectedPlayerDefinition) {
+      if (playerDefinitions.length > 0) {
+        setSelectedPlayer(playerDefinitions[0].remoteIndex);
+      } else {
+        setSelectedPlayer(null);
+      }
+    }
+  }, [playerDefinitions, selectedPlayer]);
   const getPlayerDefinitionsByStatus = useCallback(
     (isActive: boolean) =>
       playerDefinitions.filter((def) => def.active === isActive),
@@ -144,34 +150,39 @@ export const DataRepositoryProvider = ({
    */
   const [irRemoteClients, setIrRemoteClients] = useState<IrRemoteClient[]>([]);
   const [, setIrClientsVersion] = useState(0); // Add versions to force updates
-  
+
   useEffect(() => {
     const clients: IrRemoteClient[] = [];
     const initPromises: Promise<void>[] = [];
-    
+
     playerDefinitions.forEach((def) => {
       // Skip initialization if player is not active or missing URL
       if (!def.active || !def.irCommandsUrl) {
-         return;
+        return;
       }
-      
+
       const client = createIrRemoteClient(def);
-      const initPromise = client.init()
+      const initPromise = client
+        .init()
         .then(() => {
-            // Force update when a client initializes
-            setIrClientsVersion(v => v + 1);
+          // Force update when a client initializes
+          setIrClientsVersion((v) => v + 1);
         })
         .catch((err) =>
-            console.warn(`IR Remote Client init failed for player ${def.remoteIndex}:`, err)
+          console.warn(
+            `IR Remote Client init failed for player ${def.remoteIndex}:`,
+            err,
+          ),
         );
       initPromises.push(initPromise);
       clients.push(client);
     });
     setIrRemoteClients(clients);
-    
+
     // Also force update when all done, just in case
-    Promise.allSettled(initPromises).then(() => setIrClientsVersion(v => v + 1));
-    
+    Promise.allSettled(initPromises).then(() =>
+      setIrClientsVersion((v) => v + 1),
+    );
   }, [playerDefinitions]);
 
   /**
@@ -204,25 +215,25 @@ export const DataRepositoryProvider = ({
         playerDefinitions.length !== 0 &&
         cds !== null
         ? Array.from({ length: 3 }).map((_, index: number) => {
-          let slots: PlayerSlot[] = Array.from(
-            { length: playerDefinitions[index].capacity },
-            (_, slotIndex: number) => ({ slot: slotIndex + 1, cd: null }),
-          );
-          let minSlot = playerDefinitions[index].capacity;
-          let maxSlot = 1;
-          for (const slot of rawContent[index]) {
-            const cd = slot.cdId ? cds[slot.cdId] : null;
-            slots[slot.slot - 1].cd = cd;
-            if (slot.slot < minSlot) {
-              minSlot = slot.slot;
+            let slots: PlayerSlot[] = Array.from(
+              { length: playerDefinitions[index].capacity },
+              (_, slotIndex: number) => ({ slot: slotIndex + 1, cd: null }),
+            );
+            let minSlot = playerDefinitions[index].capacity;
+            let maxSlot = 1;
+            for (const slot of rawContent[index]) {
+              const cd = slot.cdId ? cds[slot.cdId] : null;
+              slots[slot.slot - 1].cd = cd;
+              if (slot.slot < minSlot) {
+                minSlot = slot.slot;
+              }
+              if (slot.slot > maxSlot) {
+                maxSlot = slot.slot;
+              }
             }
-            if (slot.slot > maxSlot) {
-              maxSlot = slot.slot;
-            }
-          }
-          slots = slots.slice(minSlot - 1, maxSlot);
-          return slots.length > 0 ? slots : [{ slot: 0, cd: null }];
-        })
+            slots = slots.slice(minSlot - 1, maxSlot);
+            return slots.length > 0 ? slots : [{ slot: 0, cd: null }];
+          })
         : [[], [], []],
     );
   }, [playerDefinitions, rawContent, cds]);
@@ -245,17 +256,17 @@ export const DataRepositoryProvider = ({
   // Validate selected slots against content
   useEffect(() => {
     if (playerContent.some((content) => content.length > 0)) {
-       setSelectedPlayerSlots((prev) => {
+      setSelectedPlayerSlots((prev) => {
         return prev.map((slot, index) => {
-            const content = playerContent[index];
-            if (content.length === 0) return 0;
-            // available slots are 0 to content.length - 1
-            if (slot >= content.length) {
-                return 0;
-            }
-            return slot;
+          const content = playerContent[index];
+          if (content.length === 0) return 0;
+          // available slots are 0 to content.length - 1
+          if (slot >= content.length) {
+            return 0;
+          }
+          return slot;
         });
-       });
+      });
     }
   }, [playerContent]);
 
