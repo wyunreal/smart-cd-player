@@ -6,8 +6,10 @@ import { Cd, CdSlot } from "./types";
 
 const DATA_DIR = process.env.DATA_DIR || "../data/db";
 const FILE_PATH = `${DATA_DIR}/player-content.json`;
-const readFile = async (): Promise<CdSlot[][]> =>
-  readJsonFromFile(FILE_PATH) || [[], [], []];
+const readFile = async (): Promise<CdSlot[][]> => {
+  const data = await readJsonFromFile<CdSlot[][]>(FILE_PATH);
+  return data || [[], [], []];
+};
 
 export const getPlayerContent = async (
   playerIndex: number,
@@ -36,7 +38,7 @@ export const addCdToPlayer = async (
     playerContent[playerRemote - 1].push({ slot, cdId: cd.id });
   }
   playerContent[playerRemote - 1].sort((a, b) => a.slot - b.slot);
-  return writeJsonToFile(FILE_PATH, playerContent);
+  return writeJsonToFile<CdSlot[][]>(FILE_PATH, playerContent);
 };
 
 export const removeCdFromPlayer = async (cdId: number): Promise<void> => {
@@ -54,5 +56,5 @@ export const removeCdFromPlayer = async (cdId: number): Promise<void> => {
     throw new Error("CD not found in the player");
   }
   playerContent[playerContentIndex].splice(slotIndex, 1);
-  return writeJsonToFile(FILE_PATH, playerContent);
+  return writeJsonToFile<CdSlot[][]>(FILE_PATH, playerContent);
 };

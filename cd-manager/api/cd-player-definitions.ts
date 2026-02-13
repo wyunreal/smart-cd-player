@@ -6,7 +6,10 @@ import { PlayerDefinition } from "./types";
 
 const DATA_DIR = process.env.DATA_DIR || "../data/db";
 const FILE_PATH = `${DATA_DIR}/player-definitions.json`;
-const readFile = async () => readJsonFromFile(FILE_PATH) || [];
+const readFile = async (): Promise<PlayerDefinition[]> => {
+  const data = await readJsonFromFile<PlayerDefinition[]>(FILE_PATH);
+  return data || [];
+};
 
 export const getPlayerDefinitions = async (): Promise<PlayerDefinition[]> => {
   if (await fileExists(FILE_PATH)) {
@@ -25,5 +28,5 @@ export const getPlayerDefinitions = async (): Promise<PlayerDefinition[]> => {
 export const savePlayerDefinitions = async (
   definitions: PlayerDefinition[],
 ) => {
-  writeJsonToFile(FILE_PATH, definitions);
+  writeJsonToFile<PlayerDefinition[]>(FILE_PATH, definitions);
 };

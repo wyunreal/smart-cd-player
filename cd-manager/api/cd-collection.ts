@@ -1,12 +1,15 @@
 "use server";
 
 import { readJsonFromFile, writeJsonToFile } from "./json-storage";
-import { AlbumArt, Art, Cd, CdInputData } from "./types";
+import { Art, Cd, CdInputData } from "./types";
 import { downloadImage } from "./file-storage";
 
 const DATA_DIR = process.env.DATA_DIR || "../data/db";
 const FILE_PATH = `${DATA_DIR}/cd-collection.json`;
-const readFile = async () => readJsonFromFile(FILE_PATH) || [];
+const readFile = async (): Promise<Cd[]> => {
+  const data = await readJsonFromFile<Cd[]>(FILE_PATH);
+  return data || [];
+};
 
 export const getCdCollection: () => Promise<Cd[]> = async () => {
   return await readFile();
@@ -52,7 +55,7 @@ export const addCd = async (cds: Cd[]): Promise<number[]> => {
       await Promise.all(downloadPromises);
     }
   }
-  writeJsonToFile(FILE_PATH, [...data, ...cds]);
+  writeJsonToFile<Cd[]>(FILE_PATH, [...data, ...cds]);
   return cds.map((cd) => cd.id);
 };
 
@@ -62,9 +65,8 @@ export const editCd = async (cdData: CdInputData, cdId: number) => {
   if (index === -1) {
     throw new Error(`CD with id ${cdId} not found`);
   }
-  let cdDetails;
 
-  cdDetails = {
+  const cdDetails = {
     ...cds[index],
     title: cdData.album,
     artist: cdData.artist,
@@ -73,7 +75,7 @@ export const editCd = async (cdData: CdInputData, cdId: number) => {
 
   cdDetails.id = cdId;
   cds[index] = cdDetails;
-  writeJsonToFile(FILE_PATH, cds);
+  writeJsonToFile<Cd[]>(FILE_PATH, cds);
 };
 
 export const deleteCd = async (cdId: number) => {
@@ -83,5 +85,5 @@ export const deleteCd = async (cdId: number) => {
     throw new Error(`CD with id ${cdId} not found`);
   }
   data.splice(index, 1);
-  writeJsonToFile(FILE_PATH, data);
+  writeJsonToFile<Cd[]>(FILE_PATH, data);
 };

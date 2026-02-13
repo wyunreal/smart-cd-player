@@ -31,7 +31,6 @@ import { deleteCd } from "@/api/cd-collection";
 import useSnackbar from "@/app/hooks/use-snackbar";
 import {
   DataRepositoryContext,
-  PlayerSlot,
 } from "@/app/providers/data-repository";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 import useAddCdToPlayerFlow from "@/app/hooks/use-add-cd-to-player-flow";
