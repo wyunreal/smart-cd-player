@@ -7,7 +7,7 @@ import BottomSheet from "../components/client/bottom-sheet";
 import useResizeObserver from "../hooks/use-resize-observer";
 import PlayerSlots from "../components/client/player-slots";
 import SelectedSlotDetails from "../components/client/selected-slot-details";
-import { getPlayDiscOrder, getPlayTrackOrder } from "@/api/player-remote/command-factory";
+import { getPlayDiscOrder, getPlayTrackOrder, getPlayTrackOnDiskOrder } from "@/api/player-remote/command-factory";
 
 const Page = () => {
   const {
@@ -18,6 +18,8 @@ const Page = () => {
     irRemoteClients,
     selectedPlayerSlots,
     setSelectedPlayerSlots,
+    lastPlayedSlots,
+    setLastPlayedSlots,
   } = useContext(DataRepositoryContext);
   const [selectedPlayerRemoteIndex, setSelectedPlayerRemoteIndex] =
     useState<number>(1);
@@ -36,7 +38,7 @@ const Page = () => {
   const currentSlot =
     selectedPlayerRemoteIndex !== null
       ? playerContent[selectedPlayerRemoteIndex - 1][
-        selectedPlayerSlots[selectedPlayerRemoteIndex - 1]
+          selectedPlayerSlots[selectedPlayerRemoteIndex - 1]
         ]
       : null;
   const currentSlotNumber = currentSlot?.slot || 0;
@@ -71,32 +73,82 @@ const Page = () => {
   const handleTrackPlay = useCallback(
     async (trackNumber: number) => {
       if (!currentRemoteClient) return;
-
-      const sequence = getPlayTrackOrder(trackNumber);
-
-      try {
-          await currentRemoteClient.sendOrder(sequence);
-      } catch (e) {
-          console.error("Failed to sequence commands", e);
-      }
-    },
-    [currentRemoteClient]
-  );
-
-    const handleAlbumPlay = useCallback(
-    async () => {
-      if (!currentRemoteClient) return;
       if (!currentSlot) return;
 
-      const sequence = getPlayDiscOrder(currentSlot.slot);
+      const isSameSlot =
+        lastPlayedSlots[currentRemoteClientIndex] === currentSlot.slot;
+      let sequence;
+
+      if (isSameSlot) {
+        sequence = getPlayTrackOrder(trackNumber);
+      } else {
+        sequence = getPlayTrackOnDiskOrder(currentSlot.slot, trackNumber);
+      }
 
       try {
-          await currentRemoteClient.sendOrder(sequence);
+        await currentRemoteClient.sendOrder(sequence);
+        if (!isSameSlot) {
+            const newLastPlayed = [...lastPlayedSlots];
+            newLastPlayed[currentRemoteClientIndex] = currentSlot.slot;
+            setLastPlayedSlots(newLastPlayed);
+        }
       } catch (e) {
-          console.error("Failed to sequence commands", e);
+        console.error("Failed to sequence commands", e);
       }
     },
-    [currentRemoteClient, currentSlot]
+    [
+      currentRemoteClient,
+      currentSlot,
+      lastPlayedSlots,
+      currentRemoteClientIndex,
+      setLastPlayedSlots,
+    ],
+  );
+
+  const handleAlbumPlay = useCallback(async () => {
+    if (!currentRemoteClient) return;
+    if (!currentSlot) return;
+
+    const sequence = getPlayDiscOrder(currentSlot.slot);
+
+    try {
+      await currentRemoteClient.sendOrder(sequence);
+      const newLastPlayed = [...lastPlayedSlots];
+      newLastPlayed[currentRemoteClientIndex] = currentSlot.slot;
+      setLastPlayedSlots(newLastPlayed);
+    } catch (e) {
+      console.error("Failed to sequence commands", e);
+    }
+  }, [
+    currentRemoteClient,
+    currentSlot,
+    lastPlayedSlots,
+    currentRemoteClientIndex,
+    setLastPlayedSlots,
+  ]);
+
+  const checkTrackPlaySupport = useCallback(
+    (trackNumber: number) => {
+      if (!currentRemoteClient || !currentSlot) return false;
+
+      const isSameSlot =
+        lastPlayedSlots[currentRemoteClientIndex] === currentSlot.slot;
+      let sequence;
+
+      if (isSameSlot) {
+        sequence = getPlayTrackOrder(trackNumber);
+      } else {
+        sequence = getPlayTrackOnDiskOrder(currentSlot.slot, trackNumber);
+      }
+
+      return currentRemoteClient.canExecuteSequence(sequence);
+    },
+    [
+      currentRemoteClient,
+      currentSlot,
+      lastPlayedSlots,
+      currentRemoteClientIndex,
+    ],
   );
 
   return (
@@ -210,6 +262,7 @@ const Page = () => {
                         );
                       }}
                       onTrackPlay={handleTrackPlay}
+                      isTrackPlaySupported={checkTrackPlaySupport}
                     />
                   </BottomSheet>
                 )}

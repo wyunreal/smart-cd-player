@@ -9,6 +9,7 @@ import {
   alpha,
   Box,
   Button,
+  Collapse,
   Divider,
   IconButton,
   List,
@@ -29,12 +30,14 @@ const SelectedSlotDetails = ({
   relatedSlots,
   onRelatedAlbumClick,
   onTrackPlay,
+  isTrackPlaySupported = () => true,
 }: {
   slot: PlayerSlot;
   width: number;
   relatedSlots: PlayerSlot[];
   onRelatedAlbumClick: (slot: PlayerSlot) => void;
   onTrackPlay: (trackNumber: number) => void;
+  isTrackPlaySupported?: (trackNumber: number) => boolean;
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -194,15 +197,26 @@ const SelectedSlotDetails = ({
                       {slot.cd.tracks.map((track, i) => (
                         <div key={i}>
                           <ListItem sx={{ paddingX: 0, paddingY: "4px", alignItems: "flex-start" }}>
-                            <IconButton
-                              sx={{ mr: isMobile ? 0 : 1 }}
-                              onClick={() => onTrackPlay(i + 1)}
+                            <Collapse
+                              in={isTrackPlaySupported(i + 1)}
+                              orientation="horizontal"
                             >
-                              <PlayCircleOutlineOutlinedIcon
-                                fontSize="small"
-                                color="primary"
-                              />
-                            </IconButton>
+                              <IconButton
+                                sx={{
+                                  mr: isMobile ? 0 : 1,
+                                }}
+                                onClick={() =>
+                                  isTrackPlaySupported(i + 1) &&
+                                  onTrackPlay(i + 1)
+                                }
+                                disabled={!isTrackPlaySupported(i + 1)}
+                              >
+                                <PlayCircleOutlineOutlinedIcon
+                                  fontSize="small"
+                                  color="primary"
+                                />
+                              </IconButton>
+                            </Collapse>
                             <ListItemText sx={{ my: "8px" }}>
                               <Box
                                 sx={{ display: "flex", alignItems: "start" }}
@@ -259,6 +273,7 @@ const SelectedSlotDetails = ({
               onTrackPlayClick={(trackIndex) => {
                 onTrackPlay(trackIndex + 1);
               }}
+              isTrackPlaySupported={isTrackPlaySupported}
             />
           </Box>
         </Box>

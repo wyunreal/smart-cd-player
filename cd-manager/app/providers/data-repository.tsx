@@ -49,10 +49,16 @@ export type PlayerStateProps = {
   setSelectedPlayerSlots: (slots: number[]) => void;
 };
 
+export type LastPlayedStateProps = {
+  lastPlayedSlots: (number | null)[];
+  setLastPlayedSlots: (slots: (number | null)[]) => void;
+};
+
 type DataRepositoryContextProps = CdCollectionProps &
   PlayerDefinitionsProps &
   PlayerContentProps &
-  PlayerStateProps;
+  PlayerStateProps &
+  LastPlayedStateProps;
 
 const calculateContentByArtist = (
   slots: PlayerSlot[],
@@ -84,6 +90,8 @@ export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   refreshPlayerContent: () => {},
   selectedPlayerSlots: [0, 0, 0],
   setSelectedPlayerSlots: () => {},
+  lastPlayedSlots: [null, null, null],
+  setLastPlayedSlots: () => {},
 });
 
 export const DataRepositoryProvider = ({
@@ -246,6 +254,12 @@ export const DataRepositoryProvider = ({
     ]);
   }, [playerContent]);
 
+  const [lastPlayedSlots, setLastPlayedSlots] = useState<(number | null)[]>([
+    null,
+    null,
+    null,
+  ]);
+
   /**
    * Player State
    */
@@ -287,6 +301,8 @@ export const DataRepositoryProvider = ({
         refreshPlayerContent,
         selectedPlayerSlots,
         setSelectedPlayerSlots,
+        lastPlayedSlots,
+        setLastPlayedSlots,
       }}
     >
       {children}

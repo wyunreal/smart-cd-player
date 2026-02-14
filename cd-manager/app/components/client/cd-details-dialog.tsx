@@ -2,6 +2,7 @@
 import {
   alpha,
   Box,
+  Collapse,
   Divider,
   IconButton,
   List,
@@ -18,15 +19,19 @@ import { useContext } from "react";
 import { PlayCircleOutlineOutlinedIcon } from "@/app/icons";
 import Album from "./album";
 
+type CdDetailsDialogProps = {
+  cdId: number | null;
+  onDialogClosed: () => void;
+  onTrackPlayClick?: (trackIndex: number) => void;
+  isTrackPlaySupported?: (trackNumber: number) => boolean;
+};
+
 const CdDetailsDialog = ({
   cdId,
   onDialogClosed,
   onTrackPlayClick,
-}: {
-  cdId: number | null;
-  onDialogClosed: () => void;
-  onTrackPlayClick?: (trackIndex: number) => void;
-}) => {
+  isTrackPlaySupported = () => true,
+}: CdDetailsDialogProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { getCdById } = useContext(DataRepositoryContext);
@@ -109,13 +114,21 @@ const CdDetailsDialog = ({
                         <div key={index}>
                           <ListItem sx={{ paddingX: 0, alignItems: "flex-start" }}>
                             {onTrackPlayClick && (
-                              <IconButton
-                                color="primary"
-                                sx={{ mr: isMobile ? 0 : 2 }}
-                                onClick={() => onTrackPlayClick(index)}
+                              <Collapse
+                                in={isTrackPlaySupported(index + 1)}
+                                orientation="horizontal"
                               >
-                                <PlayCircleOutlineOutlinedIcon />
-                              </IconButton>
+                                <IconButton
+                                  color="primary"
+                                  sx={{
+                                    mr: isMobile ? 0 : 2,
+                                  }}
+                                  onClick={() => onTrackPlayClick(index)}
+                                  disabled={!isTrackPlaySupported(index + 1)}
+                                >
+                                  <PlayCircleOutlineOutlinedIcon />
+                                </IconButton>
+                              </Collapse>
                             )}
                             <ListItemText sx={{ my: "8px" }}>
                               <Box sx={{ display: "flex", alignItems: "start" }}>
