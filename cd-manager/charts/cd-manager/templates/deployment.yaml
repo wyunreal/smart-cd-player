@@ -21,6 +21,10 @@ spec:
         {{- include "cd-manager.selectorLabels" . | nindent 8 }}
     spec:
       hostNetwork: {{ .Values.hostNetwork }}
+      {{- with .Values.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -58,6 +62,10 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
+            - name: DBUS_SYSTEM_BUS_ADDRESS
+              value: "unix:path=/var/run/dbus/system_bus_socket"
+            - name: HOSTNAME
+              value: "0.0.0.0"
             {{- range $key, $val := .Values.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
@@ -83,6 +91,10 @@ spec:
                   name: {{ .Values.secrets.existingSecret | default (include "cd-manager.fullname" .) }}
                   key: GOOGLE_CLIENT_SECRET
           volumeMounts:
+            - name: avahi-daemon-socket
+              mountPath: /var/run/avahi-daemon/socket
+            - name: dbus-socket
+              mountPath: /var/run/dbus/system_bus_socket
             {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: {{ .Values.env.DATA_DIR }}
@@ -105,3 +117,15 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: avahi-daemon-socket
+          hostPath:
+            path: /var/run/avahi-daemon/socket
+        - name: dbus-socket
+          hostPath:
+            path: /var/run/dbus/system_bus_socket
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "cd-manager.fullname" . }}
+        {{- end }}

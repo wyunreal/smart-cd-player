@@ -1,10 +1,22 @@
-
 # 1. Base image
-FROM node:18-alpine AS base
+FROM node:18-slim AS base
+
+# Install mDNS dependencies (Debian/Ubuntu)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    avahi-utils \
+    libnss-mdns \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure NSS to use mDNS
+# This line tells the system to check mDNS for .local domains, and standard DNS for everything else.
+RUN echo "hosts: files mdns4_minimal [NOTFOUND=return] dns" > /etc/nsswitch.conf
 
 # 2. Dependencies
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
+# libc6-compat is often needed for Alpine, but we are on Debian now. 
+# However, some native modules might still need build tools.
+# For compatibility with potential lockfile variances, we keep it simple or install build-essential if needed.
+# Converting apk add to apt-get for consistency if needed, but 'base' already has glibc (it's debian).
 WORKDIR /app
 
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
