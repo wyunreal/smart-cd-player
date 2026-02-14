@@ -193,7 +193,7 @@ const SelectedSlotDetails = ({
                       <Divider />
                       {slot.cd.tracks.map((track, i) => (
                         <div key={i}>
-                          <ListItem sx={{ paddingX: 0, paddingY: "4px" }}>
+                          <ListItem sx={{ paddingX: 0, paddingY: "4px", alignItems: "flex-start" }}>
                             <IconButton
                               sx={{ mr: isMobile ? 0 : 1 }}
                               onClick={() => onTrackPlay(i + 1)}
@@ -203,10 +203,20 @@ const SelectedSlotDetails = ({
                                 color="primary"
                               />
                             </IconButton>
-                            <ListItemText>
-                              <Typography variant="body2">
-                                {track.title}
-                              </Typography>
+                            <ListItemText sx={{ my: "8px" }}>
+                              <Box
+                                sx={{ display: "flex", alignItems: "start" }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  sx={{ minWidth: "32px" }}
+                                >
+                                  {i + 1}.
+                                </Typography>
+                                <Typography variant="body2">
+                                  {track.title}
+                                </Typography>
+                              </Box>
                             </ListItemText>
                           </ListItem>
                           <Divider />

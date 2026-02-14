@@ -112,7 +112,14 @@ const CdDetails = ({
                       {cd.tracks.map((track, index) => (
                         <div key={index}>
                           <ListItem sx={{ my: "-4px" }}>
-                            <ListItemText>{track.title}</ListItemText>
+                            <ListItemText sx={{ my: "8px" }}>
+                              <Box sx={{ display: "flex", alignItems: "start" }}>
+                                <Typography sx={{ minWidth: "32px" }}>
+                                  {index + 1}.
+                                </Typography>
+                                <Typography>{track.title}</Typography>
+                              </Box>
+                            </ListItemText>
                           </ListItem>
                           <Divider />
                         </div>

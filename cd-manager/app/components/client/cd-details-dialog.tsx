@@ -107,7 +107,7 @@ const CdDetailsDialog = ({
                     <List>
                       {cd.tracks.map((track, index) => (
                         <div key={index}>
-                          <ListItem sx={{ paddingX: 0 }}>
+                          <ListItem sx={{ paddingX: 0, alignItems: "flex-start" }}>
                             {onTrackPlayClick && (
                               <IconButton
                                 color="primary"
@@ -117,8 +117,13 @@ const CdDetailsDialog = ({
                                 <PlayCircleOutlineOutlinedIcon />
                               </IconButton>
                             )}
-                            <ListItemText sx={{ marginTop: "6px" }}>
-                              {track.title}
+                            <ListItemText sx={{ my: "8px" }}>
+                              <Box sx={{ display: "flex", alignItems: "start" }}>
+                                <Typography sx={{ minWidth: "32px" }}>
+                                  {index + 1}.
+                                </Typography>
+                                <Typography>{track.title}</Typography>
+                              </Box>
                             </ListItemText>
                           </ListItem>
                           <Divider />
