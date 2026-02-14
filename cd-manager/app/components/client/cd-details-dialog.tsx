@@ -49,25 +49,20 @@ const CdDetailsDialog = ({
         }
         forcedHeight={isMobile ? undefined : 500}
         noHeader
-        noPadding
       >
         {cd && (
           <Box
             sx={{
               position: "relative",
-              height: "100%",
+              height: "150vh",
             }}
           >
             <div
               style={{
                 filter: "blur(16px)",
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "230px",
-                overflow: "hidden",
-                zIndex: 0,
+                marginTop: "-48px",
+                marginLeft: "-48px",
+                marginRight: "-48px",
               }}
             >
               <img
@@ -75,7 +70,6 @@ const CdDetailsDialog = ({
                 style={{
                   height: "230px",
                   width: "100%",
-                  objectFit: "cover",
                 }}
               />
             </div>
@@ -83,17 +77,11 @@ const CdDetailsDialog = ({
             <Box
               sx={{
                 position: "absolute",
-                inset: 0,
+                inset: isMobile ? "-16px" : "-32px",
                 background: `${alpha(theme.palette.background.default, 0.5)}`,
-                zIndex: 1,
               }}
             >
-              <Box paddingBottom={2} sx={{ 
-                  marginTop: isMobile ? "254px" : "238px",
-                  height: isMobile ? "calc(100% - 254px)" : "calc(100% - 238px)",
-                  display: "flex",
-                  flexDirection: "column"
-                }}>
+              <Box paddingBottom={2} sx={{ marginTop: "254px" }}>
                 <Box
                   sx={{
                     "&::-webkit-scrollbar": {
@@ -104,8 +92,7 @@ const CdDetailsDialog = ({
                     scrollbarWidth: "none",
                     overflowStyle: "none",
                     overflow: "auto",
-                    flex: 1,
-                    // maxHeight: isMobile ? "calc(100vh - 270px)" : "240px",  <-- remove explicit max height, let flex handle it
+                    maxHeight: isMobile ? "calc(100vh - 211px)" : "309px",
                   }}
                 >
                   <Box m={2}>
@@ -147,7 +134,7 @@ const CdDetailsDialog = ({
                 </Box>
               </Box>
             </Box>
-            <div style={{ position: "absolute", top: 64, left: 18, zIndex: 2 }}>
+            <div style={{ position: "absolute", top: 64, left: 2 }}>
               <Box>
                 <Album
                   imageUri={cd.art?.album?.uri || "/cd-placeholder-big.png"}
@@ -159,13 +146,12 @@ const CdDetailsDialog = ({
               style={{
                 position: "absolute",
                 top: 64,
-                left: isMobile ? 176 : 192,
-                right: 32,
+                left: isMobile ? 160 : 176,
+                right: 16,
                 height: "144px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "end",
-                zIndex: 2,
               }}
             >
               <Typography
