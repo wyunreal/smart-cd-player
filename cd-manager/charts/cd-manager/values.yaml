@@ -9,6 +9,7 @@ image:
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+hostNetwork: true
 
 serviceAccount:
   create: true
