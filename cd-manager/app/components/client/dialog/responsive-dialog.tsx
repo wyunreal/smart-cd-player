@@ -7,7 +7,7 @@ import { DialogContextProvider } from "./dialog-context";
 import { TransitionProps } from "@mui/material/transitions";
 import { AppBar, DialogTitle, IconButton, Slide } from "@mui/material";
 import { CloseIcon } from "@/app/icons";
-import type { } from "@mui/material/themeCssVarsAugmentation";
+import type {} from "@mui/material/themeCssVarsAugmentation";
 import useResizeObserver from "@/app/hooks/use-resize-observer";
 
 const PADDING = 16;
@@ -19,6 +19,7 @@ type FullScreenDialogProps = {
   onClose: () => void;
   forcedHeight?: number;
   noHeader?: boolean;
+  noPadding?: boolean;
   children: React.ReactNode;
 };
 
@@ -37,6 +38,7 @@ const ResponsiveDialog = ({
   onClose,
   forcedHeight,
   noHeader,
+  noPadding,
   children,
 }: FullScreenDialogProps) => {
   const theme = useTheme();
@@ -56,13 +58,13 @@ const ResponsiveDialog = ({
           "& .MuiDialog-paper": isMobile
             ? { borderRadius: 0 }
             : {
-              width: "600px",
-              height: forcedHeight ?? height + TITLE_BAR_HEIGHT + 3 * PADDING,
-              maxHeight: "90vh",
-              transition: "height 0.5s",
-              overflow: "hidden",
-              backgroundColor: theme.vars.palette.section.background,
-            },
+                width: "600px",
+                height: forcedHeight ?? height + TITLE_BAR_HEIGHT + 3 * PADDING,
+                maxHeight: "90vh",
+                transition: "height 0.5s",
+                overflow: "hidden",
+                backgroundColor: theme.vars.palette.section.background,
+              },
         }}
       >
         {!noHeader ? (
@@ -99,14 +101,20 @@ const ResponsiveDialog = ({
         <Box
           sx={{
             backgroundColor: theme.vars.palette.section.background,
-            paddingY: isMobile ? "16px" : `${PADDING}px`,
-            paddingX: isMobile ? "16px" : `${2 * PADDING}px`,
+            paddingY:
+              isMobile && noPadding ? 0 : isMobile ? "16px" : `${PADDING}px`,
+            paddingX:
+              isMobile && noPadding
+                ? 0
+                : isMobile
+                  ? "16px"
+                  : `${2 * PADDING}px`,
             minHeight: isMobile
               ? noHeader
                 ? "100vh"
                 : `calc(100vh - ${TITLE_BAR_HEIGHT}px)`
               : "300px",
-            overflowY: "auto",
+            overflowY: isMobile && noPadding ? "hidden" : "auto",
             display: "flex",
             flexDirection: "column",
             scrollbarWidth: "none",

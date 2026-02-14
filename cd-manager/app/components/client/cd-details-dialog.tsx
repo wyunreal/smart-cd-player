@@ -54,7 +54,7 @@ const CdDetailsDialog = ({
           <Box
             sx={{
               position: "relative",
-              height: "150vh",
+              height: isMobile ? "calc(100vh + 16px)" : "150vh",
             }}
           >
             <div
@@ -92,14 +92,16 @@ const CdDetailsDialog = ({
                     scrollbarWidth: "none",
                     overflowStyle: "none",
                     overflow: "auto",
-                    maxHeight: isMobile ? "calc(100vh - 211px)" : "309px",
+                    maxHeight: isMobile ? "calc(100vh - 223px)" : "309px",
                   }}
                 >
                   <Box m={2}>
                     <List>
                       {cd.tracks.map((track, index) => (
                         <div key={index}>
-                          <ListItem sx={{ paddingX: 0, alignItems: "flex-start" }}>
+                          <ListItem
+                            sx={{ paddingX: 0, alignItems: "flex-start" }}
+                          >
                             {onTrackPlayClick && (
                               <Collapse
                                 in={isTrackPlaySupported(index + 1)}
@@ -118,7 +120,9 @@ const CdDetailsDialog = ({
                               </Collapse>
                             )}
                             <ListItemText sx={{ my: "8px" }}>
-                              <Box sx={{ display: "flex", alignItems: "start" }}>
+                              <Box
+                                sx={{ display: "flex", alignItems: "start" }}
+                              >
                                 <Typography sx={{ minWidth: "32px" }}>
                                   {index + 1}.
                                 </Typography>
