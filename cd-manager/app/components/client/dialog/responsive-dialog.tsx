@@ -19,6 +19,7 @@ type FullScreenDialogProps = {
   onClose: () => void;
   forcedHeight?: number;
   noHeader?: boolean;
+  noPadding?: boolean;
   children: React.ReactNode;
 };
 
@@ -37,6 +38,7 @@ const ResponsiveDialog = ({
   onClose,
   forcedHeight,
   noHeader,
+  noPadding,
   children,
 }: FullScreenDialogProps) => {
   const theme = useTheme();
@@ -62,6 +64,8 @@ const ResponsiveDialog = ({
               transition: "height 0.5s",
               overflow: "hidden",
               backgroundColor: theme.vars.palette.section.background,
+              display: "flex", // Ensure flex column layout
+              flexDirection: "column",
             },
         }}
       >
@@ -99,16 +103,18 @@ const ResponsiveDialog = ({
         <Box
           sx={{
             backgroundColor: theme.vars.palette.section.background,
-            paddingY: isMobile ? "16px" : `${PADDING}px`,
-            paddingX: isMobile ? "16px" : `${2 * PADDING}px`,
+            paddingY: noPadding ? 0 : (isMobile ? "16px" : `${PADDING}px`),
+            paddingX: noPadding ? 0 : (isMobile ? "16px" : `${2 * PADDING}px`),
             minHeight: isMobile
               ? noHeader
                 ? "100vh"
                 : `calc(100vh - ${TITLE_BAR_HEIGHT}px)`
               : "300px",
-            overflowY: "auto",
+            // overflowY: "auto", <--- Handled below based on noPadding
+            overflowY: noPadding ? "hidden" : "auto",
             display: "flex",
             flexDirection: "column",
+            flex: 1, // Grow to fill Paper
             scrollbarWidth: "none",
             msOverflowStyle: "none",
             "&::-webkit-scrollbar": {
@@ -119,7 +125,7 @@ const ResponsiveDialog = ({
             },
           }}
         >
-          <div style={{ height: "auto" }} ref={resizeRef}>
+          <div style={{ height: "100%" }} ref={resizeRef}>
             {children}
           </div>
         </Box>
