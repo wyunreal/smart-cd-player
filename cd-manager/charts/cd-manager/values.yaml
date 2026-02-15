@@ -38,21 +38,19 @@ service:
   nodePort: 30000 # Optional: Specify a static port (30000-32767) when type is NodePort
 
 ingress:
-  enabled: false
+  enabled: true
   className: ""
   annotations:
-    {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: chart-example.local
+    - host: web.smart-cd.app
       paths:
         - path: /
-          pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+          pathType: Prefix
+  tls:
+    - secretName: cd-manager-tls
+      hosts:
+        - web.smart-cd.app
 
 resources:
   {}
@@ -86,7 +84,7 @@ env:
   DATA_DIR: "/app/data"
   IMAGES_DIR: "/app/data/images"
   AUTH_TRUST_HOST: "true"
-  NEXTAUTH_URL: "http://10.0.0.62.nip.io:30000"
+  NEXTAUTH_URL: "https://web.smart-cd.app"
 
   # The secret must contain keys: AUTH_SECRET, DISCOGS_USER_TOKEN, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
   existingSecret: ""
