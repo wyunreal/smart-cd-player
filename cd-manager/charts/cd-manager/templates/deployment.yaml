@@ -11,6 +11,8 @@ spec:
   selector:
     matchLabels:
       {{- include "cd-manager.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -99,6 +101,22 @@ spec:
             - name: data
               mountPath: {{ .Values.env.DATA_DIR }}
             {{- end }}
+        {{- if .Values.filebrowser.enabled }}
+        - name: filebrowser
+          image: "{{ .Values.filebrowser.image.repository }}:{{ .Values.filebrowser.image.tag }}"
+          imagePullPolicy: {{ .Values.filebrowser.image.pullPolicy }}
+          args:
+            - "--port={{ .Values.filebrowser.settings.port }}"
+            - "--root={{ .Values.filebrowser.settings.root }}"
+            - "--database={{ .Values.filebrowser.settings.database }}"
+          ports:
+            - name: filebrowser
+              containerPort: {{ .Values.filebrowser.settings.port }}
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.filebrowser.settings.root }}
+        {{- end }}
       volumes:
         {{- if .Values.persistence.enabled }}
         - name: data

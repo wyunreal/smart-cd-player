@@ -88,7 +88,18 @@ env:
   AUTH_TRUST_HOST: "true"
   NEXTAUTH_URL: "http://10.0.0.62.nip.io:30000"
 
-secrets:
-  # If you want to use an existing secret, provide its name here
   # The secret must contain keys: AUTH_SECRET, DISCOGS_USER_TOKEN, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
   existingSecret: ""
+
+filebrowser:
+  enabled: true
+  image:
+    repository: filebrowser/filebrowser
+    tag: latest
+    pullPolicy: IfNotPresent
+  settings:
+    port: 8082
+    root: /data
+    database: /data/filebrowser.db
+  service:
+    nodePort: 30001

@@ -14,5 +14,14 @@ spec:
       {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePort }}
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
+    {{- if .Values.filebrowser.enabled }}
+    - port: {{ .Values.filebrowser.settings.port }}
+      targetPort: filebrowser
+      protocol: TCP
+      name: filebrowser
+      {{- if and (eq .Values.service.type "NodePort") .Values.filebrowser.service.nodePort }}
+      nodePort: {{ .Values.filebrowser.service.nodePort }}
+      {{- end }}
+    {{- end }}
   selector:
     {{- include "cd-manager.selectorLabels" . | nindent 4 }}
