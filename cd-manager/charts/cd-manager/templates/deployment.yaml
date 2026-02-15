@@ -34,7 +34,7 @@ spec:
       initContainers:
         - name: volume-permissions
           image: busybox:latest
-          command: ["sh", "-c", "chown -R 1001:1001 /app/data"]
+          command: ["sh", "-c", "chown -R 1000:1000 /app/data"]
           volumeMounts:
             - name: data
               mountPath: /app/data
@@ -55,11 +55,11 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: http
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

@@ -39,7 +39,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/auth/signin",
   },
   callbacks: {
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user, profile }) {
       // En el primer inicio de sesión, incluir la imagen del usuario
       if (user) {
         token.picture = user.image;
@@ -60,8 +60,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     authorized({ auth: session, request: { nextUrl } }) {
       const isLoggedIn = !!session?.user;
       const isPublicPage = nextUrl.pathname.startsWith("/public");
+      const isAuthPage = nextUrl.pathname.startsWith("/auth");
+      const isApiPage = nextUrl.pathname.startsWith("/api");
 
-      if (isPublicPage || isLoggedIn) {
+      if (isPublicPage || isAuthPage || isApiPage || isLoggedIn) {
         return true;
       }
 
