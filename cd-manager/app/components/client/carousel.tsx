@@ -24,28 +24,25 @@ const CarouselSlides = ({
     });
   }, [selected, scrollContanierRef, containerWidth]);
 
-  const handleScrollSnapChanged = useCallback(
-    () => {
-      if (onSelectedChange && containerWidth > 0) {
-        onSelectedChange(
-          Math.round(
-            ((scrollContanierRef?.scrollLeft ?? 0) * 2) / containerWidth
-          )
-        );
-      }
-    },
-    [containerWidth, scrollContanierRef, onSelectedChange]
-  );
+  const handleScrollSnapChanged = useCallback(() => {
+    if (onSelectedChange && containerWidth > 0) {
+      onSelectedChange(
+        Math.round(
+          ((scrollContanierRef?.scrollLeft ?? 0) * 2) / containerWidth,
+        ),
+      );
+    }
+  }, [containerWidth, scrollContanierRef, onSelectedChange]);
 
   useEffect(() => {
     scrollContanierRef?.addEventListener(
       "scrollsnapchange",
-      handleScrollSnapChanged
+      handleScrollSnapChanged,
     );
     return () =>
       scrollContanierRef?.removeEventListener(
         "scrollsnapchange",
-        handleScrollSnapChanged
+        handleScrollSnapChanged,
       );
   }, [scrollContanierRef, handleScrollSnapChanged]);
 
@@ -90,7 +87,7 @@ const Carousel = <T extends object>({
       width: string;
       height: string;
     },
-    selectedIndex: number
+    selectedIndex: number,
   ) => React.ReactNode;
   slideDimensions: {
     width: string;
@@ -120,8 +117,8 @@ const Carousel = <T extends object>({
             index,
             containerWidth,
             slideDimensions,
-            selectedIndex
-          )
+            selectedIndex,
+          ),
         )}
       </CarouselSlides>
       <Box

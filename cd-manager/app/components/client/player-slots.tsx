@@ -65,6 +65,7 @@ const PlayerSlots = ({
             <div style={{ position: "relative" }}>
               <img
                 style={{
+                  display: "block",
                   borderRadius: "16px",
                   zIndex: selected === i ? 100 : 0,
                 }}
