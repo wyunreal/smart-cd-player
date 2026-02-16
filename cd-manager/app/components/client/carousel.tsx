@@ -1,7 +1,7 @@
 "use client";
 
 import { alpha, Box, useTheme } from "@mui/material";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const CarouselSlides = ({
   selected,
@@ -24,27 +24,34 @@ const CarouselSlides = ({
     });
   }, [selected, scrollContanierRef, containerWidth]);
 
-  const handleScrollSnapChanged = useCallback(() => {
-    if (onSelectedChange && containerWidth > 0) {
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleScroll = useCallback(() => {
+    if (!onSelectedChange || containerWidth <= 0) return;
+
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollTimeoutRef.current = setTimeout(() => {
       onSelectedChange(
         Math.round(
           ((scrollContanierRef?.scrollLeft ?? 0) * 2) / containerWidth,
         ),
       );
-    }
+    }, 150);
   }, [containerWidth, scrollContanierRef, onSelectedChange]);
 
   useEffect(() => {
-    scrollContanierRef?.addEventListener(
-      "scrollsnapchange",
-      handleScrollSnapChanged,
-    );
-    return () =>
-      scrollContanierRef?.removeEventListener(
-        "scrollsnapchange",
-        handleScrollSnapChanged,
-      );
-  }, [scrollContanierRef, handleScrollSnapChanged]);
+    const el = scrollContanierRef;
+    el?.addEventListener("scroll", handleScroll);
+    return () => {
+      el?.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [scrollContanierRef, handleScroll]);
 
   return (
     <Box
