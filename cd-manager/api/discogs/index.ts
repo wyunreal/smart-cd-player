@@ -1,4 +1,4 @@
-import { AlbumArt, Cd, DiscogsSearchResult } from "../types";
+import { AlbumArt, Cd, DiscogsSearchResult, Track } from "../types";
 import {
   searchByBarCode as searchDiscogsByBarcode,
   getArtistPicturesByName as getDiscogsArtistPicturesByName,
@@ -122,12 +122,94 @@ const getBestArt = (cds: Cd[]): AlbumArt | undefined => {
 };
 
 /**
+ * Selects which releases to use for building tracks.
+ * 1. If any release has format "CD", filter to only CD-format releases.
+ * 2. If there is only one release (after filtering), use it directly.
+ * 3. Among remaining releases, prefer multi-disc releases if any exist.
+ * 4. Group by track count and pick the group with the highest number of tracks.
+ */
+const selectReleasesForTracks = (
+  cds: Cd[],
+  expectedTrackCount?: number,
+): Cd[] => {
+  // Discard unofficial releases
+  const officialOnly = cds.filter(
+    (cd) =>
+      !cd.formats?.some(
+        (f) =>
+          f.descriptions?.includes("Unofficial Release") ||
+          f.descriptions?.includes("Unofficial"),
+      ),
+  );
+  // If all are unofficial, keep them all
+  const candidates = officialOnly.length > 0 ? officialOnly : cds;
+
+  if (candidates.length <= 1) {
+    return candidates;
+  }
+
+  // Step 0: If expected track count is provided, filter by it
+  if (expectedTrackCount !== undefined) {
+    const matching = candidates.filter(
+      (cd) => cd.tracks.length === expectedTrackCount,
+    );
+    if (matching.length > 0) {
+      return matching;
+    }
+  }
+
+  // Step 1: Filter by CD format if any release has it
+  const cdFormatReleases = candidates.filter((cd) =>
+    cd.formats?.some((f) => f.name.toUpperCase() === "CD"),
+  );
+  let pool = cdFormatReleases.length > 0 ? cdFormatReleases : candidates;
+
+  if (pool.length <= 1) {
+    return pool;
+  }
+
+  // Step 2: Prefer multi-disc releases (tracks with cd > 1)
+  const multiDiscCds = pool.filter((cd) =>
+    cd.tracks.some((track) => track.cd && track.cd > 1),
+  );
+
+  pool = multiDiscCds.length > 0 ? multiDiscCds : pool;
+
+  if (pool.length <= 1) {
+    return pool;
+  }
+
+  // Step 3: Group by track count
+  const groups = new Map<number, Cd[]>();
+  for (const cd of pool) {
+    const count = cd.tracks.length;
+    const group = groups.get(count) || [];
+    group.push(cd);
+    groups.set(count, group);
+  }
+
+  // Pick the group with the highest track count
+  let bestCount = 0;
+  let bestGroup: Cd[] = [];
+  for (const [count, group] of groups) {
+    if (count > bestCount) {
+      bestCount = count;
+      bestGroup = group;
+    }
+  }
+
+  return bestGroup;
+};
+
+/**
  * Calculates the consensus CD from a Discogs search result
- * by finding the most frequent value for each field across all CDs
- * Excludes 'art' and 'id' fields
+ * by finding the most frequent value for each field across all CDs.
+ * Track selection uses the release-grouping algorithm:
+ * releases are grouped by track count, and the group with the most tracks is used.
  */
 const calculateConsensusCd = (
   result: DiscogsSearchResult,
+  expectedTrackCount?: number,
 ): DiscogsSearchResult => {
   if (result.cds.length === 0) {
     return result;
@@ -151,38 +233,52 @@ const calculateConsensusCd = (
     .flatMap((cd) => cd.styles || [])
     .filter((s): s is string => s !== undefined);
 
-  // filter cds with multi-disc tracks
-  const multiDiscCds = result.cds.filter((cd) =>
-    cd.tracks.some((track) => track.cd && track.cd > 1),
+  // Select releases for track building using the grouping algorithm
+  const selectedReleases = selectReleasesForTracks(
+    result.cds,
+    expectedTrackCount,
   );
-  const cdsToUse = multiDiscCds.length > 0 ? multiDiscCds : result.cds;
 
-  // For tracks - find consensus tracks at each position
-  const maxTracksCount = Math.max(...cdsToUse.map((cd) => cd.tracks.length));
-  const consensusTracks: Array<{ number: number; cd: number; title: string }> =
-    [];
+  console.log(
+    "Selected releases for tracks:",
+    JSON.stringify(selectedReleases, null, 2),
+  );
 
-  for (let i = 0; i < maxTracksCount; i++) {
-    const trackNumbers = cdsToUse
+  // Track count is strictly the count from the selected releases (never more)
+  const trackCount =
+    selectedReleases.length > 0 ? selectedReleases[0].tracks.length : 0;
+
+  // Build consensus tracks from the selected releases
+  const consensusTracks: Track[] = [];
+
+  for (let i = 0; i < trackCount; i++) {
+    const trackNumbers = selectedReleases
       .map((cd) => cd.tracks[i]?.number)
       .filter((num): num is number => num !== undefined);
 
-    const trackTitles = cdsToUse
+    const trackTitles = selectedReleases
       .map((cd) => cd.tracks[i]?.title)
       .filter((title): title is string => title !== undefined);
 
-    const trackCds = cdsToUse
+    const trackCds = selectedReleases
       .map((cd) => cd.tracks[i]?.cd)
       .filter((cdNum): cdNum is number => cdNum !== undefined);
+
+    // Find duration from any selected release that has it for this track
+    const trackDurations = selectedReleases
+      .map((cd) => cd.tracks[i]?.duration)
+      .filter((d): d is string => d !== undefined && d !== "");
 
     const consensusNumber = getMostFrequent(trackNumbers) || i + 1;
     const consensusTitle = getMostFrequent(trackTitles) || `Track ${i + 1}`;
     const consensusCd = getMostFrequent(trackCds) || 1;
+    const consensusDuration = getMostFrequent(trackDurations) || undefined;
 
     consensusTracks.push({
       number: consensusNumber,
       title: consensusTitle,
       cd: consensusCd,
+      ...(consensusDuration ? { duration: consensusDuration } : {}),
     });
   }
 
@@ -208,12 +304,20 @@ const calculateConsensusCd = (
 
 export const searchByBarCode = async (
   barcode: string,
+  expectedTrackCount?: number,
 ): Promise<DiscogsSearchResult> => {
   const searchResult = await searchDiscogsByBarcode(barcode);
-  const result = calculateConsensusCd(searchResult);
+  const result = calculateConsensusCd(searchResult, expectedTrackCount);
   return result.cd
     ? { ...result, cd: { ...result.cd, barCode: barcode } }
     : result;
 };
 
 export const getArtistPicturesByName = getDiscogsArtistPicturesByName;
+
+// Exported for testing purposes only
+export const _internal = {
+  selectReleasesForTracks,
+  calculateConsensusCd,
+  getMostFrequent,
+};

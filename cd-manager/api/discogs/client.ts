@@ -1,5 +1,13 @@
-import { Client } from "disconnect";
-import { Art, ArtistPicturesResult, Cd, DiscogsSearchResult } from "../types";
+import {
+  Client,
+  SearchResults,
+  Release,
+  SearchResult,
+  Track as DiscogsTrack,
+  Image,
+  Artist as DiscogsArtist,
+} from "disconnect";
+import { Art, ArtistPicturesResult, DiscogsSearchResult } from "../types";
 
 const MAX_ARTIST_PICTURES_AMOUNT = 24;
 
@@ -43,7 +51,7 @@ const searchByBarCode = async (
     let rateLimit: { limit: number; remaining: number } | undefined;
 
     const searchResults = await withTimeout(
-      new Promise<any>((resolve, reject) => {
+      new Promise<SearchResults>((resolve, reject) => {
         db.search(
           {
             barcode: barcode,
@@ -79,119 +87,149 @@ const searchByBarCode = async (
       return { cds: [], rateLimit };
     }
 
-    const cdPromises = searchResults.results.map(async (result: any) => {
-      try {
-        const release = await withTimeout(
-          new Promise<any>((resolve, reject) => {
-            db.getRelease(result.id, (err, data, rateLimitInfo) => {
-              if (err) {
-                // Check if error is rate limit related
-                const errorMessage = err.message || String(err);
-                if (
-                  errorMessage.includes("rate limit") ||
-                  errorMessage.includes("429")
-                ) {
-                  reject(
-                    new Error(
-                      `Discogs API rate limit exceeded: ${errorMessage}`,
-                    ),
-                  );
+    const cdPromises = searchResults.results.map(
+      async (result: SearchResult) => {
+        try {
+          const release = await withTimeout(
+            new Promise<Release>((resolve, reject) => {
+              db.getRelease(result.id, (err, data, rateLimitInfo) => {
+                if (err) {
+                  // Check if error is rate limit related
+                  const errorMessage = err.message || String(err);
+                  if (
+                    errorMessage.includes("rate limit") ||
+                    errorMessage.includes("429")
+                  ) {
+                    reject(
+                      new Error(
+                        `Discogs API rate limit exceeded: ${errorMessage}`,
+                      ),
+                    );
+                  } else {
+                    reject(err);
+                  }
                 } else {
-                  reject(err);
+                  if (rateLimitInfo) {
+                    rateLimit = rateLimitInfo;
+                  }
+                  resolve(data);
                 }
-              } else {
-                if (rateLimitInfo) {
-                  rateLimit = rateLimitInfo;
-                }
-                resolve(data);
-              }
-            });
-          }),
-          DISCOGS_TIMEOUT,
-        );
+              });
+            }),
+            DISCOGS_TIMEOUT,
+          );
 
-        const artist =
-          release.artists && release.artists.length > 0
-            ? release.artists[0].name
-            : "Unknown Artist";
+          const artist =
+            release.artists && release.artists.length > 0
+              ? release.artists[0].name
+              : "Unknown Artist";
 
-        // Remove artist name from title if included
-        let albumTitle = release.title;
-        if (albumTitle.includes(" - ")) {
-          const parts = albumTitle.split(" - ");
-          albumTitle = parts.length > 1 ? parts[1] : parts[0];
-        }
+          // Remove artist name from title if included
+          let albumTitle = release.title;
+          if (albumTitle.includes(" - ")) {
+            const parts = albumTitle.split(" - ");
+            albumTitle = parts.length > 1 ? parts[1] : parts[0];
+          }
 
-        const genre =
-          release.styles && release.styles.length > 0
-            ? release.styles[0]
-            : release.genres && release.genres.length > 0
-              ? release.genres[0]
-              : "Unknown";
+          const genre =
+            release.styles && release.styles.length > 0
+              ? release.styles[0]
+              : release.genres && release.genres.length > 0
+                ? release.genres[0]
+                : "Unknown";
 
-        const genres = release.genres || [];
-        const styles = release.styles || [];
+          const genres = release.genres || [];
+          const styles = release.styles || [];
 
-        const tracks =
-          release.tracklist?.map((track: any, index: number) => {
-            let cdNumber = 1;
-            if (typeof track.position === "string") {
-              const match = track.position.match(/^(\d+)[-–]/); // Soporta guion y guion largo
-              if (match) {
-                cdNumber = parseInt(match[1], 10);
-              }
+          // Matches "1-01", "2-03" and also "CD1-1", "Cd2-3", "cd1-01"
+          const multiDiscPattern = /^(?:cd)?(\d+)[-–](\d+)$/i;
+
+          const parsedTracks =
+            release.tracklist?.map((track: DiscogsTrack) => {
+              const match =
+                typeof track.position === "string"
+                  ? track.position.match(multiDiscPattern)
+                  : null;
+              return {
+                position: track.position,
+                isMultiDisc: !!match,
+                cdNumber: match ? parseInt(match[1], 10) : 1,
+                title: track.title,
+                duration: track.duration || undefined,
+              };
+            }) || [];
+
+          // If any track has multi-disc format, filter out tracks that don't
+          const hasMultiDisc = parsedTracks.some((t) => t.isMultiDisc);
+          let filteredTracks = hasMultiDisc
+            ? parsedTracks.filter((t) => t.isMultiDisc)
+            : parsedTracks;
+
+          // For non-multi-disc: if some tracks have duration, discard those without
+          if (!hasMultiDisc) {
+            const hasSomeDuration = filteredTracks.some((t) => t.duration);
+            if (hasSomeDuration) {
+              filteredTracks = filteredTracks.filter((t) => t.duration);
             }
-            return {
-              number: index + 1,
-              cd: cdNumber,
-              title: track.title,
-            };
-          }) || [];
+          }
 
-        const primaryImage = release.images?.find(
-          (img: any) => img.type === "primary",
-        );
-        const firstImage = release.images?.[0];
+          const tracks = filteredTracks.map((t, index) => ({
+            number: index + 1,
+            cd: t.cdNumber,
+            title: t.title,
+            duration: t.duration,
+          }));
 
-        const albumImage = primaryImage || firstImage;
+          const primaryImage = release.images?.find(
+            (img: Image) => img.type === "primary",
+          );
+          const firstImage = release.images?.[0];
 
-        return {
-          id: 0,
-          title: albumTitle,
-          artist: artist,
-          year: release.year,
-          genre: genre,
-          genres: genres,
-          styles: styles,
-          tracks: tracks,
-          art: albumImage
-            ? {
-                album: albumImage,
-                allImages:
-                  release.images?.map((img: any) => ({
-                    uri: img.uri,
-                    uri150: img.uri150,
-                    width: img.width,
-                    height: img.height,
-                    type: img.type,
-                  })) || [],
-              }
-            : undefined,
-        };
-      } catch (error) {
-        // Check if it's a rate limit error and propagate it
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        if (
-          errorMessage.includes("rate limit") ||
-          errorMessage.includes("429")
-        ) {
-          throw error; // Re-throw rate limit errors
+          const albumImage = primaryImage || firstImage;
+
+          return {
+            id: 0,
+            title: albumTitle,
+            artist: artist,
+            year: release.year,
+            genre: genre,
+            genres: genres,
+            styles: styles,
+            tracks: tracks,
+            formats: release.formats?.map((f) => ({
+              name: f.name,
+              qty: f.qty,
+              descriptions: f.descriptions,
+            })),
+            art: albumImage
+              ? {
+                  album: albumImage,
+                  allImages:
+                    release.images?.map((img: Image) => ({
+                      uri: img.uri,
+                      uri150: img.uri150,
+                      width: img.width,
+                      height: img.height,
+                      type: img.type,
+                    })) || [],
+                }
+              : undefined,
+          };
+        } catch (error) {
+          // Check if it's a rate limit error and propagate it
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          if (
+            errorMessage.includes("rate limit") ||
+            errorMessage.includes("429")
+          ) {
+            throw error; // Re-throw rate limit errors
+          }
+          // For other errors, return null to skip this release
+          return null;
         }
-        // For other errors, return null to skip this release
-        return null;
-      }
-    });
+      },
+    );
 
     const results = await Promise.all(cdPromises);
     const cds = results.filter((cd) => cd !== null);
@@ -213,7 +251,7 @@ const getArtistPicturesByName = async (
 
     // Search for the artist by name
     const searchResults = await withTimeout(
-      new Promise<any>((resolve, reject) => {
+      new Promise<SearchResults>((resolve, reject) => {
         db.search(
           {
             query: artistName,
@@ -279,10 +317,10 @@ const getArtistPicturesByName = async (
     }
 
     // Get full artist details including images
-    let artistDetails: any = null;
+    let artistDetails: DiscogsArtist | null = null;
     try {
       artistDetails = await withTimeout(
-        new Promise<any>((resolve, reject) => {
+        new Promise<DiscogsArtist | null>((resolve, reject) => {
           db.getArtist(artistId, (err, data, rateLimitInfo) => {
             if (err) {
               const errorMessage = err.message || String(err);
@@ -308,7 +346,7 @@ const getArtistPicturesByName = async (
         }),
         DISCOGS_TIMEOUT,
       );
-    } catch (timeoutError) {
+    } catch {
       console.warn(`Timeout getting artist details, using fallback images`);
       artistDetails = null;
     }
@@ -326,7 +364,7 @@ const getArtistPicturesByName = async (
     const images: Art[] =
       artistDetails.images
         ?.slice(0, MAX_ARTIST_PICTURES_AMOUNT)
-        .map((img: any) => ({
+        .map((img: Image) => ({
           uri: img.uri,
           uri150: img.uri150,
           width: img.width,

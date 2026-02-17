@@ -65,7 +65,12 @@ export type CdInputData = {
   genre: string;
 };
 
-export type Track = { number: number; cd: number; title: string };
+export type Track = {
+  number: number;
+  cd: number;
+  title: string;
+  duration?: string;
+};
 
 export type CdBasicInfo = {
   title: string;
@@ -92,12 +97,19 @@ export type AlbumArt = {
   allImages?: Array<Art>;
 };
 
+export type CdFormat = {
+  name: string;
+  qty: string;
+  descriptions?: string[];
+};
+
 export type Cd = CdBasicInfo & {
   id: number;
   barCode?: string;
   art?: AlbumArt;
   diskAmount?: number;
   diskNumber?: number;
+  formats?: CdFormat[];
 };
 
 export type DiscogsSearchResult = {

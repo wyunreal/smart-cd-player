@@ -6,6 +6,14 @@ export const dynamic = "force-dynamic";
 export const GET = async (request: NextRequest) => {
   const searchParams = request.nextUrl.searchParams;
   const barcode = searchParams.get("barcode");
+  const trackCountParam = searchParams.get("trackCount");
+  const trackCount = trackCountParam
+    ? parseInt(trackCountParam, 10)
+    : undefined;
+  const expectedTrackCount =
+    trackCount !== undefined && !isNaN(trackCount) && trackCount > 0
+      ? trackCount
+      : undefined;
 
   if (!barcode) {
     return Response.json(
@@ -15,7 +23,7 @@ export const GET = async (request: NextRequest) => {
   }
 
   try {
-    const result = await searchByBarCode(barcode);
+    const result = await searchByBarCode(barcode, expectedTrackCount);
 
     return Response.json(result, { status: 200 });
   } catch (error) {

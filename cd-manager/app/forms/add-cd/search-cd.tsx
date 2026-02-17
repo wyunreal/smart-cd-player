@@ -37,6 +37,7 @@ const SearchCdForm = ({
   clearValidationErrors: () => void;
 }) => {
   const [barCode, setBarCode] = useState(data ? data.barCode : "");
+  const [tracksNumber, setTracksNumber] = useState("");
   const [cd, setCd] = useState<Cd | null | undefined>(data?.cd);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
@@ -48,8 +49,11 @@ const SearchCdForm = ({
     setSearchError("");
     try {
       clearValidationErrors();
+      const trackCount = parseInt(tracksNumber, 10);
+      const trackCountParam =
+        !isNaN(trackCount) && trackCount > 0 ? `&trackCount=${trackCount}` : "";
       const response = await fetch(
-        `/api/discogs/search?barcode=${encodeURIComponent(barCode)}`,
+        `/api/discogs/search?barcode=${encodeURIComponent(barCode)}${trackCountParam}`,
       );
       const result = await response.json();
 
@@ -112,7 +116,25 @@ const SearchCdForm = ({
   return (
     <Box sx={{ mt: 1 }}>
       <Box sx={{ margin: "16px 0" }}>
-        <Stack direction="row" spacing={2}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <TextField
+            id="tracksNumber"
+            label="Tracks"
+            name="tracksNumber"
+            type="number"
+            value={tracksNumber}
+            onChange={(e) => setTracksNumber(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+            sx={{
+              width: { xs: "100%", sm: "100px" },
+              minWidth: { sm: "100px" },
+              flexShrink: 0,
+            }}
+            slotProps={{
+              htmlInput: { min: 1 },
+            }}
+          />
           <TextField
             required
             fullWidth
