@@ -144,8 +144,16 @@ const searchByBarCode = async (
           // Matches "1-01", "2-03" and also "CD1-1", "Cd2-3", "cd1-01"
           const multiDiscPattern = /^(?:cd)?(\d+)[-–](\d+)$/i;
 
+          // Filter out DVD tracks from multi-disc releases
+          const cdOnlyTracklist =
+            release.tracklist?.filter(
+              (track: DiscogsTrack) =>
+                typeof track.position !== "string" ||
+                !track.position.toUpperCase().startsWith("DVD"),
+            ) || [];
+
           const parsedTracks =
-            release.tracklist?.map((track: DiscogsTrack) => {
+            cdOnlyTracklist.map((track: DiscogsTrack) => {
               const match =
                 typeof track.position === "string"
                   ? track.position.match(multiDiscPattern)
