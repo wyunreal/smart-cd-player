@@ -159,7 +159,7 @@ const CdDetailsDialog = ({
               }}
             >
               <Typography
-                variant={isMobile ? "body1" : "h6"}
+                variant={cd.title.length <= 45 ? "h6" : "body2"}
                 sx={{
                   textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                 }}
@@ -169,7 +169,13 @@ const CdDetailsDialog = ({
                   : cd.title}
               </Typography>
               <Typography
-                variant={isMobile ? "h4" : "h4"}
+                variant={
+                  cd.artist.length > 15
+                    ? "body1"
+                    : cd.artist.length >= 10
+                      ? "h6"
+                      : "h4"
+                }
                 sx={{
                   textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                 }}

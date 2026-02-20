@@ -160,7 +160,7 @@ const CdDetails = ({
                   }}
                 >
                   <Typography
-                    variant="h5"
+                    variant={displayedCd.title.length <= 35 ? "h5" : "body1"}
                     sx={{
                       textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                     }}
