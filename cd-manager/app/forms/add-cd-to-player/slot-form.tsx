@@ -5,7 +5,6 @@ import { useContext, useEffect, useState } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import {
   MenuItem,
-  Select,
   Stack,
   TextField,
   Typography,
@@ -20,6 +19,23 @@ const SlotForm = ({ data, onDataChanged }: StepProps<AddCdToPlayerData>) => {
   const { playerContent, playerDefinitions, selectedPlayer } = useContext(
     DataRepositoryContext,
   );
+  const getSlotCount = (playerRemote: number) => {
+    const selectedPlayerDef = playerDefinitions?.find(
+      (pd) => pd.remoteIndex === playerRemote,
+    );
+    return selectedPlayerDef?.capacity ?? 0;
+  };
+
+  const getFirstFreeSlot = (playerRemote: number): number => {
+    const content = playerContent[playerRemote - 1];
+    const occupiedSlots = new Set(content?.map((s) => s.slot));
+    const capacity = getSlotCount(playerRemote);
+    for (let i = 1; i <= capacity; i++) {
+      if (!occupiedSlots.has(i)) return i;
+    }
+    return 1;
+  };
+
   const [selectedplayerRemote, setSelectedPlayerRemote] = useState<number>(
     data.player !== undefined
       ? data.player
@@ -27,14 +43,9 @@ const SlotForm = ({ data, onDataChanged }: StepProps<AddCdToPlayerData>) => {
         ? selectedPlayer
         : 1,
   );
-  const [slot, setSlot] = useState<number>(data.slot ?? 1);
-
-  const getSlotCount = (playerRemote: number) => {
-    const selectedPlayerDef = playerDefinitions?.find(
-      (pd) => pd.remoteIndex === playerRemote,
-    );
-    return selectedPlayerDef?.capacity ?? 0;
-  };
+  const [slot, setSlot] = useState<number>(
+    data.slot ?? getFirstFreeSlot(selectedplayerRemote),
+  );
 
   const currentPlayerContent = playerContent[selectedplayerRemote - 1];
   const cdInSelectedSlot = currentPlayerContent?.find(
@@ -58,18 +69,15 @@ const SlotForm = ({ data, onDataChanged }: StepProps<AddCdToPlayerData>) => {
         <CdRow cd={data.cd} />
         <Typography sx={{ pt: 2 }}>Select the player slot:</Typography>
         <Stack direction={isMobile ? "column" : "row"} spacing={2}>
-          <Select
+          <TextField
+            select
             fullWidth
-            label="Select player"
+            label="Player"
             value={selectedplayerRemote}
             onChange={(e) => {
-              setSelectedPlayerRemote(Number(e.target.value));
-              setSlot((currentSlot) => {
-                const slotCount = getSlotCount(Number(e.target.value));
-                return currentSlot <= slotCount && currentSlot >= 1
-                  ? currentSlot
-                  : 1;
-              });
+              const newPlayer = Number(e.target.value);
+              setSelectedPlayerRemote(newPlayer);
+              setSlot(getFirstFreeSlot(newPlayer));
             }}
           >
             {playerDefinitions?.map((player) => (
@@ -77,7 +85,7 @@ const SlotForm = ({ data, onDataChanged }: StepProps<AddCdToPlayerData>) => {
                 {`Player ${player.remoteIndex}, ${player.capacity} slots, ${player.active ? "(Active)" : ""}`}
               </MenuItem>
             ))}
-          </Select>
+          </TextField>
           <TextField
             type="number"
             label="Slot number"

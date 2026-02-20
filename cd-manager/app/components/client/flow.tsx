@@ -199,9 +199,11 @@ const Flow = <StepperData, Result>({
                           if (ResultScreen) {
                             goForward(() => {
                               setActiveStep((s) => s + 1);
+                              if (onResultReception) {
+                                onResultReception(result);
+                              }
                             });
-                          }
-                          if (onResultReception) {
+                          } else if (onResultReception) {
                             onResultReception(result);
                           }
                         });
