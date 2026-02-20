@@ -3,9 +3,21 @@
 import { readJsonFromFile, writeJsonToFile } from "./json-storage";
 import { Art, Cd, CdInputData } from "./types";
 import { downloadImage } from "./file-storage";
+import { getNextCdId, saveNextCdId } from "./db-metadata";
 
 const DATA_DIR = process.env.DATA_DIR || "../data/db";
 const FILE_PATH = `${DATA_DIR}/cd-collection.json`;
+
+const allocateCdId = (
+  nextId: number,
+  existingIds: Set<number>,
+): { allocatedId: number; nextId: number } => {
+  while (existingIds.has(nextId)) {
+    nextId++;
+  }
+  return { allocatedId: nextId, nextId: nextId + 1 };
+};
+
 const readFile = async (): Promise<Cd[]> => {
   const data = await readJsonFromFile<Cd[]>(FILE_PATH);
   return data || [];
@@ -17,9 +29,14 @@ export const getCdCollection: () => Promise<Cd[]> = async () => {
 
 export const addCd = async (cds: Cd[]): Promise<number[]> => {
   const data = await getCdCollection();
+  const existingIds = new Set(data.map((cd) => cd.id));
   const maxId = data.length > 0 ? Math.max(...data.map((cd) => cd.id)) : 0;
+  let nextId = await getNextCdId(maxId);
+
   for (let i = 0; i < cds.length; i++) {
-    const newId = maxId + 1 + i;
+    const { allocatedId: newId, nextId: updatedNextId } = allocateCdId(nextId, existingIds);
+    existingIds.add(newId);
+    nextId = updatedNextId;
     cds[i].id = newId;
 
     if (cds[i].art) {
@@ -55,7 +72,8 @@ export const addCd = async (cds: Cd[]): Promise<number[]> => {
       await Promise.all(downloadPromises);
     }
   }
-  writeJsonToFile<Cd[]>(FILE_PATH, [...data, ...cds]);
+  await writeJsonToFile<Cd[]>(FILE_PATH, [...data, ...cds]);
+  await saveNextCdId(nextId);
   return cds.map((cd) => cd.id);
 };
 
