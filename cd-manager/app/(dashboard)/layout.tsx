@@ -24,6 +24,7 @@ export default function Layout(props: { children: React.ReactNode }) {
             toolbarActions: MainActions,
           }}
           sx={{
+            height: "calc(100dvh - env(safe-area-inset-bottom))",
             "& nav .MuiListItem-root .MuiListItemIcon-root": {
               minWidth: "38px",
               marginTop: "3px",

@@ -1,5 +1,6 @@
 "use server";
 
+import type { Viewport } from "next";
 import * as React from "react";
 import { NextAppProvider } from "@toolpad/core/nextjs";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
@@ -13,6 +14,10 @@ import { theme } from "@/theme/theme";
 import { cookies } from "next/headers";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import ThemeCookieSync from "./components/client/theme-cookie-sync";
+
+export async function generateViewport(): Promise<Viewport> {
+  return { viewportFit: "cover" };
+}
 
 const NAVIGATION: Navigation = [
   {
