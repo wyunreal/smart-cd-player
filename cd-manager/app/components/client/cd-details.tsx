@@ -36,17 +36,26 @@ const CdDetails = ({
   const cd = cdId !== null ? getCdById(cdId) : null;
 
   const [animationDriver, setAnimationDriver] = useState<boolean>(!!cd);
+  const [displayedCd, setDisplayedCd] = useState(cd);
+
   useEffect(() => {
     if (cd !== null) {
+      setDisplayedCd(cd);
       setAnimationDriver(true);
+    } else if (displayedCd !== null) {
+      setAnimationDriver(false);
+      const timer = setTimeout(() => {
+        setDisplayedCd(null);
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [cd]);
+  }, [cd, displayedCd]);
 
   return isMobile ? (
     <CdDetailsDialog cdId={cdId} onDialogClosed={onDialogClosed} />
   ) : (
     <Collapse timeout={500} orientation="horizontal" in={animationDriver}>
-      {cd && (
+      {displayedCd && (
         <Box
           sx={{
             width: `${DETAILS_PANEL_WIDTH + 16}px`,
@@ -70,7 +79,9 @@ const CdDetails = ({
                 >
                   <div style={{ filter: "blur(16px)" }}>
                     <img
-                      src={cd.art?.album?.uri || "/cd-placeholder-big.png"}
+                      src={
+                        displayedCd.art?.album?.uri || "/cd-placeholder-big.png"
+                      }
                       style={{
                         height: `${DETAILS_PANEL_WIDTH}px`,
                         width: "100%",
@@ -109,11 +120,13 @@ const CdDetails = ({
                         overflowStyle: "none",
                       }}
                     >
-                      {cd.tracks.map((track, index) => (
+                      {displayedCd.tracks.map((track, index) => (
                         <div key={index}>
                           <ListItem sx={{ my: "-4px" }}>
                             <ListItemText sx={{ my: "8px" }}>
-                              <Box sx={{ display: "flex", alignItems: "start" }}>
+                              <Box
+                                sx={{ display: "flex", alignItems: "start" }}
+                              >
                                 <Typography sx={{ minWidth: "32px" }}>
                                   {index + 1}.
                                 </Typography>
@@ -129,7 +142,9 @@ const CdDetails = ({
                 </Box>
                 <div style={{ position: "absolute", top: 80, left: 16 }}>
                   <Album
-                    imageUri={cd.art?.album?.uri || "/cd-placeholder-big.png"}
+                    imageUri={
+                      displayedCd.art?.album?.uri || "/cd-placeholder-big.png"
+                    }
                     size={100}
                   />
                 </div>
@@ -150,9 +165,9 @@ const CdDetails = ({
                       textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                     }}
                   >
-                    {(cd.diskAmount || 1) > 1
-                      ? `${cd.title}, Disc ${cd.diskNumber}`
-                      : cd.title}
+                    {(displayedCd.diskAmount || 1) > 1
+                      ? `${displayedCd.title}, Disc ${displayedCd.diskNumber}`
+                      : displayedCd.title}
                   </Typography>
                 </div>
                 <div
@@ -168,21 +183,21 @@ const CdDetails = ({
                       textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                     }}
                   >
-                    {cd.artist}
+                    {displayedCd.artist}
                   </Typography>
                   <Typography
                     sx={{
                       textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                     }}
                   >
-                    {cd.genre}
+                    {displayedCd.genre}
                   </Typography>
                   <Typography
                     sx={{
                       textShadow: `1px 1px 1px ${theme.palette.background.default};`,
                     }}
                   >
-                    {cd.year != 0 ? cd.year : ""}
+                    {displayedCd.year != 0 ? displayedCd.year : ""}
                   </Typography>
                 </div>
                 <Box sx={{ position: "absolute", top: "8px", right: "8px" }}>

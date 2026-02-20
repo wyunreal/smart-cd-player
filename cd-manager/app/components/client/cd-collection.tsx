@@ -58,7 +58,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
   const { refreshCds, refreshPlayerContent, playerContent } = useContext(
     DataRepositoryContext,
   );
-  const { selectedCdId, selectCdById } = useCdSelection();
+  const { selectedCdId, selectCdById, clearSelection } = useCdSelection();
 
   // Solo cambiar cuando width cruza el umbral de 600px
   const isWide = width > 600;
@@ -314,6 +314,16 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     [selectCdById],
   );
 
+  const onPaginationModelChange = useCallback(
+    (model: typeof paginationModel) => {
+      if (selectedCdId !== null) {
+        clearSelection();
+      }
+      setPaginationModel(model);
+    },
+    [selectedCdId, clearSelection],
+  );
+
   const pageSizeOptions = useMemo(() => [getPageSize(height)], [height]);
   const isCellEditable = useCallback(() => false, []);
 
@@ -346,7 +356,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
               rows={rows}
               columns={columns}
               paginationModel={paginationModel}
-              onPaginationModelChange={setPaginationModel}
+              onPaginationModelChange={onPaginationModelChange}
               pageSizeOptions={pageSizeOptions}
               rowSelection
               rowSelectionModel={rowSelectionModel}
