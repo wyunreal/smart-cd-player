@@ -48,8 +48,16 @@ export default async function RootLayout({
       lang="en"
       data-toolpad-color-scheme={themeCookie}
       suppressHydrationWarning
+      style={{ height: "100dvh", overflow: "hidden" }}
     >
-      <body suppressHydrationWarning>
+      <body
+        suppressHydrationWarning
+        style={{
+          margin: 0,
+          height: "100dvh",
+          overflow: "hidden",
+        }}
+      >
         <InitColorSchemeScript attribute="data-toolpad-color-scheme" defaultMode={themeCookie as "light" | "dark" | "system"} />
         <SessionProvider session={session}>
           <AppRouterCacheProvider options={{ enableCssLayer: true }}>
