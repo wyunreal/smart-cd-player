@@ -111,8 +111,8 @@ const ResponsiveDialog = ({
                   : `${2 * PADDING}px`,
             minHeight: isMobile
               ? noHeader
-                ? "100vh"
-                : `calc(100vh - ${TITLE_BAR_HEIGHT}px)`
+                ? "100dvh"
+                : `calc(100dvh - ${TITLE_BAR_HEIGHT}px)`
               : "300px",
             overflowY: isMobile && noPadding ? "hidden" : "auto",
             display: "flex",

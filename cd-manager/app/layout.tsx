@@ -8,7 +8,7 @@ import { SessionProvider, signIn, signOut } from "next-auth/react";
 import { auth } from "../auth";
 import LibraryMusicIcon from "@mui/icons-material/LibraryMusic";
 import { Box } from "@mui/material";
-import { AlbumIcon, GroupsIcon, PlayArrowOutlinedIcon } from "./icons";
+import { AlbumIcon, PlayArrowOutlinedIcon } from "./icons";
 import { theme } from "@/theme/theme";
 import { cookies } from "next/headers";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
@@ -23,11 +23,6 @@ const NAVIGATION: Navigation = [
     segment: "collection",
     title: "Collection",
     icon: <AlbumIcon />,
-  },
-  {
-    segment: "groups",
-    title: "Groups",
-    icon: <GroupsIcon />,
   },
 ];
 
@@ -58,7 +53,10 @@ export default async function RootLayout({
           overflow: "hidden",
         }}
       >
-        <InitColorSchemeScript attribute="data-toolpad-color-scheme" defaultMode={themeCookie as "light" | "dark" | "system"} />
+        <InitColorSchemeScript
+          attribute="data-toolpad-color-scheme"
+          defaultMode={themeCookie as "light" | "dark" | "system"}
+        />
         <SessionProvider session={session}>
           <AppRouterCacheProvider options={{ enableCssLayer: true }}>
             <NextAppProvider
