@@ -163,6 +163,10 @@ const CdDetails = ({
                     variant={displayedCd.title.length <= 35 ? "h5" : "body1"}
                     sx={{
                       textShadow: `1px 1px 1px ${theme.palette.background.default};`,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
                     }}
                   >
                     {(displayedCd.diskAmount || 1) > 1

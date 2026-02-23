@@ -162,6 +162,10 @@ const CdDetailsDialog = ({
                 variant={cd.title.length <= 45 ? "h6" : "body2"}
                 sx={{
                   textShadow: `1px 1px 1px ${theme.palette.background.default};`,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 4,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
                 }}
               >
                 {(cd.diskAmount || 1) > 1

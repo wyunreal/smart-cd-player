@@ -136,6 +136,7 @@ const Carousel = <T extends object>({
           left: "-5px",
           width: `calc(${slideDimensions.width} / 2)`,
           cursor: "pointer",
+          WebkitTapHighlightColor: "transparent",
           background: `linear-gradient(270deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
           zIndex: 200,
         }}
@@ -155,6 +156,7 @@ const Carousel = <T extends object>({
           right: "-5px",
           width: `calc(${slideDimensions.width} / 2)`,
           cursor: "pointer",
+          WebkitTapHighlightColor: "transparent",
           background: `linear-gradient(90deg, ${alpha(theme.palette.section.background, 0)} 0%, ${alpha(theme.palette.section.background, 1)} 100%)`,
           zIndex: 200,
         }}
