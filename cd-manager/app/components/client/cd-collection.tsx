@@ -22,8 +22,10 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import { GridFilterModel } from "@mui/x-data-grid";
 import Menu, { MenuOption } from "./menu";
 import useEditCdForm from "@/app/hooks/use-edit-cd-form";
 import useConfirmDialog from "@/app/hooks/use-confirm-dialog";
@@ -257,6 +259,11 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     pageSize: getPageSize(height),
   });
 
+  const [filterModel, setFilterModel] = useState<GridFilterModel>({ items: [] });
+  const hasActiveFilter = filterModel.items.length > 0 || !!filterModel.quickFilterValues?.length;
+  const isNavigatingToSelection = useRef(false);
+  const lastAutoNavigatedCdId = useRef<number | null>(null);
+
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     setTimeout(() => {
@@ -271,16 +278,34 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     );
   }, [height]);
 
+  // Reset navigation tracking when filter changes so we re-navigate after filter removal
+  useEffect(() => {
+    lastAutoNavigatedCdId.current = null;
+  }, [hasActiveFilter]);
+
   const cdIds = useMemo(() => Object.keys(cds).map(Number), [cds]);
   useEffect(() => {
-    if (selectedCdId !== null && cdIds.includes(selectedCdId)) {
-      const index = cdIds.indexOf(selectedCdId);
-      const targetPage = Math.floor(index / paginationModel.pageSize);
-      if (targetPage !== paginationModel.page) {
-        setPaginationModel((prev) => ({ ...prev, page: targetPage }));
-      }
+    if (
+      !hasActiveFilter &&
+      selectedCdId !== null &&
+      selectedCdId !== lastAutoNavigatedCdId.current &&
+      cdIds.includes(selectedCdId)
+    ) {
+      lastAutoNavigatedCdId.current = selectedCdId;
+      // Use functional update to read current page without adding paginationModel.page
+      // as a dependency (which would cause re-runs on every user page change)
+      setPaginationModel((prev) => {
+        const targetPage = Math.floor(cdIds.indexOf(selectedCdId) / prev.pageSize);
+        if (targetPage !== prev.page) {
+          isNavigatingToSelection.current = true;
+          return { ...prev, page: targetPage };
+        }
+        return prev;
+      });
+    } else if (selectedCdId === null) {
+      lastAutoNavigatedCdId.current = null;
     }
-  }, [selectedCdId, cdIds, paginationModel.pageSize, paginationModel.page]);
+  }, [selectedCdId, cdIds, hasActiveFilter]);
 
   const rowSelectionModel: GridRowSelectionModel = useMemo(
     () => (selectedCdId !== null ? [selectedCdId] : []),
@@ -316,9 +341,10 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
 
   const onPaginationModelChange = useCallback(
     (model: typeof paginationModel) => {
-      if (selectedCdId !== null) {
+      if (selectedCdId !== null && !isNavigatingToSelection.current) {
         clearSelection();
       }
+      isNavigatingToSelection.current = false;
       setPaginationModel(model);
     },
     [selectedCdId, clearSelection],
@@ -364,6 +390,8 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
               autoPageSize={false}
               sx={gridSx}
               onRowSelectionModelChange={onRowSelectionModelChange}
+              filterModel={filterModel}
+              onFilterModelChange={setFilterModel}
             />
           </div>
         </Paper>
