@@ -278,10 +278,10 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     );
   }, [height]);
 
-  // Reset navigation tracking when filter changes so we re-navigate after filter removal
+  // Reset navigation tracking when filter or pageSize changes so we re-navigate correctly
   useEffect(() => {
     lastAutoNavigatedCdId.current = null;
-  }, [hasActiveFilter]);
+  }, [hasActiveFilter, paginationModel.pageSize]);
 
   const cdIds = useMemo(() => Object.keys(cds).map(Number), [cds]);
   useEffect(() => {
@@ -305,7 +305,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     } else if (selectedCdId === null) {
       lastAutoNavigatedCdId.current = null;
     }
-  }, [selectedCdId, cdIds, hasActiveFilter]);
+  }, [selectedCdId, cdIds, hasActiveFilter, paginationModel.pageSize]);
 
   const rowSelectionModel: GridRowSelectionModel = useMemo(
     () => (selectedCdId !== null ? [selectedCdId] : []),
