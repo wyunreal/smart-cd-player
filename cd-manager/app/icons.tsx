@@ -15,6 +15,11 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import PlaylistAddOutlinedIcon from "@mui/icons-material/PlaylistAddOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import PlaylistRemoveOutlinedIcon from "@mui/icons-material/PlaylistRemoveOutlined";
+import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
+import SkipNextIcon from "@mui/icons-material/SkipNext";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import PauseIcon from "@mui/icons-material/Pause";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 
 export {
   AlbumIcon,
@@ -34,4 +39,9 @@ export {
   PlaylistAddOutlinedIcon,
   PlaylistRemoveOutlinedIcon,
   SearchOutlinedIcon,
+  SkipPreviousIcon,
+  SkipNextIcon,
+  PlayArrowIcon,
+  PauseIcon,
+  PowerSettingsNewIcon,
 };
