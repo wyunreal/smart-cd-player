@@ -5,6 +5,7 @@ import {
   DeleteOutlinedIcon,
   EditOutlinedIcon,
   MoreVertIcon,
+  PlayArrowOutlinedIcon,
   PlaylistAddOutlinedIcon,
   PlaylistRemoveOutlinedIcon,
 } from "@/app/icons";
@@ -36,6 +37,8 @@ import useResizeObserver from "@/app/hooks/use-resize-observer";
 import useAddCdToPlayerFlow from "@/app/hooks/use-add-cd-to-player-flow";
 import { useCdSelection } from "@/app/providers/cd-selection-context";
 import { removeCdFromPlayer } from "@/api/cd-player-content";
+import { useRouter } from "next/navigation";
+import { ROUTES } from "@/app/util/routes";
 
 const GRID_HEADER_HEIGHT = 55;
 const GRID_ROW_HEIGHT = 52;
@@ -57,9 +60,15 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     useAddCdToPlayerFlow();
   const { openSnackbar, snackbarInstance } = useSnackbar();
 
-  const { refreshCds, refreshPlayerContent, playerContent } = useContext(
-    DataRepositoryContext,
-  );
+  const {
+    refreshCds,
+    refreshPlayerContent,
+    playerContent,
+    setSelectedPlayer,
+    selectedPlayerSlots,
+    setSelectedPlayerSlots,
+  } = useContext(DataRepositoryContext);
+  const router = useRouter();
   const { selectedCdId, selectCdById, clearSelection } = useCdSelection();
 
   // Solo cambiar cuando width cruza el umbral de 600px
@@ -123,6 +132,31 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
             },
           };
 
+      const seeOnPlayerMenuItem: MenuOption | null = isUsed
+        ? (() => {
+            for (let pi = 0; pi < playerContent.length; pi++) {
+              const slotIndex = playerContent[pi].findIndex(
+                (s) => s.cd?.id === cdId,
+              );
+              if (slotIndex !== -1) {
+                return {
+                  type: "action" as const,
+                  icon: <PlayArrowOutlinedIcon />,
+                  caption: "See on player",
+                  handler: () => {
+                    const newSlots = [...selectedPlayerSlots];
+                    newSlots[pi] = slotIndex;
+                    setSelectedPlayerSlots(newSlots);
+                    setSelectedPlayer(pi + 1);
+                    router.push(ROUTES.PLAYER);
+                  },
+                };
+              }
+            }
+            return null;
+          })()
+        : null;
+
       return (
         <Menu
           icon={<MoreVertIcon />}
@@ -170,6 +204,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
               },
             },
             { type: "divider" },
+            ...(seeOnPlayerMenuItem ? [seeOnPlayerMenuItem] : []),
             manageCdSlotMenuItem,
           ]}
         />
@@ -177,6 +212,11 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     },
     [
       usedCdIds, // Dependent on playerContent, but faster check
+      playerContent,
+      selectedPlayerSlots,
+      setSelectedPlayerSlots,
+      setSelectedPlayer,
+      router,
       openEditCdForm,
       confirmDialog,
       openAddCdToPlayerFlow,

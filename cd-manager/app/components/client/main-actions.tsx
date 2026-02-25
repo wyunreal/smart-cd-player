@@ -13,6 +13,7 @@ import { DataRepositoryContext } from "@/app/providers/data-repository";
 
 import useEditPlayerDefinitionForm from "@/app/hooks/use-edit-player-definition-form";
 import useAddCdFlow from "@/app/hooks/use-add-cd-flow";
+import { ROUTES } from "@/app/util/routes";
 
 const MainActions = () => {
   const path = usePathname();
@@ -34,7 +35,7 @@ const MainActions = () => {
 
   return (
     <>
-      {path === "/" && (
+      {path === ROUTES.PLAYER && (
         <>
           <Select
             id="player-select"
@@ -76,7 +77,7 @@ const MainActions = () => {
           {editPlayerDefinitionFormInstance}
         </>
       )}
-      {path === "/collection" && (
+      {path === ROUTES.COLLECTION && (
         <>
           <Button
             variant={isMobile ? "outlined" : "contained"}
@@ -86,11 +87,6 @@ const MainActions = () => {
           </Button>
           {addCdFlowInstance}
         </>
-      )}
-      {path === "/groups" && (
-        <Button variant={isMobile ? "outlined" : "contained"}>
-          Create group
-        </Button>
       )}
     </>
   );
