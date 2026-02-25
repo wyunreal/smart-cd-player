@@ -45,34 +45,9 @@ const PlayerDefinitionForm = ({
     setSending(true);
     onSubmit(definitions);
   };
-  // Helpers to manage URL parsing and construction
-  const getDeviceName = (url: string | undefined): string => {
-    if (!url) return "";
-    try {
-      const urlObj = new URL(url);
-      return urlObj.searchParams.get("device") || "";
-    } catch {
-      const match = url.match(/[?&]device=([^&]*)/);
-      return match ? match[1] : "";
-    }
-  };
-
-  const getBaseUrl = (url: string | undefined): string => {
-    if (!url) return "";
-    return url.split("?")[0];
-  };
-
-  const constructSendUrl = (baseUrl: string, deviceName: string): string => {
-    if (!baseUrl) return "";
-    if (!deviceName) return baseUrl;
-    return `${baseUrl}?device=${deviceName}`;
-  };
-
   // Derived global values (using the first definition as source of truth)
   const globalIrCommandsUrl = definitions[0]?.irCommandsUrl || "";
-  const globalIrSendCommandBaseUrl = getBaseUrl(
-    definitions[0]?.irSendCommandUrl,
-  );
+  const globalIrSendCommandBaseUrl = definitions[0]?.irSendCommandUrl || "";
 
   const handleGlobalIrCommandsUrlChange = (value: string) => {
     const newDefinitions = definitions.map((def) => ({
@@ -85,10 +60,7 @@ const PlayerDefinitionForm = ({
   const handleGlobalIrSendCommandBaseUrlChange = (value: string) => {
     const newDefinitions = definitions.map((def) => ({
       ...def,
-      irSendCommandUrl: constructSendUrl(
-        value,
-        getDeviceName(def.irSendCommandUrl),
-      ),
+      irSendCommandUrl: value,
     }));
     setDefinitions(newDefinitions);
   };
@@ -165,23 +137,19 @@ const PlayerDefinitionForm = ({
               <TextField
                 fullWidth
                 label="Device Name"
-                value={getDeviceName(definition.irSendCommandUrl)}
+                value={definition.irDeviceName || ""}
                 onChange={(event) => {
-                  const newDeviceName = event.target.value;
                   const newDefinitions = [...definitions];
                   newDefinitions[index] = {
                     ...newDefinitions[index],
-                    irSendCommandUrl: constructSendUrl(
-                      globalIrSendCommandBaseUrl,
-                      newDeviceName,
-                    ),
+                    irDeviceName: event.target.value,
                   };
                   setDefinitions(newDefinitions);
                 }}
               />
             </Stack>
             <Box sx={{ marginTop: 1, marginBottom: 2 }}>
-              <Typography fontSize="small">{`Send command URL: ${definition.irSendCommandUrl || "..."}`}</Typography>
+              <Typography fontSize="small">{`Send command URL: ${definition.irSendCommandUrl ? `${definition.irSendCommandUrl}${definition.irDeviceName ? `?device=${definition.irDeviceName}` : ""}` : "..."}`}</Typography>
             </Box>
           </Box>
         </Box>

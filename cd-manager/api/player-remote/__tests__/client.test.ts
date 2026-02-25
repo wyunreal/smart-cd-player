@@ -7,7 +7,7 @@ const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
 const COMMANDS_URL = "http://localhost:4000/commands";
-const SEND_COMMAND_URL = "http://localhost:4000/remote?device=MyDevice";
+const SEND_COMMAND_URL = "http://localhost:4000/remote";
 
 describe("IrRemoteClient", () => {
     const mockDefinition: PlayerDefinition = {
@@ -16,7 +16,7 @@ describe("IrRemoteClient", () => {
         capacity: 1,
         irCommandsUrl: COMMANDS_URL,
         irSendCommandUrl: SEND_COMMAND_URL,
-        // deviceName removed
+        irDeviceName: "MyDevice",
     };
 
     beforeEach(() => {
@@ -48,7 +48,7 @@ describe("IrRemoteClient", () => {
     });
 
     it("should handle missing configuration gracefully", async () => {
-        const badDefinition = { ...mockDefinition, irSendCommandUrl: undefined };
+        const badDefinition = { ...mockDefinition, irDeviceName: undefined };
         const client = createIrRemoteClient(badDefinition);
 
         // Should not crash, just warn and init nothing
@@ -62,7 +62,7 @@ describe("IrRemoteClient", () => {
     });
 
     it("should not warn if missing configuration but player is inactive", async () => {
-        const inactiveDefinition = { ...mockDefinition, active: false, irSendCommandUrl: undefined };
+        const inactiveDefinition = { ...mockDefinition, active: false, irDeviceName: undefined };
         const client = createIrRemoteClient(inactiveDefinition);
 
         const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
@@ -106,16 +106,16 @@ describe("IrRemoteClient", () => {
 
         expect(mockFetch).toHaveBeenCalledTimes(2);
         
-        // First call
+        // First call - URL should contain device and command params
         const firstCall = mockFetch.mock.calls[0][0];
         expect(firstCall).toContain("/api/proxy-remote");
-        expect(firstCall).toContain(encodeURIComponent(SEND_COMMAND_URL));
-        expect(firstCall).toContain(`command%3D${PlayerCommand.Play}`);
-        
+        expect(firstCall).toContain(encodeURIComponent("device=MyDevice"));
+        expect(firstCall).toContain(encodeURIComponent(`command=${PlayerCommand.Play}`));
+
         // Second call
         const secondCall = mockFetch.mock.calls[1][0];
         expect(secondCall).toContain("/api/proxy-remote");
-        expect(secondCall).toContain(`command%3D${PlayerCommand.Stop}`);
+        expect(secondCall).toContain(encodeURIComponent(`command=${PlayerCommand.Stop}`));
     });
 
     it("should initialize with empty commands on fetch error", async () => {
@@ -192,7 +192,7 @@ describe("IrRemoteClient", () => {
         const relativeDefinition = {
             ...mockDefinition,
             irCommandsUrl: "/api/commands",
-            irSendCommandUrl: "/api/remote?device=MyDevice"
+            irSendCommandUrl: "/api/remote",
         };
         
         mockFetch.mockResolvedValueOnce({

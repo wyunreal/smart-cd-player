@@ -33,15 +33,7 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
     };
 
     const getDeviceName = (): string | null => {
-        if (!definition.irSendCommandUrl) return null;
-        try {
-            // Provide a dummy base for relative URLs
-            const url = new URL(definition.irSendCommandUrl, "http://localhost");
-            return url.searchParams.get("device");
-        } catch (e) {
-            console.warn("IR Remote Client: Failed to parse device name from URL", definition.irSendCommandUrl, e);
-            return null;
-        }
+        return definition.irDeviceName || null;
     };
 
     const getProxyUrl = (targetUrl: string): string => {
@@ -105,10 +97,15 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
             throw new Error("IR Remote Client: No irSendCommandUrl configured.");
         }
 
+        const deviceName = getDeviceName();
+
         for (const item of sequence) {
             const commandId = item.command;
 
             const url = new URL(definition.irSendCommandUrl);
+            if (deviceName) {
+                url.searchParams.append("device", deviceName);
+            }
             url.searchParams.append("command", commandId.toString());
 
             try {

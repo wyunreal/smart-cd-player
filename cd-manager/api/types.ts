@@ -41,6 +41,7 @@ export type PlayerDefinition = {
   playerApiBaseUrl?: string;
   irCommandsUrl?: string;
   irSendCommandUrl?: string;
+  irDeviceName?: string;
 };
 
 // Player content
