@@ -2,7 +2,6 @@ import {
   Box,
   Button,
   Divider,
-  IconButton,
   ListItemText,
   MenuItem,
   Select,
@@ -10,32 +9,51 @@ import {
   useTheme,
 } from "@mui/material";
 import { usePathname } from "next/navigation";
-import { useCallback, useContext } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
-import { PlayerCommand } from "@/api/types";
 
 import useEditPlayerDefinitionForm from "@/app/hooks/use-edit-player-definition-form";
 import useAddCdFlow from "@/app/hooks/use-add-cd-flow";
 import { ROUTES } from "@/app/util/routes";
-import {
-  SkipPreviousIcon,
-  PlayArrowIcon,
-  PauseIcon,
-  SkipNextIcon,
-  PowerSettingsNewIcon,
-} from "@/app/icons";
+import PlayerControlButtons from "./player-control-buttons";
 
 const MainActions = () => {
   const path = usePathname();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { openAddCdFlow, addCdFlowInstance } = useAddCdFlow();
+  const buttonsRef = useRef<HTMLDivElement>(null);
+  const [centerLeft, setCenterLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (path !== ROUTES.PLAYER || isMobile) return;
+
+    const updatePosition = () => {
+      const main = document.querySelector("main");
+      const toolbar = buttonsRef.current?.closest(".MuiToolbar-root");
+      if (main && toolbar) {
+        const mainRect = main.getBoundingClientRect();
+        const toolbarRect = toolbar.getBoundingClientRect();
+        setCenterLeft(
+          mainRect.left + mainRect.width / 2 - toolbarRect.left,
+        );
+      }
+    };
+
+    updatePosition();
+
+    const main = document.querySelector("main");
+    if (main) {
+      const observer = new ResizeObserver(updatePosition);
+      observer.observe(main);
+      return () => observer.disconnect();
+    }
+  }, [path, isMobile]);
   const {
     selectedPlayer,
     setSelectedPlayer,
     playerDefinitions,
     playerContent,
-    irRemoteClients,
   } = useContext(DataRepositoryContext);
   const { editPlayerDefinitionFormInstance, openEditPlayerDefinitionForm } =
     useEditPlayerDefinitionForm();
@@ -44,69 +62,25 @@ const MainActions = () => {
     playerContent[playerIndex].length === 1 &&
     playerContent[playerIndex][0].cd === null;
 
-  const currentRemoteClient =
-    selectedPlayer !== null ? irRemoteClients[selectedPlayer - 1] : null;
-
-  const sendCommand = useCallback(
-    async (command: PlayerCommand) => {
-      if (!currentRemoteClient) return;
-      try {
-        await currentRemoteClient.sendOrder([{ command, delayAfterMs: 0 }]);
-      } catch (e) {
-        console.error("Failed to send command", e);
-      }
-    },
-    [currentRemoteClient],
-  );
-
-  const isCommandSupported = useCallback(
-    (command: PlayerCommand) => {
-      return currentRemoteClient?.isCommandSupported(command) ?? false;
-    },
-    [currentRemoteClient],
-  );
-
   return (
     <>
       {path === ROUTES.PLAYER && (
         <>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 1 }}>
-            <IconButton
-              size="small"
-              onClick={() => sendCommand(PlayerCommand.PreviousTrack)}
-              disabled={!isCommandSupported(PlayerCommand.PreviousTrack)}
+          {!isMobile && (
+            <Box
+              ref={buttonsRef}
+              sx={{
+                position: "absolute",
+                left: centerLeft !== null ? `${centerLeft}px` : "50%",
+                transform: "translateX(-50%)",
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+              }}
             >
-              <SkipPreviousIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => sendCommand(PlayerCommand.Play)}
-              disabled={!isCommandSupported(PlayerCommand.Play)}
-            >
-              <PlayArrowIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => sendCommand(PlayerCommand.Pause)}
-              disabled={!isCommandSupported(PlayerCommand.Pause)}
-            >
-              <PauseIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => sendCommand(PlayerCommand.NextTrack)}
-              disabled={!isCommandSupported(PlayerCommand.NextTrack)}
-            >
-              <SkipNextIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => sendCommand(PlayerCommand.PowerSwitch)}
-              disabled={!isCommandSupported(PlayerCommand.PowerSwitch)}
-            >
-              <PowerSettingsNewIcon fontSize="small" />
-            </IconButton>
-          </Box>
+              <PlayerControlButtons />
+            </Box>
+          )}
           <Select
             id="player-select"
             onChange={(e) => {

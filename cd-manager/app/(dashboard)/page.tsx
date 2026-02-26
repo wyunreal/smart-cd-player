@@ -1,11 +1,12 @@
 "use client";
 
 import { DataRepositoryContext } from "@/app/providers/data-repository";
-import { Box, Fade, Slider, Typography, useTheme } from "@mui/material";
+import { Box, Fade, Slider, Typography, useMediaQuery, useTheme } from "@mui/material";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import BottomSheet from "../components/client/bottom-sheet";
 import useResizeObserver from "../hooks/use-resize-observer";
 import PlayerSlots from "../components/client/player-slots";
+import PlayerControlButtons from "../components/client/player-control-buttons";
 import SelectedSlotDetails from "../components/client/selected-slot-details";
 import { getPlayDiscOrder, getPlayTrackOrder, getPlayTrackOnDiskOrder } from "@/api/player-remote/command-factory";
 
@@ -59,6 +60,7 @@ const Page = () => {
   );
 
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const getPlayerIndex = (remoteIndex: number): 0 | 1 | 2 => {
     const index = remoteIndex - 1;
     if (index === 0 || index === 1 || index === 2) {
@@ -180,12 +182,24 @@ const Page = () => {
             >
               <Box
                 sx={{
-                  mt: 2,
+                  mt: { xs: 0, sm: 2 },
                   display: "flex",
                   flexDirection: "column",
                   flexGrow: 1,
                 }}
               >
+                {isMobile && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      gap: 0.5,
+                      mb: 2,
+                    }}
+                  >
+                    <PlayerControlButtons />
+                  </Box>
+                )}
                 <Box ref={resizeRef}>
                   <PlayerSlots
                     selectedPlayer={getPlayerIndex(selectedPlayerRemoteIndex)}
