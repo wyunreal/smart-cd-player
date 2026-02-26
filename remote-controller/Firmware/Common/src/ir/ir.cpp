@@ -6,10 +6,56 @@ IRrecv irrecv(IR_RECEIVE_PIN);
 IRsend irsend(IR_SEND_PIN);
 
 char IrRemoteControl::irCommandKey[15 + 1];
+QueueHandle_t IrRemoteControl::irSendQueue = NULL;
+SemaphoreHandle_t IrRemoteControl::irSendDone = NULL;
+bool IrRemoteControl::lastSendResult = false;
 
 void IrRemoteControl::begin()
 {
     irsend.begin();
+    irrecv.enableIRIn();
+
+    irSendQueue = xQueueCreate(1, sizeof(IrSignal));
+    irSendDone = xSemaphoreCreateBinary();
+
+    xTaskCreatePinnedToCore(
+        irSendTask,
+        "irSend",
+        4096,
+        NULL,
+        configMAX_PRIORITIES - 1,  // highest priority to minimize jitter
+        NULL,
+        1  // core 1 (Arduino core, free from WiFi)
+    );
+}
+
+void IrRemoteControl::irSendTask(void *param)
+{
+    IrSignal signal;
+    for (;;) {
+        if (xQueueReceive(irSendQueue, &signal, portMAX_DELAY) == pdTRUE) {
+            executeIrSend(signal);
+            xSemaphoreGive(irSendDone);
+        }
+    }
+}
+
+void IrRemoteControl::executeIrSend(const IrSignal &signal)
+{
+    irrecv.disableIRIn();
+
+    uint16_t repeats = irsend.minRepeats(signal.type);
+    Serial.printf("Sending IR command: type=%d, value=0x%llX, bits=%d, repeats=%d, core=%d\n",
+                  signal.type, signal.value, signal.bits, repeats, xPortGetCoreID());
+
+    if (signal.type == SONY) {
+        irsend.sendSony(signal.value, signal.bits, repeats > 2 ? repeats : 2);
+    } else if (signal.type == SONY_38K) {
+        irsend.sendSony38(signal.value, signal.bits, repeats > 2 ? repeats : 2);
+    } else {
+        irsend.send(signal.type, signal.value, signal.bits, repeats);
+    }
+
     irrecv.enableIRIn();
 }
 
@@ -54,8 +100,11 @@ bool IrRemoteControl::sendCommand(const char *deviceName, const char *commandNam
         return false;
     }
 
-    uint16_t repeats = irsend.minRepeats(signal.type);
-    irsend.send(signal.type, signal.value, signal.bits, repeats);
+    Serial.printf("Queuing IR command: device=%s, command=%s\n", deviceName, commandName);
+
+    // Send signal to the IR task on core 1 and wait for completion
+    xQueueSend(irSendQueue, &signal, portMAX_DELAY);
+    xSemaphoreTake(irSendDone, portMAX_DELAY);
 
     return true;
 }

@@ -14,6 +14,13 @@ struct IrSignal
     uint16_t bits;
 };
 
+struct IrSendRequest
+{
+    IrSignal signal;
+    bool pending;
+    bool result;
+};
+
 class IrRemoteControl
 {
 public:
@@ -36,6 +43,13 @@ private:
     decode_type_t lastType = UNKNOWN;
 
     static char irCommandKey[15 + 1]; // Prefferences keys max length for nvs is 15 characters
+
+    static QueueHandle_t irSendQueue;
+    static SemaphoreHandle_t irSendDone;
+    static bool lastSendResult;
+
+    static void irSendTask(void *param);
+    static void executeIrSend(const IrSignal &signal);
 };
 
 #endif
