@@ -45,16 +45,7 @@ void IrRemoteControl::executeIrSend(const IrSignal &signal)
     irrecv.disableIRIn();
 
     uint16_t repeats = irsend.minRepeats(signal.type);
-    Serial.printf("Sending IR command: type=%d, value=0x%llX, bits=%d, repeats=%d, core=%d\n",
-                  signal.type, signal.value, signal.bits, repeats, xPortGetCoreID());
-
-    if (signal.type == SONY) {
-        irsend.sendSony(signal.value, signal.bits, repeats > 2 ? repeats : 2);
-    } else if (signal.type == SONY_38K) {
-        irsend.sendSony38(signal.value, signal.bits, repeats > 2 ? repeats : 2);
-    } else {
-        irsend.send(signal.type, signal.value, signal.bits, repeats);
-    }
+    irsend.send(signal.type, signal.value, signal.bits, repeats);
 
     irrecv.enableIRIn();
 }
