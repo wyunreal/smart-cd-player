@@ -66,21 +66,20 @@ const MainActions = () => {
     <>
       {path === ROUTES.PLAYER && (
         <>
-          {!isMobile && (
-            <Box
-              ref={buttonsRef}
-              sx={{
-                position: "absolute",
-                left: centerLeft !== null ? `${centerLeft}px` : "50%",
-                transform: "translateX(-50%)",
-                display: "flex",
-                alignItems: "center",
-                gap: 0.5,
-              }}
-            >
-              <PlayerControlButtons />
-            </Box>
-          )}
+          <Box
+            ref={buttonsRef}
+            sx={{
+              position: "absolute",
+              left: centerLeft !== null ? `${centerLeft}px` : "50%",
+              transform: "translateX(-50%)",
+              display: { xs: "none", sm: "flex" },
+              visibility: centerLeft !== null ? "visible" : "hidden",
+              alignItems: "center",
+              gap: 0.5,
+            }}
+          >
+            <PlayerControlButtons />
+          </Box>
           <Select
             id="player-select"
             onChange={(e) => {

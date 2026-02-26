@@ -1,7 +1,7 @@
 "use client";
 
 import { IconButton } from "@mui/material";
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useState } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { PlayerCommand } from "@/api/types";
 import {
@@ -10,13 +10,27 @@ import {
   PauseIcon,
   SkipNextIcon,
   PowerSettingsNewIcon,
+  SearchOutlinedIcon,
 } from "@/app/icons";
+import ResponsiveDialog from "./dialog/responsive-dialog";
+import SearchSlotForm from "@/app/forms/search-slot";
 
 const PlayerControlButtons = () => {
-  const { selectedPlayer, irRemoteClients } = useContext(DataRepositoryContext);
+  const {
+    selectedPlayer,
+    irRemoteClients,
+    playerContent,
+    selectedPlayerSlots,
+    setSelectedPlayerSlots,
+  } = useContext(DataRepositoryContext);
+
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const currentRemoteClient =
     selectedPlayer !== null ? irRemoteClients[selectedPlayer - 1] : null;
+
+  const currentPlayerSlots =
+    selectedPlayer !== null ? playerContent[selectedPlayer - 1] : [];
 
   const sendCommand = useCallback(
     async (command: PlayerCommand) => {
@@ -37,8 +51,26 @@ const PlayerControlButtons = () => {
     [currentRemoteClient],
   );
 
+  const handleSlotSelect = useCallback(
+    (slotIndex: number) => {
+      if (selectedPlayer === null) return;
+      const playerIndex = selectedPlayer - 1;
+      const newSlots = [...selectedPlayerSlots];
+      newSlots[playerIndex] = slotIndex;
+      setSelectedPlayerSlots(newSlots);
+      setSearchOpen(false);
+    },
+    [selectedPlayer, selectedPlayerSlots, setSelectedPlayerSlots],
+  );
+
   return (
     <>
+      <IconButton
+        onClick={() => setSearchOpen(true)}
+        disabled={selectedPlayer === null}
+      >
+        <SearchOutlinedIcon />
+      </IconButton>
       <IconButton
         onClick={() => sendCommand(PlayerCommand.PreviousTrack)}
         disabled={!isCommandSupported(PlayerCommand.PreviousTrack)}
@@ -69,6 +101,18 @@ const PlayerControlButtons = () => {
       >
         <PowerSettingsNewIcon />
       </IconButton>
+      <ResponsiveDialog
+        title="Search"
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        noPadding
+      >
+        <SearchSlotForm
+          slots={currentPlayerSlots}
+          onSlotSelect={handleSlotSelect}
+          isOpen={searchOpen}
+        />
+      </ResponsiveDialog>
     </>
   );
 };
