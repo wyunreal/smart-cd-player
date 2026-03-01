@@ -22,7 +22,10 @@ class HalfDigitDataset(Dataset):
 
     def __getitem__(self, idx):
         img = Image.open(self.image_paths[idx]).convert("RGB")
-        green_channel = np.array(img)[:, :, 1]
+        pixels = np.array(img)
+        # min(R,G,B) threshold: white pixels have all channels high, green bg has low R
+        min_rgb = np.minimum(np.minimum(pixels[:, :, 0], pixels[:, :, 1]), pixels[:, :, 2])
+        green_channel = np.where(min_rgb > 140, np.uint8(255), np.uint8(0))
         img_gray = Image.fromarray(green_channel, mode="L")
 
         if self.transform:
@@ -58,14 +61,43 @@ def load_dataset(source_dir):
 
 
 def compute_normalization(image_paths):
-    """Compute mean and std of the green channel across all images."""
+    """Compute mean and std of the binarized channel across all images."""
     all_pixels = []
     for path in image_paths:
         img = Image.open(path).convert("RGB")
-        green = np.array(img)[:, :, 1].astype(np.float32) / 255.0
-        all_pixels.append(green.flatten())
+        pixels = np.array(img)
+        min_rgb = np.minimum(np.minimum(pixels[:, :, 0], pixels[:, :, 1]), pixels[:, :, 2])
+        binarized = np.where(min_rgb > 140, 1.0, 0.0).astype(np.float32)
+        all_pixels.append(binarized.flatten())
     all_pixels = np.concatenate(all_pixels)
     return float(np.mean(all_pixels)), float(np.std(all_pixels))
+
+
+def generate_filtered_samples(source_dir, output_dir):
+    """Apply the binarization filter to all samples and save to output_dir for debug."""
+    import shutil
+
+    source = Path(source_dir)
+    output = Path(output_dir)
+    if output.exists():
+        shutil.rmtree(output)
+    output.mkdir(parents=True)
+
+    total = 0
+    for subdir in sorted(source.iterdir()):
+        if not subdir.is_dir() or subdir.name.startswith("."):
+            continue
+        out_subdir = output / subdir.name
+        out_subdir.mkdir()
+        for img_file in sorted(subdir.glob("*.png")):
+            img = Image.open(img_file).convert("RGB")
+            pixels = np.array(img)
+            min_rgb = np.minimum(np.minimum(pixels[:, :, 0], pixels[:, :, 1]), pixels[:, :, 2])
+            binarized = np.where(min_rgb > 140, np.uint8(255), np.uint8(0))
+            Image.fromarray(binarized, mode="L").save(out_subdir / img_file.name)
+            total += 1
+
+    print(f"Filtered samples written: {total} images → {output}")
 
 
 def get_transforms(mean, std, training=True):

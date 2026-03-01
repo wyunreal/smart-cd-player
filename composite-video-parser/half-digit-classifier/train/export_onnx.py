@@ -1,3 +1,6 @@
+import logging
+import warnings
+
 import numpy as np
 import onnx
 import onnxruntime as ort
@@ -10,25 +13,30 @@ def export_to_onnx(model, output_path):
     """
     Export trained PyTorch model to ONNX format.
     Input shape: [batch, 1, 21, 26] (grayscale, normalized).
-    Output shape: [batch, 10] (logits per digit class).
+    Output shape: [batch, num_classes] (logits per class).
     """
     model.eval()
     dummy_input = torch.randn(1, 1, 21, 26)
 
-    torch.onnx.export(
-        model,
-        dummy_input,
-        output_path,
-        export_params=True,
-        opset_version=17,
-        do_constant_folding=True,
-        input_names=["input"],
-        output_names=["output"],
-        dynamic_axes={
-            "input": {0: "batch_size"},
-            "output": {0: "batch_size"},
-        },
-    )
+    batch_dim = torch.export.Dim("batch_size", min=1)
+
+    # Suppress internal PyTorch/onnxscript warnings during export
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*LeafSpec.*")
+        warnings.filterwarnings("ignore", message=".*Missing annotation.*")
+        logging.getLogger("torch.onnx").setLevel(logging.ERROR)
+
+        torch.onnx.export(
+            model,
+            dummy_input,
+            output_path,
+            export_params=True,
+            opset_version=18,
+            do_constant_folding=True,
+            input_names=["input"],
+            output_names=["output"],
+            dynamic_shapes={"x": {0: batch_dim}},
+        )
 
     # Validate
     onnx_model = onnx.load(output_path)

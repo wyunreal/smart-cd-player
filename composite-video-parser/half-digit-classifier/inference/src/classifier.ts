@@ -47,9 +47,9 @@ export class DigitClassifier {
         ? await readFile(imageInput)
         : imageInput;
 
-    // Extract green channel and ensure correct dimensions
-    const { data } = await sharp(imageBuffer)
-      .extractChannel(1) // Green channel
+    // Resize and get raw RGB pixels
+    const { data: rgb } = await sharp(imageBuffer)
+      .removeAlpha()
       .resize(this.metadata.input_width, this.metadata.input_height, {
         fit: 'fill',
         kernel: 'nearest',
@@ -57,11 +57,14 @@ export class DigitClassifier {
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    // Normalize to match training pipeline
+    // min(R,G,B) threshold: white pixels have all channels high, green bg has low R
     const { mean, std, input_height, input_width } = this.metadata;
     const tensor = new Float32Array(input_height * input_width);
-    for (let i = 0; i < data.length; i++) {
-      const pixel = data[i] / 255.0;
+    for (let i = 0; i < tensor.length; i++) {
+      const ri = i * 3;
+      const r = rgb[ri], g = rgb[ri + 1], b = rgb[ri + 2];
+      const minRgb = Math.min(r, g, b);
+      const pixel = minRgb > 140 ? 1.0 : 0.0;
       tensor[i] = (pixel - mean) / std;
     }
 

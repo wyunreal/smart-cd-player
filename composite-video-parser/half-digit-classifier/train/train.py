@@ -8,11 +8,18 @@ from sklearn.model_selection import train_test_split
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
-from dataset import HalfDigitDataset, compute_normalization, get_transforms, load_dataset
+from dataset import (
+    HalfDigitDataset,
+    compute_normalization,
+    generate_filtered_samples,
+    get_transforms,
+    load_dataset,
+)
 from export_onnx import export_to_onnx
 from model import HalfDigitCNN
 
 SOURCE_DIR = Path(__file__).parent.parent / "source-digits"
+FILTERED_DIR = Path(__file__).parent.parent / "filtered-source-digits"
 MODEL_DIR = Path(__file__).parent.parent / "model"
 CHECKPOINT_PATH = Path(__file__).parent / "best_model.pt"
 
@@ -165,6 +172,9 @@ def main():
     with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=2)
     print(f"Metadata written: {metadata_path}")
+
+    # Generate filtered samples for debug
+    generate_filtered_samples(str(SOURCE_DIR), str(FILTERED_DIR))
 
     # Cleanup checkpoint
     CHECKPOINT_PATH.unlink(missing_ok=True)

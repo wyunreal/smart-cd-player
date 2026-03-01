@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.test.json",
     "test": "node --test dist/test/classifier.test.js",
     "train:setup": "cd ../train && ./setup.sh",
     "train": "cd ../train && source .venv/bin/activate && python3 train.py",
