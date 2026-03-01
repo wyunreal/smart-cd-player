@@ -1,0 +1,20 @@
+{
+  "name": "composite-video-parser",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/src/main.js",
+    "dev": "tsx src/main.ts",
+    "test": "node --test dist/test/digit-detector.test.js"
+  },
+  "dependencies": {
+    "half-digit-classifier": "file:./half-digit-classifier/inference",
+    "sharp": "^0.33.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0"
+  }
+}

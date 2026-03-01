@@ -1,0 +1,16 @@
+{
+  "frameProvider": {
+    "type": "device",
+    "device": "/dev/video0",
+    "width": 720,
+    "height": 480,
+    "fps": 2
+  },
+  "rects": [
+    { "name": "digit1", "x": 100, "y": 200, "width": 26, "height": 21 },
+    { "name": "digit2", "x": 130, "y": 200, "width": 26, "height": 21 }
+  ],
+  "server": {
+    "port": 3100
+  }
+}
