@@ -1,0 +1,22 @@
+{
+  "name": "half-digit-classifier",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/test/classifier.test.js",
+    "train:setup": "cd ../train && ./setup.sh",
+    "train": "cd ../train && source .venv/bin/activate && python3 train.py",
+    "verify": "npm run build && node --test dist/test/classifier.test.js"
+  },
+  "dependencies": {
+    "onnxruntime-node": "^1.24.2",
+    "sharp": "^0.33.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  }
+}
