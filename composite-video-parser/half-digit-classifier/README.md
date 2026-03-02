@@ -44,7 +44,7 @@ cd train
 
 ```bash
 cd inference
-npm run train
+yarn train
 ```
 
 Or manually:
@@ -98,8 +98,8 @@ python3 export_onnx.py <checkpoint.pt> ../model/digit_classifier.onnx
 
 ```bash
 cd inference
-npm install
-npm run build
+yarn install
+yarn build
 ```
 
 ### Usage
@@ -167,21 +167,21 @@ The `min(R,G,B)` threshold used for binarization, read from `metadata.json`. Ava
 
 Releases the ONNX runtime session.
 
-### npm scripts
+### Scripts
 
-| Script          | Description                                  |
-|-----------------|----------------------------------------------|
-| `npm run build` | Compile TypeScript                           |
-| `npm test`      | Run classification tests                     |
-| `npm run verify`| Build + run tests                            |
-| `npm run train:setup` | Set up Python venv (first time only)   |
-| `npm run train` | Train the model and export to ONNX           |
+| Script             | Description                        |
+|--------------------|-------------------------------------|
+| `yarn build`       | Compile TypeScript                  |
+| `yarn test`        | Run classification tests            |
+| `yarn verify`      | Build + run tests                   |
+| `yarn train:setup` | Set up Python venv (first time only)|
+| `yarn train`       | Train the model and export to ONNX  |
 
 ### Run tests
 
 ```bash
 cd inference
-npm run verify
+yarn verify
 ```
 
 Tests classify one sample image from each class folder and verify the prediction is correct.

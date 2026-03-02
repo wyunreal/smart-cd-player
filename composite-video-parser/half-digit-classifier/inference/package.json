@@ -9,7 +9,7 @@
     "test": "node --test dist/test/classifier.test.js",
     "train:setup": "cd ../train && ./setup.sh",
     "train": "cd ../train && source .venv/bin/activate && python3 train.py",
-    "verify": "npm run build && node --test dist/test/classifier.test.js"
+    "verify": "yarn build && node --test dist/test/classifier.test.js"
   },
   "dependencies": {
     "onnxruntime-node": "^1.24.2",
