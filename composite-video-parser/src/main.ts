@@ -60,12 +60,14 @@ async function main(): Promise<void> {
     getState: () => state,
     frameWidth: config.frameProvider.width,
     frameHeight: config.frameProvider.height,
+    binarizationThreshold: classifier.binarizationThreshold,
   });
 
   server.listen(config.server.port, () => {
     console.log(`HTTP server listening on port ${config.server.port}`);
-    console.log(`  GET /digits - latest detected digits`);
+    console.log(`  GET /display - disc, track, minutes, seconds`);
     console.log(`  GET /frame  - latest frame as PNG`);
+    console.log(`  GET /frame-filtered - frame with binarization threshold ${classifier.binarizationThreshold}`);
     console.log(`  GET /health - health check`);
   });
 

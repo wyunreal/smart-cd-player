@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -7,29 +8,22 @@ import sharp from 'sharp';
 import { DigitClassifier } from 'half-digit-classifier';
 
 import { DigitDetector } from '../src/digit-detector.js';
-import type { RectConfig } from '../src/config.js';
+import { createHttpServer, toDisplayState, type DigitState } from '../src/server.js';
+import type { Config } from '../src/config.js';
+import type { FrameProvider } from '../src/frame-provider.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // From dist/test/ go up two levels to reach the project root
 const projectRoot = path.resolve(__dirname, '../..');
 
 const FRAME_PATH = path.resolve(projectRoot, 'test/fixtures/frame-all-digits.png');
+const CONFIG_PATH = path.resolve(projectRoot, 'config.json');
 
-// Frame shows: DISC 129  TRACK 12  1.05
-const RECTS: RectConfig[] = [
-  { name: 'disc_1', x: 117, y: 0, width: 26, height: 21 },
-  { name: 'disc_2', x: 144, y: 0, width: 26, height: 21 },
-  { name: 'disc_3', x: 171, y: 0, width: 26, height: 21 },
-  { name: 'track_1', x: 373, y: 0, width: 26, height: 21 },
-  { name: 'track_2', x: 400, y: 0, width: 26, height: 21 },
-  { name: 'time_1', x: 513, y: 0, width: 26, height: 21 },
-  { name: 'time_2', x: 571, y: 0, width: 26, height: 21 },
-  { name: 'time_3', x: 598, y: 0, width: 26, height: 21 },
-];
-
-const EXPECTED_DIGITS: (number | null)[] = [1, 2, 9, 1, 2, 1, 0, 5];
+// Frame shows: DISC 129  TRACK 12  _1.05  (_ = blank tens of minutes)
+const EXPECTED_DIGITS: (number | null)[] = [1, 2, 9, 1, 2, null, 1, 0, 5];
 
 describe('DigitDetector (end-to-end)', () => {
+  let config: Config;
   let classifier: DigitClassifier;
   let detector: DigitDetector;
   let rawFrame: Buffer;
@@ -37,6 +31,9 @@ describe('DigitDetector (end-to-end)', () => {
   let frameHeight: number;
 
   before(async () => {
+    // Load config
+    config = JSON.parse(await readFile(CONFIG_PATH, 'utf-8')) as Config;
+
     // Load classifier
     classifier = new DigitClassifier({
       modelPath: path.resolve(
@@ -61,7 +58,7 @@ describe('DigitDetector (end-to-end)', () => {
       .toBuffer({ resolveWithObject: true });
     rawFrame = data;
 
-    detector = new DigitDetector(classifier, RECTS);
+    detector = new DigitDetector(classifier, config.rects);
   });
 
   after(async () => {
@@ -71,17 +68,17 @@ describe('DigitDetector (end-to-end)', () => {
   it('should detect the expected digits from the frame', async () => {
     const results = await detector.detect(rawFrame, frameWidth, frameHeight);
 
-    assert.equal(results.length, RECTS.length);
+    assert.equal(results.length, config.rects.length);
 
     for (let i = 0; i < results.length; i++) {
       assert.equal(
         results[i].digit,
         EXPECTED_DIGITS[i],
-        `Rect "${RECTS[i].name}": expected digit ${EXPECTED_DIGITS[i]}, got ${results[i].digit}`,
+        `Rect "${config.rects[i].name}": expected digit ${EXPECTED_DIGITS[i]}, got ${results[i].digit}`,
       );
       assert.ok(
         results[i].confidence > 0.5,
-        `Rect "${RECTS[i].name}": confidence ${results[i].confidence} too low`,
+        `Rect "${config.rects[i].name}": confidence ${results[i].confidence} too low`,
       );
     }
   });
@@ -90,8 +87,43 @@ describe('DigitDetector (end-to-end)', () => {
     const results = await detector.detect(rawFrame, frameWidth, frameHeight);
 
     const names = results.map((r) => r.name);
-    for (const rect of RECTS) {
+    for (const rect of config.rects) {
       assert.ok(names.includes(rect.name), `Missing result for rect "${rect.name}"`);
+    }
+  });
+
+  it('GET /display should return disc, track, minutes, seconds', async () => {
+    const results = await detector.detect(rawFrame, frameWidth, frameHeight);
+    const state: DigitState = { digits: results, timestamp: Date.now() };
+
+    const mockFrameProvider = {
+      getLatestFrame: () => null,
+    } as unknown as FrameProvider;
+
+    const server = createHttpServer({
+      port: 0,
+      frameProvider: mockFrameProvider,
+      getState: () => state,
+      frameWidth,
+      frameHeight,
+      binarizationThreshold: classifier.binarizationThreshold,
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const addr = server.address() as { port: number };
+
+    try {
+      const res = await fetch(`http://localhost:${addr.port}/display`);
+      assert.equal(res.status, 200);
+
+      const body = await res.json();
+      assert.equal(body.disc, 129);
+      assert.equal(body.track, 12);
+      assert.equal(body.minutes, 1);
+      assert.equal(body.seconds, 5);
+      assert.equal(typeof body.timestamp, 'number');
+    } finally {
+      server.close();
     }
   });
 });

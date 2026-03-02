@@ -27,6 +27,7 @@ BATCH_SIZE = 16
 MAX_EPOCHS = 100
 EARLY_STOP_PATIENCE = 20
 LR = 1e-3
+BINARIZATION_THRESHOLD = 140
 
 
 def train_one_epoch(model, loader, criterion, optimizer, device):
@@ -84,15 +85,17 @@ def main():
     print(f"Train: {len(train_paths)}, Validation: {len(val_paths)}")
 
     # Compute normalization from training set
-    mean, std = compute_normalization(train_paths)
+    mean, std = compute_normalization(train_paths, BINARIZATION_THRESHOLD)
     print(f"Normalization - mean: {mean:.4f}, std: {std:.4f}")
 
     # Create datasets
     train_dataset = HalfDigitDataset(
-        train_paths, train_labels, get_transforms(mean, std, training=True)
+        train_paths, train_labels, BINARIZATION_THRESHOLD,
+        get_transforms(mean, std, training=True),
     )
     val_dataset = HalfDigitDataset(
-        val_paths, val_labels, get_transforms(mean, std, training=False)
+        val_paths, val_labels, BINARIZATION_THRESHOLD,
+        get_transforms(mean, std, training=False),
     )
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
@@ -166,6 +169,7 @@ def main():
         "mean": mean,
         "std": std,
         "class_labels": class_names,
+        "binarization_threshold": BINARIZATION_THRESHOLD,
         "validation_accuracy": best_val_acc,
     }
     metadata_path = MODEL_DIR / "metadata.json"
@@ -174,7 +178,7 @@ def main():
     print(f"Metadata written: {metadata_path}")
 
     # Generate filtered samples for debug
-    generate_filtered_samples(str(SOURCE_DIR), str(FILTERED_DIR))
+    generate_filtered_samples(str(SOURCE_DIR), str(FILTERED_DIR), BINARIZATION_THRESHOLD)
 
     # Cleanup checkpoint
     CHECKPOINT_PATH.unlink(missing_ok=True)

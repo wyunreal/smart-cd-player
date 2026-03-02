@@ -20,6 +20,7 @@ interface Metadata {
   mean: number;
   std: number;
   class_labels: string[];
+  binarization_threshold: number;
 }
 
 export class DigitClassifier {
@@ -35,6 +36,13 @@ export class DigitClassifier {
     this.session = await ort.InferenceSession.create(this.options.modelPath, {
       executionProviders: ['cpu'],
     });
+  }
+
+  get binarizationThreshold(): number {
+    if (!this.metadata) {
+      throw new Error('Classifier not initialized. Call initialize() first.');
+    }
+    return this.metadata.binarization_threshold;
   }
 
   async classify(imageInput: Buffer | string): Promise<ClassificationResult> {
@@ -64,7 +72,7 @@ export class DigitClassifier {
       const ri = i * 3;
       const r = rgb[ri], g = rgb[ri + 1], b = rgb[ri + 2];
       const minRgb = Math.min(r, g, b);
-      const pixel = minRgb > 140 ? 1.0 : 0.0;
+      const pixel = minRgb > this.metadata.binarization_threshold ? 1.0 : 0.0;
       tensor[i] = (pixel - mean) / std;
     }
 

@@ -18,5 +18,6 @@
     "9",
     "blank"
   ],
-  "validation_accuracy": 0.9494163424124513
+  "binarization_threshold": 140,
+  "validation_accuracy": 0.9484435797665369
 }
