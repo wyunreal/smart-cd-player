@@ -27,6 +27,10 @@ BATCH_SIZE = 16
 MAX_EPOCHS = 100
 EARLY_STOP_PATIENCE = 20
 LR = 1e-3
+# Binarization filter: pixels with min(R,G,B) > threshold are white, rest black.
+# This value is written to metadata.json and used by both training and inference.
+# To change the filter: update this value and retrain. The TypeScript classifier
+# and server read it from metadata.json automatically.
 BINARIZATION_THRESHOLD = 140
 
 

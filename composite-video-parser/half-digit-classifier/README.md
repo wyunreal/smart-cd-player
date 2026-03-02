@@ -64,6 +64,16 @@ This will:
 5. Export the model to `model/digit_classifier.onnx`
 6. Write preprocessing params to `model/metadata.json`
 
+### Binarization threshold
+
+Images are preprocessed with a `min(R,G,B) > threshold` filter that converts pixels to black or white. This threshold is shared between training and inference:
+
+1. **Training** defines it in `train/train.py` → `BINARIZATION_THRESHOLD`
+2. Training writes it to `model/metadata.json` → `binarization_threshold`
+3. **Inference** (`classifier.ts`) and the HTTP server (`/frame-filtered`) read it from `metadata.json`
+
+To change the threshold: update `BINARIZATION_THRESHOLD` in `train.py` and retrain. The new value propagates automatically to inference via `metadata.json`.
+
 ### Adding more training data
 
 Place new 26x21 PNG images in the corresponding `source-digits/<class>/` folder and re-train. Classes are discovered dynamically from subfolder names.
@@ -148,6 +158,10 @@ Returns:
 | `digit`         | number \| null | Predicted digit (0-9), or `null` if no digit   |
 | `confidence`    | number         | Probability of the predicted class (0.0 - 1.0) |
 | `probabilities` | number[]       | Probability for each class                     |
+
+#### `classifier.binarizationThreshold: number`
+
+The `min(R,G,B)` threshold used for binarization, read from `metadata.json`. Available after `initialize()`.
 
 #### `classifier.dispose(): Promise<void>`
 
