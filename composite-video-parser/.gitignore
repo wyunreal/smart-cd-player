@@ -3,3 +3,5 @@ dist/
 __pycache__/
 .venv/
 filtered-source-digits/
+*.tar.gz
+.claude/

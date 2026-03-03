@@ -1,0 +1,49 @@
+replicaCount: 1
+
+image:
+  repository: composite-video-parser
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext:
+  privileged: true
+
+service:
+  type: NodePort
+  port: 3100
+  nodePort: 30002
+
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 256Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+env:
+  CONFIG_PATH: "/app/config.json"
+
+videoDevice:
+  enabled: true
+  hostPath: /dev/video0
