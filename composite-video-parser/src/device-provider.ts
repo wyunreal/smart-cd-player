@@ -47,6 +47,7 @@ export class DeviceFrameProvider extends BaseFrameProvider {
 
   private spawnFfmpeg(): void {
     const args = [
+      '-loglevel', 'error',
       '-f', 'v4l2',
       '-i', this.config.device,
       '-s', `${this.config.width}x${this.config.height}`,
