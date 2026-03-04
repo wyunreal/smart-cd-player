@@ -7,7 +7,8 @@
     "build": "tsc && mkdir -p dist/half-digit-classifier && cp -r half-digit-classifier/model dist/half-digit-classifier/model",
     "start": "node dist/src/main.js",
     "dev": "tsx src/main.ts",
-    "test": "node --test dist/test/digit-detector.test.js"
+    "test": "node --test dist/test/digit-detector.test.js",
+    "capture": "python3 half-digit-classifier/train/capture_digits.py"
   },
   "dependencies": {
     "half-digit-classifier": "file:./half-digit-classifier/inference",
