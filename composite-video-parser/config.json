@@ -4,7 +4,9 @@
     "device": "/dev/video0",
     "width": 720,
     "height": 480,
-    "fps": 2
+    "fps": 2,
+    "brightness": -75,
+    "contrast": 240
   },
   "rects": [
     { "name": "disc_1", "x": 117, "y": 0, "width": 26, "height": 21 },

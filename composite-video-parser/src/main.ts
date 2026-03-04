@@ -1,13 +1,13 @@
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { DigitClassifier } from 'half-digit-classifier';
+import { DigitClassifier } from "half-digit-classifier";
 
-import { DigitDetector } from './digit-detector.js';
+import { DigitDetector } from "./digit-detector.js";
 
-import { loadConfig } from './config.js';
-import { createFrameProvider } from './frame-provider.js';
-import { createHttpServer, type DigitState } from './server.js';
+import { loadConfig } from "./config.js";
+import { createFrameProvider } from "./frame-provider-factory.js";
+import { createHttpServer, type DigitState } from "./server.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -15,9 +15,9 @@ async function main(): Promise<void> {
   const config = await loadConfig();
 
   // Resolve model paths relative to the half-digit-classifier package
-  const modelDir = resolve(__dirname, '../half-digit-classifier/model');
-  const modelPath = resolve(modelDir, 'digit_classifier.onnx');
-  const metadataPath = resolve(modelDir, 'metadata.json');
+  const modelDir = resolve(__dirname, "../half-digit-classifier/model");
+  const modelPath = resolve(modelDir, "digit_classifier.onnx");
+  const metadataPath = resolve(modelDir, "metadata.json");
 
   // Initialize classifier
   const classifier = new DigitClassifier({ modelPath, metadataPath });
@@ -35,7 +35,7 @@ async function main(): Promise<void> {
   let detecting = false;
 
   // Detection loop: process frames as they arrive, skip if busy
-  frameProvider.on('frame', (frame: Buffer) => {
+  frameProvider.on("frame", (frame: Buffer) => {
     if (detecting) return;
     detecting = true;
 
@@ -67,7 +67,9 @@ async function main(): Promise<void> {
     console.log(`HTTP server listening on port ${config.server.port}`);
     console.log(`  GET /display - disc, track, minutes, seconds`);
     console.log(`  GET /frame  - latest frame as PNG`);
-    console.log(`  GET /frame-filtered - frame with binarization threshold ${classifier.binarizationThreshold}`);
+    console.log(
+      `  GET /frame-filtered - frame with binarization threshold ${classifier.binarizationThreshold}`,
+    );
     console.log(`  GET /health - health check`);
   });
 
@@ -81,18 +83,18 @@ async function main(): Promise<void> {
 
   // Graceful shutdown
   const shutdown = async () => {
-    console.log('\nShutting down...');
+    console.log("\nShutting down...");
     await frameProvider.stop();
     server.close();
     await classifier.dispose();
     process.exit(0);
   };
 
-  process.on('SIGINT', () => void shutdown());
-  process.on('SIGTERM', () => void shutdown());
+  process.on("SIGINT", () => void shutdown());
+  process.on("SIGTERM", () => void shutdown());
 }
 
 main().catch((err) => {
-  console.error('Fatal error:', err);
+  console.error("Fatal error:", err);
   process.exit(1);
 });

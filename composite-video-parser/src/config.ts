@@ -14,6 +14,8 @@ export interface DeviceProviderConfig {
   width: number;
   height: number;
   fps: number;
+  brightness?: number;
+  contrast?: number;
 }
 
 export interface HttpProviderConfig {

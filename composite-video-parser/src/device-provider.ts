@@ -1,4 +1,5 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, execFile, type ChildProcess } from 'node:child_process';
+import { promisify } from 'node:util';
 
 import type { DeviceProviderConfig } from './config.js';
 import { BaseFrameProvider } from './frame-provider.js';
@@ -16,7 +17,24 @@ export class DeviceFrameProvider extends BaseFrameProvider {
 
   async start(): Promise<void> {
     this.stopping = false;
+    await this.resetDeviceControls();
     this.spawnFfmpeg();
+  }
+
+  private async resetDeviceControls(): Promise<void> {
+    const exec = promisify(execFile);
+    try {
+      const brightness = this.config.brightness ?? 0;
+      const contrast = this.config.contrast ?? 128;
+      await exec('v4l2-ctl', [
+        '-d', this.config.device,
+        '--set-ctrl', `brightness=${brightness},contrast=${contrast},saturation=128,hue=0,backlight_compensation=0`,
+      ]);
+      console.log(`[v4l2] set controls on ${this.config.device} (brightness=${brightness}, contrast=${contrast})`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[v4l2] failed to reset controls: ${msg}`);
+    }
   }
 
   async stop(): Promise<void> {
