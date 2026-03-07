@@ -1,16 +1,20 @@
-import { createServer, type Server } from 'node:http';
+import { createServer, type Server } from "node:http";
 
-import sharp from 'sharp';
+import sharp from "sharp";
 
-import type { DetectionResult } from './digit-detector.js';
-import type { FrameProvider } from './frame-provider.js';
+import type { DetectionResult } from "./digit-detector.js";
+import type { FrameProvider } from "./frame-provider.js";
+
+export type DisplayMode = "stopped" | "playing" | "paused";
 
 export interface DigitState {
   digits: DetectionResult[];
+  mode: DisplayMode;
   timestamp: number;
 }
 
 export interface DisplayState {
+  mode: DisplayMode;
   disc: number | null;
   track: number | null;
   minutes: number | null;
@@ -18,7 +22,10 @@ export interface DisplayState {
   timestamp: number;
 }
 
-function combineDigits(names: string[], results: DetectionResult[]): number | null {
+function combineDigits(
+  names: string[],
+  results: DetectionResult[],
+): number | null {
   const byName = new Map(results.map((d) => [d.name, d.digit]));
   let value = 0;
   let hasDigit = false;
@@ -33,10 +40,11 @@ function combineDigits(names: string[], results: DetectionResult[]): number | nu
 
 export function toDisplayState(state: DigitState): DisplayState {
   return {
-    disc: combineDigits(['disc_1', 'disc_2', 'disc_3'], state.digits),
-    track: combineDigits(['track_1', 'track_2'], state.digits),
-    minutes: combineDigits(['time_1', 'time_2'], state.digits),
-    seconds: combineDigits(['time_3', 'time_4'], state.digits),
+    mode: state.mode,
+    disc: combineDigits(["disc_1", "disc_2", "disc_3"], state.digits),
+    track: combineDigits(["track_1", "track_2"], state.digits),
+    minutes: combineDigits(["time_1", "time_2"], state.digits),
+    seconds: combineDigits(["time_3", "time_4"], state.digits),
     timestamp: state.timestamp,
   };
 }
@@ -45,38 +53,130 @@ interface ServerDeps {
   port: number;
   frameProvider: FrameProvider;
   getState: () => DigitState;
+  waitForFreshState: () => Promise<DigitState>;
   frameWidth: number;
   frameHeight: number;
   binarizationThreshold: number;
+  captureIdleTimeoutMs?: number;
 }
 
-export function createHttpServer(deps: ServerDeps): Server {
-  const server = createServer(async (req, res) => {
-    const url = new URL(req.url ?? '/', `http://localhost:${deps.port}`);
+const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 
-    if (req.method !== 'GET') {
-      res.writeHead(405, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Method not allowed' }));
+export function createHttpServer(deps: ServerDeps): Server {
+  let capturing = false;
+  let idleTimer: ReturnType<typeof setTimeout> | null = null;
+  const idleTimeoutMs = deps.captureIdleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+
+  function resetIdleTimer(): void {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(async () => {
+      if (capturing) {
+        await deps.frameProvider.stop();
+        capturing = false;
+        console.log("[capture] stopped (idle timeout)");
+      }
+    }, idleTimeoutMs);
+  }
+
+  async function ensureCapturing(): Promise<void> {
+    resetIdleTimer();
+    if (!capturing) {
+      await deps.frameProvider.start();
+      capturing = true;
+      console.log("[capture] started (auto)");
+    }
+  }
+
+  const server = createServer(async (req, res) => {
+    const url = new URL(req.url ?? "/", `http://localhost:${deps.port}`);
+
+    if (req.method === "POST") {
+      switch (url.pathname) {
+        case "/capture/start": {
+          if (capturing) {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ status: "already_running" }));
+            return;
+          }
+          try {
+            await deps.frameProvider.start();
+            capturing = true;
+            console.log("[capture] started");
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ status: "started" }));
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: msg }));
+          }
+          return;
+        }
+
+        case "/capture/stop": {
+          if (!capturing) {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ status: "already_stopped" }));
+            return;
+          }
+          try {
+            await deps.frameProvider.stop();
+            capturing = false;
+            console.log("[capture] stopped");
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ status: "stopped" }));
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: msg }));
+          }
+          return;
+        }
+
+        default: {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Not found" }));
+          return;
+        }
+      }
+    }
+
+    if (req.method !== "GET") {
+      res.writeHead(405, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Method not allowed" }));
       return;
     }
 
     switch (url.pathname) {
-      case '/display': {
-        const state = deps.getState();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(toDisplayState(state)));
+      case "/display": {
+        try {
+          const wasCapturing = capturing;
+          await ensureCapturing();
+          const state = wasCapturing
+            ? deps.getState()
+            : await deps.waitForFreshState();
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify(toDisplayState(state)));
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: msg }));
+        }
         break;
       }
 
-      case '/frame': {
-        const frame = deps.frameProvider.getLatestFrame();
-        if (!frame) {
-          res.writeHead(503, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'No frame available yet' }));
-          return;
-        }
-
+      case "/frame": {
         try {
+          const wasCapturing = capturing;
+          await ensureCapturing();
+          if (!wasCapturing) {
+            await deps.waitForFreshState();
+          }
+          const frame = deps.frameProvider.getLatestFrame();
+          if (!frame) {
+            res.writeHead(503, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "No frame available yet" }));
+            return;
+          }
           const png = await sharp(frame, {
             raw: {
               width: deps.frameWidth,
@@ -88,27 +188,31 @@ export function createHttpServer(deps: ServerDeps): Server {
             .toBuffer();
 
           res.writeHead(200, {
-            'Content-Type': 'image/png',
-            'Content-Length': png.length,
+            "Content-Type": "image/png",
+            "Content-Length": png.length,
           });
           res.end(png);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.writeHead(500, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: msg }));
         }
         break;
       }
 
-      case '/frame-filtered': {
-        const frame = deps.frameProvider.getLatestFrame();
-        if (!frame) {
-          res.writeHead(503, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'No frame available yet' }));
-          return;
-        }
-
+      case "/frame-filtered": {
         try {
+          const wasCapturing = capturing;
+          await ensureCapturing();
+          if (!wasCapturing) {
+            await deps.waitForFreshState();
+          }
+          const frame = deps.frameProvider.getLatestFrame();
+          if (!frame) {
+            res.writeHead(503, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "No frame available yet" }));
+            return;
+          }
           const pixelCount = deps.frameWidth * deps.frameHeight;
           const gray = Buffer.alloc(pixelCount);
           for (let i = 0; i < pixelCount; i++) {
@@ -128,27 +232,27 @@ export function createHttpServer(deps: ServerDeps): Server {
             .toBuffer();
 
           res.writeHead(200, {
-            'Content-Type': 'image/png',
-            'Content-Length': png.length,
+            "Content-Type": "image/png",
+            "Content-Length": png.length,
           });
           res.end(png);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.writeHead(500, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: msg }));
         }
         break;
       }
 
-      case '/health': {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'ok' }));
+      case "/health": {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "ok" }));
         break;
       }
 
       default: {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Not found' }));
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Not found" }));
       }
     }
   });

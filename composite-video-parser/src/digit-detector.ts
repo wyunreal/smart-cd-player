@@ -1,7 +1,7 @@
-import sharp from 'sharp';
-import { DigitClassifier } from 'half-digit-classifier';
+import sharp from "sharp";
+import { DigitClassifier } from "half-digit-classifier";
 
-import type { RectConfig } from './config.js';
+import type { RectConfig } from "./config.js";
 
 export interface DetectionResult {
   name: string;
@@ -9,20 +9,22 @@ export interface DetectionResult {
   confidence: number;
 }
 
-export class DigitDetector {
-  constructor(
-    private readonly classifier: DigitClassifier,
-    private readonly rects: RectConfig[],
-  ) {}
-
-  async detect(
+export interface DigitDetector {
+  detect(
     frame: Buffer,
     width: number,
     height: number,
-  ): Promise<DetectionResult[]> {
+  ): Promise<DetectionResult[]>;
+}
+
+export const createDigitDetector = (
+  classifier: DigitClassifier,
+  rects: RectConfig[],
+): DigitDetector => ({
+  detect: async (frame, width, height) => {
     const results: DetectionResult[] = [];
 
-    for (const rect of this.rects) {
+    for (const rect of rects) {
       const cropped = await sharp(frame, {
         raw: { width, height, channels: 3 },
       })
@@ -35,7 +37,7 @@ export class DigitDetector {
         .png()
         .toBuffer();
 
-      const classification = await this.classifier.classify(cropped);
+      const classification = await classifier.classify(cropped);
 
       results.push({
         name: rect.name,
@@ -45,5 +47,5 @@ export class DigitDetector {
     }
 
     return results;
-  }
-}
+  },
+});

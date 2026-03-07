@@ -1,15 +1,15 @@
 import type { FrameProviderConfig } from "./config.js";
-import { DeviceFrameProvider } from "./device-provider.js";
+import { createDeviceProvider } from "./device-provider.js";
 import type { FrameProvider } from "./frame-provider.js";
-import { HttpFrameProvider } from "./http-provider.js";
+import { createHttpProvider } from "./http-provider.js";
 
-export function createFrameProvider(
+export const createFrameProvider = (
   config: FrameProviderConfig,
-): FrameProvider {
+): FrameProvider => {
   switch (config.type) {
     case "device":
-      return new DeviceFrameProvider(config);
+      return createDeviceProvider(config);
     case "http":
-      return new HttpFrameProvider(config);
+      return createHttpProvider(config);
   }
-}
+};
