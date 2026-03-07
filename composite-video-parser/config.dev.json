@@ -17,6 +17,7 @@
     { "name": "time_3", "x": 571, "y": 0, "width": 26, "height": 21 },
     { "name": "time_4", "x": 598, "y": 0, "width": 26, "height": 21 }
   ],
+  "powerPixel": { "x": 645, "y": 5 },
   "modePixel": { "x": 650, "y": 25 },
   "server": {
     "port": 3100

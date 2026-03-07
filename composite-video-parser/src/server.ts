@@ -5,7 +5,7 @@ import sharp from "sharp";
 import type { DetectionResult } from "./digit-detector.js";
 import type { FrameProvider } from "./frame-provider.js";
 
-export type DisplayMode = "stopped" | "playing" | "paused";
+export type DisplayMode = "off" | "stopped" | "playing" | "paused";
 
 export interface DigitState {
   digits: DetectionResult[];

@@ -32,10 +32,20 @@ async function main(): Promise<void> {
   const detector = createDigitDetector(classifier, config.rects);
 
   // Shared state for API responses
-  let state: DigitState = { digits: [], mode: "stopped", timestamp: 0 };
+  let state: DigitState = { digits: [], mode: "off", timestamp: 0 };
   let detecting = false;
 
   const PAUSE_DETECT_MS = 2000;
+
+  const isPoweredOn = (frame: Buffer): boolean => {
+    const { x, y } = config.powerPixel;
+    const offset = (y * config.frameProvider.width + x) * 3;
+    const r = frame[offset];
+    const g = frame[offset + 1];
+    const b = frame[offset + 2];
+    // Green pixel when on, black when off
+    return g > 30 && g > r && g > b;
+  };
 
   const isPixelStopped = (frame: Buffer): boolean => {
     const { x, y } = config.modePixel;
@@ -65,6 +75,12 @@ async function main(): Promise<void> {
     const seconds = getSeconds(digits);
     const now = Date.now();
 
+    if (seconds === null) {
+      lastSeconds = null;
+      lastSecondsChangeTime = 0;
+      return "stopped";
+    }
+
     if (seconds !== lastSeconds) {
       lastSeconds = seconds;
       lastSecondsChangeTime = now;
@@ -89,6 +105,15 @@ async function main(): Promise<void> {
   frameProvider.on("frame", (frame: Buffer) => {
     if (detecting) return;
     detecting = true;
+
+    if (!isPoweredOn(frame)) {
+      lastSeconds = null;
+      lastSecondsChangeTime = 0;
+      state = { digits: [], mode: "off", timestamp: Date.now() };
+      resolveFreshListeners();
+      detecting = false;
+      return;
+    }
 
     if (isPixelStopped(frame)) {
       lastSeconds = null;

@@ -41,6 +41,7 @@ export interface ModePixelConfig {
 export interface Config {
   frameProvider: FrameProviderConfig;
   rects: RectConfig[];
+  powerPixel: ModePixelConfig;
   modePixel: ModePixelConfig;
   server: ServerConfig;
 }
