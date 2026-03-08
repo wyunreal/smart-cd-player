@@ -318,7 +318,7 @@ export const DataRepositoryProvider = ({
     };
 
     fetchDisplay();
-    displayPollingRef.current = setInterval(fetchDisplay, 2000);
+    displayPollingRef.current = setInterval(fetchDisplay, 1000);
 
     return () => {
       if (displayPollingRef.current) {
