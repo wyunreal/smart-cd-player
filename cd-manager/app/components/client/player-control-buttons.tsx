@@ -1,6 +1,7 @@
 "use client";
 
-import { IconButton } from "@mui/material";
+import { Box, IconButton, useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { useCallback, useContext, useState } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { PlayerCommand } from "@/api/types";
@@ -11,9 +12,11 @@ import {
   SkipNextIcon,
   PowerSettingsNewIcon,
   SearchOutlinedIcon,
+  KeyboardArrowDownIcon,
 } from "@/app/icons";
 import ResponsiveDialog from "./dialog/responsive-dialog";
 import SearchSlotForm from "@/app/forms/search-slot";
+import NowPlaying from "./now-playing";
 
 const PlayerControlButtons = () => {
   const {
@@ -24,7 +27,10 @@ const PlayerControlButtons = () => {
     setSelectedPlayerSlots,
   } = useContext(DataRepositoryContext);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [searchOpen, setSearchOpen] = useState(false);
+  const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
 
   const currentRemoteClient =
     selectedPlayer !== null ? irRemoteClients[selectedPlayer - 1] : null;
@@ -101,6 +107,11 @@ const PlayerControlButtons = () => {
       >
         <PowerSettingsNewIcon />
       </IconButton>
+      {isMobile && (
+        <IconButton onClick={() => setNowPlayingOpen(true)}>
+          <KeyboardArrowDownIcon />
+        </IconButton>
+      )}
       <ResponsiveDialog
         title="Search"
         isOpen={searchOpen}
@@ -112,6 +123,15 @@ const PlayerControlButtons = () => {
           onSlotSelect={handleSlotSelect}
           isOpen={searchOpen}
         />
+      </ResponsiveDialog>
+      <ResponsiveDialog
+        title="Now Playing"
+        isOpen={nowPlayingOpen}
+        onClose={() => setNowPlayingOpen(false)}
+        headless
+        adaptToContentInMobile
+      >
+        <NowPlaying />
       </ResponsiveDialog>
     </>
   );

@@ -20,6 +20,7 @@ import SkipNextIcon from "@mui/icons-material/SkipNext";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 export {
   AlbumIcon,
@@ -44,4 +45,5 @@ export {
   PlayArrowIcon,
   PauseIcon,
   PowerSettingsNewIcon,
+  KeyboardArrowDownIcon,
 };

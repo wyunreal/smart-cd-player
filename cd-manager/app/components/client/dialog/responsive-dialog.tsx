@@ -20,6 +20,8 @@ type FullScreenDialogProps = {
   forcedHeight?: number;
   noHeader?: boolean;
   noPadding?: boolean;
+  headless?: boolean;
+  adaptToContentInMobile?: boolean;
   children: React.ReactNode;
 };
 
@@ -39,6 +41,8 @@ const ResponsiveDialog = ({
   forcedHeight,
   noHeader,
   noPadding,
+  headless,
+  adaptToContentInMobile,
   children,
 }: FullScreenDialogProps) => {
   const theme = useTheme();
@@ -46,20 +50,35 @@ const ResponsiveDialog = ({
 
   const { height, resizeRef } = useResizeObserver();
 
+  const mobileAdapt = isMobile && adaptToContentInMobile;
+
   return (
     <DialogContextProvider>
       <Dialog
-        fullScreen={isMobile}
+        fullScreen={isMobile && !adaptToContentInMobile}
         open={isOpen}
         onClose={onClose}
         TransitionComponent={Transition}
         transitionDuration={350}
         sx={{
+          ...(mobileAdapt && {
+            "& .MuiDialog-container": {
+              alignItems: "flex-end",
+            },
+          }),
           "& .MuiDialog-paper": isMobile
-            ? { borderRadius: 0 }
+            ? mobileAdapt
+              ? {
+                  margin: 0,
+                  width: "100%",
+                  maxHeight: "90dvh",
+                  borderRadius: "16px 16px 0 0",
+                  backgroundColor: theme.vars.palette.section.background,
+                }
+              : { borderRadius: 0 }
             : {
                 width: "600px",
-                height: forcedHeight ?? height + TITLE_BAR_HEIGHT + 3 * PADDING,
+                height: forcedHeight ?? height + (headless ? 0 : TITLE_BAR_HEIGHT) + 3 * PADDING,
                 maxHeight: "90vh",
                 transition: "height 0.5s",
                 overflow: "hidden",
@@ -67,7 +86,7 @@ const ResponsiveDialog = ({
               },
         }}
       >
-        {!noHeader ? (
+        {headless ? null : !noHeader ? (
           <AppBar position="relative">
             <DialogTitle id="customized-dialog-title">{title}</DialogTitle>
             <IconButton
@@ -110,9 +129,11 @@ const ResponsiveDialog = ({
                   ? "16px"
                   : `${2 * PADDING}px`,
             minHeight: isMobile
-              ? noHeader
-                ? "100dvh"
-                : `calc(100dvh - ${TITLE_BAR_HEIGHT}px)`
+              ? mobileAdapt
+                ? "50px"
+                : noHeader || headless
+                  ? "100dvh"
+                  : `calc(100dvh - ${TITLE_BAR_HEIGHT}px)`
               : "300px",
             overflowY: isMobile && noPadding ? "hidden" : "auto",
             display: "flex",

@@ -11,6 +11,7 @@ import {
 } from "@toolpad/core/Account";
 import { SidebarFooterProps } from "@toolpad/core/DashboardLayout";
 import type {} from "@mui/material/themeCssVarsAugmentation";
+import NowPlaying from "../components/client/now-playing";
 
 function AccountSidebarPreview(props: AccountPreviewProps & { mini: boolean }) {
   const { handleClick, open, mini } = props;
@@ -63,8 +64,10 @@ export default function SidebarFooterAccount({ mini }: SidebarFooterProps) {
     [mini]
   );
   return (
-    <Account
-      slots={{
+    <Stack direction="column">
+      {!mini && <NowPlaying />}
+      <Account
+        slots={{
         preview: PreviewComponent,
         popoverContent: PopoverComponent,
       }}
@@ -98,6 +101,7 @@ export default function SidebarFooterAccount({ mini }: SidebarFooterProps) {
         },
       }}
     />
+    </Stack>
   );
 }
 
