@@ -9,9 +9,9 @@
     "contrast": 240
   },
   "rects": [
-    { "name": "disc_1", "x": 117, "y": 0, "width": 26, "height": 21 },
+    { "name": "disc_1", "x": 115, "y": 0, "width": 26, "height": 21 },
     { "name": "disc_2", "x": 144, "y": 0, "width": 26, "height": 21 },
-    { "name": "disc_3", "x": 171, "y": 0, "width": 26, "height": 21 },
+    { "name": "disc_3", "x": 172, "y": 0, "width": 26, "height": 21 },
     { "name": "track_1", "x": 373, "y": 0, "width": 26, "height": 21 },
     { "name": "track_2", "x": 400, "y": 0, "width": 26, "height": 21 },
     { "name": "time_1", "x": 486, "y": 0, "width": 26, "height": 21 },
