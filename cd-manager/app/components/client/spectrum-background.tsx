@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, type SxProps, type Theme } from "@mui/material";
+import { Box, type SxProps, type Theme, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import React, { useRef, useEffect, useCallback } from "react";
 
@@ -9,13 +9,14 @@ type SpectrumBackgroundProps = {
   sx?: SxProps<Theme>;
 };
 
-const BAR_COUNT = 32;
 const FFT_SIZE = 8192;
 const FREQ_MIN = 20;
 const FREQ_MAX = 18000;
 
 const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const barCount = isMobile ? 16 : 32;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -35,7 +36,7 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
     const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
 
-    const totalBars = BAR_COUNT * 2;
+    const totalBars = barCount * 2;
     const barWidth = width / totalBars;
 
     const nyquist = analyser.context.sampleRate / 2;
@@ -47,9 +48,9 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
     const g = parseInt(color.slice(3, 5), 16);
     const b = parseInt(color.slice(5, 7), 16);
 
-    for (let i = 0; i < BAR_COUNT; i++) {
-      const logFreqLow = logMin + (i / BAR_COUNT) * (logMax - logMin);
-      const logFreqHigh = logMin + ((i + 1) / BAR_COUNT) * (logMax - logMin);
+    for (let i = 0; i < barCount; i++) {
+      const logFreqLow = logMin + (i / barCount) * (logMax - logMin);
+      const logFreqHigh = logMin + ((i + 1) / barCount) * (logMax - logMin);
       // Clamp to bin 1 minimum to skip DC component (bin 0)
       const binLow = Math.max(1, Math.floor((Math.pow(10, logFreqLow) / nyquist) * dataArray.length));
       const binHigh = Math.max(binLow + 1, Math.ceil((Math.pow(10, logFreqHigh) / nyquist) * dataArray.length));
@@ -65,13 +66,13 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
 
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
       // Left half: mirrored (high frequencies at edges, low at center)
-      ctx.fillRect((BAR_COUNT - 1 - i) * barWidth, height - barHeight, barWidth - 1, barHeight);
+      ctx.fillRect((barCount - 1 - i) * barWidth, height - barHeight, barWidth - 1, barHeight);
       // Right half: normal (low at center, high at edges)
-      ctx.fillRect((BAR_COUNT + i) * barWidth, height - barHeight, barWidth - 1, barHeight);
+      ctx.fillRect((barCount + i) * barWidth, height - barHeight, barWidth - 1, barHeight);
     }
 
     animationRef.current = requestAnimationFrame(draw);
-  }, [theme.palette.primary.main]);
+  }, [theme.palette.primary.main, barCount]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
