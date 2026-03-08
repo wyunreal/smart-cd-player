@@ -11,8 +11,10 @@ import React, {
   ReactNode,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
+import { DisplayState } from "@/app/components/client/now-playing";
 
 export type PlayerDefinitionsProps = {
   playerDefinitions: PlayerDefinition[] | null;
@@ -54,11 +56,16 @@ export type LastPlayedStateProps = {
   setLastPlayedSlots: (slots: (number | null)[]) => void;
 };
 
+export type DisplayStateProps = {
+  displayState: DisplayState | null;
+};
+
 type DataRepositoryContextProps = CdCollectionProps &
   PlayerDefinitionsProps &
   PlayerContentProps &
   PlayerStateProps &
-  LastPlayedStateProps;
+  LastPlayedStateProps &
+  DisplayStateProps;
 
 const calculateContentByArtist = (
   slots: PlayerSlot[],
@@ -92,6 +99,7 @@ export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   setSelectedPlayerSlots: () => {},
   lastPlayedSlots: [null, null, null],
   setLastPlayedSlots: () => {},
+  displayState: null,
 });
 
 export const DataRepositoryProvider = ({
@@ -261,6 +269,74 @@ export const DataRepositoryProvider = ({
   ]);
 
   /**
+   * Display State (composite-video-parser polling)
+   * Use ?mockDisplay=true to enable mock mode without the real service.
+   */
+  const [displayState, setDisplayState] = useState<DisplayState | null>(null);
+  const displayPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mockSecondsRef = useRef(0);
+
+  const isMockDisplay =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("mockDisplay");
+
+  useEffect(() => {
+    if (displayPollingRef.current) {
+      clearInterval(displayPollingRef.current);
+      displayPollingRef.current = null;
+    }
+
+    if (isMockDisplay) {
+      const mockTick = () => {
+        const sec = mockSecondsRef.current;
+        const minutes = Math.floor(sec / 60);
+        const seconds = sec % 60;
+        setDisplayState({
+          mode: "playing",
+          disc: 1,
+          track: 3,
+          minutes,
+          seconds,
+          timestamp: Date.now(),
+        });
+        mockSecondsRef.current = sec + 2;
+      };
+      mockTick();
+      displayPollingRef.current = setInterval(mockTick, 2000);
+      return () => {
+        if (displayPollingRef.current) clearInterval(displayPollingRef.current);
+      };
+    }
+
+    const selectedDef = playerDefinitions.find(
+      (def) => def.remoteIndex === selectedPlayer,
+    );
+    const baseUrl = selectedDef?.playerApiBaseUrl;
+    if (!baseUrl) {
+      setDisplayState(null);
+      return;
+    }
+
+    const fetchDisplay = () => {
+      fetch(`${baseUrl}/display`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: DisplayState | null) => {
+          if (data) setDisplayState(data);
+        })
+        .catch(() => setDisplayState(null));
+    };
+
+    fetchDisplay();
+    displayPollingRef.current = setInterval(fetchDisplay, 2000);
+
+    return () => {
+      if (displayPollingRef.current) {
+        clearInterval(displayPollingRef.current);
+      }
+    };
+  }, [selectedPlayer, playerDefinitions, isMockDisplay]);
+
+  /**
    * Player State
    */
   const [selectedPlayerSlots, setSelectedPlayerSlots] = useState<number[]>([
@@ -303,6 +379,7 @@ export const DataRepositoryProvider = ({
         setSelectedPlayerSlots,
         lastPlayedSlots,
         setLastPlayedSlots,
+        displayState,
       }}
     >
       {children}

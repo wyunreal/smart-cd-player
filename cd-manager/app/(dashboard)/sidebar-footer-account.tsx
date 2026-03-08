@@ -12,6 +12,7 @@ import {
 import { SidebarFooterProps } from "@toolpad/core/DashboardLayout";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import NowPlaying from "../components/client/now-playing";
+import { DataRepositoryContext } from "@/app/providers/data-repository";
 
 function AccountSidebarPreview(props: AccountPreviewProps & { mini: boolean }) {
   const { handleClick, open, mini } = props;
@@ -55,6 +56,7 @@ const createPopoverComponent = (mini: boolean) => {
 };
 
 export default function SidebarFooterAccount({ mini }: SidebarFooterProps) {
+  const { displayState } = React.useContext(DataRepositoryContext);
   const PreviewComponent = React.useMemo(
     () => createPreviewComponent(mini),
     [mini]
@@ -65,7 +67,7 @@ export default function SidebarFooterAccount({ mini }: SidebarFooterProps) {
   );
   return (
     <Stack direction="column">
-      {!mini && <NowPlaying />}
+      {!mini && <NowPlaying displayState={displayState} />}
       <Account
         slots={{
         preview: PreviewComponent,

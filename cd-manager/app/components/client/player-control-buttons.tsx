@@ -1,15 +1,11 @@
 "use client";
 
-import { Box, IconButton, useMediaQuery } from "@mui/material";
+import { IconButton, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useCallback, useContext, useState } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { PlayerCommand } from "@/api/types";
 import {
-  SkipPreviousIcon,
-  PlayArrowIcon,
-  PauseIcon,
-  SkipNextIcon,
   PowerSettingsNewIcon,
   SearchOutlinedIcon,
   KeyboardArrowDownIcon,
@@ -17,6 +13,7 @@ import {
 import ResponsiveDialog from "./dialog/responsive-dialog";
 import SearchSlotForm from "@/app/forms/search-slot";
 import NowPlaying from "./now-playing";
+import TransportButtons from "./transport-buttons";
 
 const PlayerControlButtons = () => {
   const {
@@ -25,6 +22,7 @@ const PlayerControlButtons = () => {
     playerContent,
     selectedPlayerSlots,
     setSelectedPlayerSlots,
+    displayState,
   } = useContext(DataRepositoryContext);
 
   const theme = useTheme();
@@ -77,30 +75,7 @@ const PlayerControlButtons = () => {
       >
         <SearchOutlinedIcon />
       </IconButton>
-      <IconButton
-        onClick={() => sendCommand(PlayerCommand.PreviousTrack)}
-        disabled={!isCommandSupported(PlayerCommand.PreviousTrack)}
-      >
-        <SkipPreviousIcon />
-      </IconButton>
-      <IconButton
-        onClick={() => sendCommand(PlayerCommand.Play)}
-        disabled={!isCommandSupported(PlayerCommand.Play)}
-      >
-        <PlayArrowIcon />
-      </IconButton>
-      <IconButton
-        onClick={() => sendCommand(PlayerCommand.Pause)}
-        disabled={!isCommandSupported(PlayerCommand.Pause)}
-      >
-        <PauseIcon />
-      </IconButton>
-      <IconButton
-        onClick={() => sendCommand(PlayerCommand.NextTrack)}
-        disabled={!isCommandSupported(PlayerCommand.NextTrack)}
-      >
-        <SkipNextIcon />
-      </IconButton>
+      <TransportButtons />
       <IconButton
         onClick={() => sendCommand(PlayerCommand.PowerSwitch)}
         disabled={!isCommandSupported(PlayerCommand.PowerSwitch)}
@@ -131,7 +106,7 @@ const PlayerControlButtons = () => {
         headless
         adaptToContentInMobile
       >
-        <NowPlaying />
+        <NowPlaying displayState={displayState} />
       </ResponsiveDialog>
     </>
   );
