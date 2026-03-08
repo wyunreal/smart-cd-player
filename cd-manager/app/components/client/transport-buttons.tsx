@@ -56,6 +56,7 @@ const TransportButtons = () => {
       <IconButton
         onClick={() => sendCommand(PlayerCommand.PreviousTrack)}
         disabled={!isCommandSupported(PlayerCommand.PreviousTrack) || isFirstTrack}
+
       >
         <SkipPreviousIcon />
       </IconButton>
@@ -63,6 +64,7 @@ const TransportButtons = () => {
         <IconButton
           onClick={() => sendCommand(PlayerCommand.Pause)}
           disabled={!isCommandSupported(PlayerCommand.Pause)}
+  
         >
           <PauseIcon />
         </IconButton>
@@ -70,6 +72,7 @@ const TransportButtons = () => {
         <IconButton
           onClick={() => sendCommand(PlayerCommand.Play)}
           disabled={!isCommandSupported(PlayerCommand.Play)}
+  
         >
           <PlayArrowIcon />
         </IconButton>
@@ -77,6 +80,7 @@ const TransportButtons = () => {
       <IconButton
         onClick={() => sendCommand(PlayerCommand.NextTrack)}
         disabled={!isCommandSupported(PlayerCommand.NextTrack) || isLastTrack}
+
       >
         <SkipNextIcon />
       </IconButton>

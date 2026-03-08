@@ -308,17 +308,8 @@ export const DataRepositoryProvider = ({
       };
     }
 
-    const selectedDef = playerDefinitions.find(
-      (def) => def.remoteIndex === selectedPlayer,
-    );
-    const baseUrl = selectedDef?.playerApiBaseUrl;
-    if (!baseUrl) {
-      setDisplayState(null);
-      return;
-    }
-
     const fetchDisplay = () => {
-      fetch(`${baseUrl}/display`)
+      fetch("/api/display")
         .then((res) => (res.ok ? res.json() : null))
         .then((data: DisplayState | null) => {
           if (data) setDisplayState(data);
@@ -334,7 +325,7 @@ export const DataRepositoryProvider = ({
         clearInterval(displayPollingRef.current);
       }
     };
-  }, [selectedPlayer, playerDefinitions, isMockDisplay]);
+  }, [isMockDisplay]);
 
   /**
    * Player State

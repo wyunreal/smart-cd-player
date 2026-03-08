@@ -35,6 +35,13 @@ const getComponentsOverrides = (theme: Theme) => {
           },
         },
       },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            color: theme.palette.text.primary,
+          },
+        },
+      },
       MuiButton: {
         styleOverrides: {
           root: {

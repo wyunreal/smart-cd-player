@@ -149,7 +149,10 @@ const NowPlaying = ({ displayState }: NowPlayingProps) => {
               {title}
             </Typography>
             <Typography variant="body2" color="text.secondary" noWrap>
-              {displayState.track != null && `Track ${displayState.track}`}
+              {displayState.track != null &&
+                (currentTrack?.title
+                  ? `${displayState.track}. ${currentTrack.title}`
+                  : `Track ${displayState.track}`)}
             </Typography>
           </Box>
         </Box>
