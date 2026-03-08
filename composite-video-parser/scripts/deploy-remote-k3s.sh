@@ -52,10 +52,12 @@ rm ${IMAGE_NAME}.tar.gz
 
 # 6. Deploy with Helm
 echo "⚓ Deploying with Helm..."
+SHARED_VALUES="$(dirname "$0")/../../shared-services.yaml"
 helm upgrade --install ${IMAGE_NAME} ${CHART_PATH} \
     --set image.tag=${IMAGE_TAG} \
     --set image.repository=${IMAGE_NAME} \
-    -f ${CHART_PATH}/values.yaml
+    -f ${CHART_PATH}/values.yaml \
+    -f ${SHARED_VALUES}
 
 echo "✅ Deployment complete! Version: ${IMAGE_TAG}"
 echo "👉 Application should be available at http://${REMOTE_HOST}:30002"

@@ -85,6 +85,7 @@ env:
   IMAGES_DIR: "/app/data/images"
   AUTH_TRUST_HOST: "true"
   NEXTAUTH_URL: "https://web.smart-cd.app"
+  # COMPOSITE_VIDEO_PARSER_URL is auto-generated from shared-services.yaml
 
   # The secret must contain keys: AUTH_SECRET, DISCOGS_USER_TOKEN, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
   existingSecret: ""

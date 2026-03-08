@@ -54,10 +54,12 @@ rm ${IMAGE_NAME}.tar.gz
 echo "⚓ Deploying with Helm..."
 # We explicitly set image.tag to force K8s to pick up the new version
 # We also set image.pullPolicy to IfNotPresent (default) because each tag is unique
+SHARED_VALUES="$(dirname "$0")/../../shared-services.yaml"
 helm upgrade --install ${IMAGE_NAME} ${CHART_PATH} \
     --set image.tag=${IMAGE_TAG} \
     --set image.repository=${IMAGE_NAME} \
     -f ${CHART_PATH}/values.yaml \
+    -f ${SHARED_VALUES} \
     -f ${CHART_PATH}/secrets.yaml
 
 echo "✅ Deployment complete! Version: ${IMAGE_TAG}"

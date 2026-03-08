@@ -75,6 +75,26 @@ You can keep your configuration in `values.yaml` and your secrets in a separate 
     helm install cd-manager ./charts/cd-manager -f charts/cd-manager/values.yaml -f secrets.yaml
     ```
 
+### Shared Service Configuration
+
+Both `cd-manager` and `composite-video-parser` reference a shared service registry file at the monorepo root (`shared-services.yaml`). This file is the single source of truth for service names and ports used in cross-service communication.
+
+```yaml
+# shared-services.yaml
+services:
+  compositeVideoParser:
+    name: composite-video-parser
+    port: 3100
+  cdManager:
+    name: cd-manager
+    port: 3000
+```
+
+The deploy script automatically includes this file via `-f ../../shared-services.yaml`. This means:
+
+- `COMPOSITE_VIDEO_PARSER_URL` is automatically injected as an environment variable in the cd-manager pod (e.g., `http://composite-video-parser:3100`).
+- If you rename a service or change its port, update `shared-services.yaml` and redeploy both services.
+
 ### Helper Scripts
 
 We provide helper scripts in the `scripts/` directory to simplify deployment:

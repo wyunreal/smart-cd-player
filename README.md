@@ -69,6 +69,7 @@ yarn dev
 
 ```
 smart-cd-player/
+├── shared-services.yaml     # Shared service registry (names, ports) for cross-service references
 ├── cd-manager/              # Main Next.js application
 │   ├── api/                 # Business logic and APIs
 │   ├── app/                 # Next.js App Router routes and components

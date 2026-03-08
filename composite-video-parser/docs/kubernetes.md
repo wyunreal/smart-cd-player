@@ -51,6 +51,12 @@ This script automatically:
 3. Transfers and imports the image into K3s
 4. Deploys (or upgrades) with Helm
 
+### Shared Service Configuration
+
+The deploy script includes a shared service registry file from the monorepo root (`shared-services.yaml`) via `-f ../../shared-services.yaml`. This file is the single source of truth for service names and ports used in cross-service communication (e.g., `cd-manager` uses it to discover this service's URL).
+
+If you rename this service or change its port, update `shared-services.yaml` and redeploy both services.
+
 ## Manual Deploy
 
 ### 1. Build the Docker Image
