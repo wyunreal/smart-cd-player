@@ -8,7 +8,12 @@ import useResizeObserver from "../hooks/use-resize-observer";
 import PlayerSlots from "../components/client/player-slots";
 import PlayerControlButtons from "../components/client/player-control-buttons";
 import SelectedSlotDetails from "../components/client/selected-slot-details";
-import { getPlayDiscOrder, getPlayTrackOrder, getPlayTrackOnDiskOrder } from "@/api/player-remote/command-factory";
+import {
+  getPlayDiscOrder,
+  getPlayTrackOrder,
+  getPlayTrackOnDiskOrder,
+} from "@/api/player-remote/command-factory";
+import SpectrumBackground from "../components/client/spectrum-background";
 
 const Page = () => {
   const {
@@ -89,9 +94,9 @@ const Page = () => {
       try {
         await currentRemoteClient.sendOrder(sequence);
         if (!isSameSlot) {
-            const newLastPlayed = [...lastPlayedSlots];
-            newLastPlayed[currentRemoteClientIndex] = currentSlot.slot;
-            setLastPlayedSlots(newLastPlayed);
+          const newLastPlayed = [...lastPlayedSlots];
+          newLastPlayed[currentRemoteClientIndex] = currentSlot.slot;
+          setLastPlayedSlots(newLastPlayed);
         }
       } catch (e) {
         console.error("Failed to sequence commands", e);
@@ -200,16 +205,27 @@ const Page = () => {
                 <Box ref={resizeRef}>
                   <PlayerSlots
                     selectedPlayer={getPlayerIndex(selectedPlayerRemoteIndex)}
-                    selectedSlot={selectedPlayerSlots[selectedPlayerRemoteIndex - 1]}
+                    selectedSlot={
+                      selectedPlayerSlots[selectedPlayerRemoteIndex - 1]
+                    }
                     isPlayDiskButtonVisible={
                       currentSlot && currentRemoteClient
                         ? (() => {
                             const sequence = getPlayDiscOrder(currentSlot.slot);
-                            const canExecute = currentRemoteClient.canExecuteSequence(sequence);
-                            console.log("Page: Checking Play Button Visibility", { slot: currentSlot.slot, canExecute, sequenceLength: sequence.length });
+                            const canExecute =
+                              currentRemoteClient.canExecuteSequence(sequence);
+                            console.log(
+                              "Page: Checking Play Button Visibility",
+                              {
+                                slot: currentSlot.slot,
+                                canExecute,
+                                sequenceLength: sequence.length,
+                              },
+                            );
                             return canExecute;
-                        })()
-                        : false}
+                          })()
+                        : false
+                    }
                     handleSelectedSlotChange={(slot) => {
                       setSelectedPlayerSlots(
                         buildSelectedSlot(
@@ -227,27 +243,31 @@ const Page = () => {
                     display: "flex",
                     flexDirection: "column",
                     flexGrow: 1,
-                    my: 2,
+                    mt: 2,
                   }}
                 >
-                  <Typography
-                    variant="h3"
-                    sx={{
-                      textAlign: "center",
-                      visibility:
-                        currentSlotNumber === 0 ? "hidden" : "visible",
-                    }}
-                  >
-                    {currentSlotNumber}
-                  </Typography>
-                  <Typography variant="h5" sx={{ textAlign: "center" }}>
-                    {(currentSlot?.cd?.diskAmount || 1) > 1
-                      ? `${currentSlot?.cd?.title}, Disc ${currentSlot?.cd?.diskNumber}`
-                      : currentSlot?.cd?.title || "No disk"}
-                  </Typography>
-                  <Typography variant="body1" sx={{ textAlign: "center" }}>
-                    {currentSlot?.cd?.artist || "No artist"}
-                  </Typography>
+                  <SpectrumBackground>
+                    <Box sx={{ mb: 1 }}>
+                      <Typography
+                        variant="h3"
+                        sx={{
+                          textAlign: "center",
+                          visibility:
+                            currentSlotNumber === 0 ? "hidden" : "visible",
+                        }}
+                      >
+                        {currentSlotNumber}
+                      </Typography>
+                      <Typography variant="h5" sx={{ textAlign: "center" }}>
+                        {(currentSlot?.cd?.diskAmount || 1) > 1
+                          ? `${currentSlot?.cd?.title}, Disc ${currentSlot?.cd?.diskNumber}`
+                          : currentSlot?.cd?.title || "No disk"}
+                      </Typography>
+                      <Typography variant="body1" sx={{ textAlign: "center" }}>
+                        {currentSlot?.cd?.artist || "No artist"}
+                      </Typography>
+                    </Box>
+                  </SpectrumBackground>
                 </Box>
                 {currentSlot && (
                   <BottomSheet>
