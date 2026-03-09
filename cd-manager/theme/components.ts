@@ -38,7 +38,13 @@ const getComponentsOverrides = (theme: Theme) => {
       MuiIconButton: {
         styleOverrides: {
           root: {
-            color: theme.palette.text.primary,
+            color: "var(--mui-palette-text-primary)",
+            "[data-toolpad-color-scheme='dark'] &": {
+              color: "var(--mui-palette-primary-main)",
+            },
+            "&.Mui-disabled": {
+              color: "var(--mui-palette-action-disabled)",
+            },
           },
         },
       },
