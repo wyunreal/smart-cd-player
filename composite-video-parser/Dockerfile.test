@@ -1,0 +1,44 @@
+# 1. Install dependencies
+FROM node:lts-slim AS deps
+WORKDIR /app
+
+# Root deps
+COPY package.json yarn.lock ./
+COPY half-digit-classifier/inference/package.json half-digit-classifier/inference/
+RUN yarn --frozen-lockfile --production=false
+
+# Inference deps (onnxruntime-node, not hoisted by yarn v1)
+COPY half-digit-classifier/inference/yarn.lock half-digit-classifier/inference/
+RUN cd half-digit-classifier/inference && yarn --frozen-lockfile --production=false
+
+# 2. Build
+FROM node:lts-slim AS builder
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/half-digit-classifier/inference/node_modules ./half-digit-classifier/inference/node_modules
+COPY . .
+
+# Build inference package (main + tests)
+RUN cd half-digit-classifier/inference && \
+    ../../node_modules/.bin/tsc && \
+    ../../node_modules/.bin/tsc -p tsconfig.test.json
+# Sync built output to node_modules (yarn v1 file: protocol copies at install time)
+RUN cp -r half-digit-classifier/inference/dist node_modules/half-digit-classifier/
+# Build main project + tests
+RUN node_modules/.bin/tsc -p tsconfig.json && node_modules/.bin/tsc -p tsconfig.test.json
+
+# 3. Test runner
+FROM node:lts-slim AS test
+WORKDIR /app
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/half-digit-classifier/inference/dist ./half-digit-classifier/inference/dist
+COPY --from=builder /app/half-digit-classifier/inference/node_modules ./half-digit-classifier/inference/node_modules
+COPY --from=builder /app/half-digit-classifier/model ./half-digit-classifier/model
+COPY --from=builder /app/half-digit-classifier/source-digits ./half-digit-classifier/source-digits
+COPY --from=builder /app/config.json ./config.json
+COPY --from=builder /app/test/fixtures ./test/fixtures
+
+CMD ["node", "--test", "dist/test/digit-detector.test.js", "half-digit-classifier/inference/dist/test/classifier.test.js"]

@@ -38,12 +38,19 @@ export interface ModePixelConfig {
   y: number;
 }
 
+export interface DetectionConfig {
+  minDigitConfidence: number;
+  retryDelayMinMs: number;
+  retryDelayMaxMs: number;
+}
+
 export interface Config {
   frameProvider: FrameProviderConfig;
   rects: RectConfig[];
   powerPixel: ModePixelConfig;
   modePixel: ModePixelConfig;
   server: ServerConfig;
+  detection: DetectionConfig;
 }
 
 export async function loadConfig(): Promise<Config> {

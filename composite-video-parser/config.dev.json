@@ -21,5 +21,10 @@
   "modePixel": { "x": 650, "y": 25 },
   "server": {
     "port": 3100
+  },
+  "detection": {
+    "minDigitConfidence": 0.85,
+    "retryDelayMinMs": 100,
+    "retryDelayMaxMs": 200
   }
 }

@@ -132,5 +132,41 @@ export const createDeviceProvider = (
       base.emitter.off(event, listener);
     },
     getLatestFrame: base.getLatestFrame,
+    captureFrame: () =>
+      new Promise<Buffer>((resolve, reject) => {
+        const args = [
+          "-loglevel",
+          "error",
+          "-f",
+          "v4l2",
+          "-i",
+          config.device,
+          "-s",
+          `${config.width}x${config.height}`,
+          "-frames:v",
+          "1",
+          "-f",
+          "rawvideo",
+          "-pix_fmt",
+          "rgb24",
+          "pipe:1",
+        ];
+        const proc = spawn("ffmpeg", args, {
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        const chunks: Buffer[] = [];
+        proc.stdout!.on("data", (chunk: Buffer) => chunks.push(chunk));
+        proc.stderr!.on("data", () => {
+          // ignore
+        });
+        proc.on("close", (code) => {
+          if (code === 0 && chunks.length > 0) {
+            resolve(Buffer.concat(chunks));
+          } else {
+            reject(new Error(`[device-provider] one-shot capture failed (code ${code})`));
+          }
+        });
+        proc.on("error", reject);
+      }),
   };
 };

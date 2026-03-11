@@ -6,6 +6,7 @@ export interface FrameProvider {
   on(event: "frame", listener: (frame: Buffer) => void): void;
   off(event: "frame", listener: (frame: Buffer) => void): void;
   getLatestFrame(): Buffer | null;
+  captureFrame(): Promise<Buffer>;
 }
 
 export interface FrameProviderBase {

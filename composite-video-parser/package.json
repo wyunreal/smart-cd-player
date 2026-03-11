@@ -8,6 +8,7 @@
     "start": "node dist/src/main.js",
     "dev": "tsx src/main.ts",
     "test": "node --test dist/test/digit-detector.test.js",
+    "test:docker": "docker build -f Dockerfile.test -t composite-video-parser-test . && docker run --rm composite-video-parser-test",
     "capture": "python3 half-digit-classifier/train/capture_digits.py"
   },
   "dependencies": {

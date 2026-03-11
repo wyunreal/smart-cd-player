@@ -14,28 +14,25 @@ export const createHttpProvider = (
   let timer: ReturnType<typeof setInterval> | null = null;
   let fetching = false;
 
+  const fetchRawFrame = async (): Promise<Buffer> => {
+    const response = await fetch(config.url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} from ${config.url}`);
+    }
+    const pngBuffer = Buffer.from(await response.arrayBuffer());
+    // Convert PNG to raw RGB to match the same interface as device provider
+    const { data } = await sharp(pngBuffer)
+      .resize(config.width, config.height, { fit: "fill" })
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return data;
+  };
+
   const fetchFrame = async (): Promise<void> => {
     if (fetching) return;
     fetching = true;
-
     try {
-      const response = await fetch(config.url);
-      if (!response.ok) {
-        console.error(
-          `[http-provider] HTTP ${response.status} from ${config.url}`,
-        );
-        return;
-      }
-
-      const pngBuffer = Buffer.from(await response.arrayBuffer());
-
-      // Convert PNG to raw RGB to match the same interface as device provider
-      const { data } = await sharp(pngBuffer)
-        .resize(config.width, config.height, { fit: "fill" })
-        .raw()
-        .toBuffer({ resolveWithObject: true });
-
-      base.setFrame(data);
+      base.setFrame(await fetchRawFrame());
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[http-provider] fetch error: ${msg}`);
@@ -44,12 +41,18 @@ export const createHttpProvider = (
     }
   };
 
+  const intervalMs = Math.round(1000 / config.fps);
+
+  const restartInterval = (): void => {
+    if (timer) clearInterval(timer);
+    timer = setInterval(() => {
+      void fetchFrame();
+    }, intervalMs);
+  };
+
   return {
     start: async () => {
-      const intervalMs = Math.round(1000 / config.fps);
-      timer = setInterval(() => {
-        void fetchFrame();
-      }, intervalMs);
+      restartInterval();
       // Fetch first frame immediately
       void fetchFrame();
     },
@@ -66,5 +69,10 @@ export const createHttpProvider = (
       base.emitter.off(event, listener);
     },
     getLatestFrame: base.getLatestFrame,
+    captureFrame: async () => {
+      const frame = await fetchRawFrame();
+      restartInterval();
+      return frame;
+    },
   };
 };

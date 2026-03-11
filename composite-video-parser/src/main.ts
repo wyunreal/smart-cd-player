@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { DigitClassifier } from "half-digit-classifier";
 
-import { createDigitDetector } from "./digit-detector.js";
+import { createDigitDetector, detectWithRetry } from "./digit-detector.js";
 
 import { loadConfig } from "./config.js";
 import { createFrameProvider } from "./frame-provider-factory.js";
@@ -101,17 +101,18 @@ async function main(): Promise<void> {
     }
   };
 
-  // Detection loop: process frames as they arrive, skip if busy
-  frameProvider.on("frame", (frame: Buffer) => {
-    if (detecting) return;
-    detecting = true;
+  const { minDigitConfidence, retryDelayMinMs, retryDelayMaxMs } =
+    config.detection;
 
+  const randomRetryDelay = (): number =>
+    retryDelayMinMs + Math.random() * (retryDelayMaxMs - retryDelayMinMs);
+
+  const processFrame = async (frame: Buffer): Promise<void> => {
     if (!isPoweredOn(frame)) {
       lastSeconds = null;
       lastSecondsChangeTime = 0;
       state = { digits: [], mode: "off", timestamp: Date.now() };
       resolveFreshListeners();
-      detecting = false;
       return;
     }
 
@@ -120,17 +121,30 @@ async function main(): Promise<void> {
       lastSecondsChangeTime = 0;
       state = { digits: [], mode: "stopped", timestamp: Date.now() };
       resolveFreshListeners();
-      detecting = false;
       return;
     }
 
-    detector
-      .detect(frame, config.frameProvider.width, config.frameProvider.height)
-      .then((digits) => {
-        const mode = detectMode(digits);
-        state = { digits, mode, timestamp: Date.now() };
-        resolveFreshListeners();
-      })
+    const digits = await detectWithRetry(
+      frame,
+      detector,
+      () => frameProvider.captureFrame(),
+      config.frameProvider.width,
+      config.frameProvider.height,
+      minDigitConfidence,
+      () => new Promise<void>((resolve) => setTimeout(resolve, randomRetryDelay())),
+    );
+
+    const mode = detectMode(digits);
+    state = { digits, mode, timestamp: Date.now() };
+    resolveFreshListeners();
+  };
+
+  // Detection loop: process frames as they arrive, skip if busy
+  frameProvider.on("frame", (frame: Buffer) => {
+    if (detecting) return;
+    detecting = true;
+
+    processFrame(frame)
       .catch((err) => {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[detector] error: ${msg}`);

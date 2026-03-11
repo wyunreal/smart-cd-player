@@ -9,6 +9,8 @@ import { DigitClassifier } from "half-digit-classifier";
 
 import {
   createDigitDetector,
+  detectWithRetry,
+  type DetectionResult,
   type DigitDetector,
 } from "../src/digit-detector.js";
 import {
@@ -31,6 +33,105 @@ const CONFIG_PATH = path.resolve(projectRoot, "config.json");
 
 // Frame shows: DISC 129  TRACK 12  _1.05  (_ = blank tens of minutes)
 const EXPECTED_DIGITS: (number | null)[] = [1, 2, 9, 1, 2, null, 1, 0, 5];
+
+const makeResult = (confidence: number): DetectionResult[] => [
+  { name: "digit_1", digit: 1, confidence },
+];
+
+const noopDelay = async (): Promise<void> => {};
+
+describe("detectWithRetry", () => {
+  it("returns first detection when all digits are confident", async () => {
+    const firstResult = makeResult(0.95);
+    let detectCalls = 0;
+    let captureFrameCalls = 0;
+
+    const mockDetector: DigitDetector = {
+      detect: async () => { detectCalls++; return firstResult; },
+    };
+    const captureFrame = async (): Promise<Buffer> => {
+      captureFrameCalls++;
+      return Buffer.alloc(0);
+    };
+
+    const result = await detectWithRetry(
+      Buffer.alloc(0), mockDetector, captureFrame, 1, 1, 0.85, noopDelay,
+    );
+
+    assert.equal(detectCalls, 1, "should detect only once");
+    assert.equal(captureFrameCalls, 0, "should not capture a new frame");
+    assert.deepEqual(result, firstResult);
+  });
+
+  it("retries when any digit has low confidence", async () => {
+    const lowResult = makeResult(0.5);
+    const highResult = makeResult(0.95);
+    let detectCalls = 0;
+
+    const mockDetector: DigitDetector = {
+      detect: async () => { detectCalls++; return detectCalls === 1 ? lowResult : highResult; },
+    };
+    let captureFrameCalled = false;
+    const captureFrame = async (): Promise<Buffer> => {
+      captureFrameCalled = true;
+      return Buffer.alloc(0);
+    };
+
+    const result = await detectWithRetry(
+      Buffer.alloc(0), mockDetector, captureFrame, 1, 1, 0.85, noopDelay,
+    );
+
+    assert.equal(detectCalls, 2, "should detect twice");
+    assert.ok(captureFrameCalled, "should capture a new frame");
+    assert.deepEqual(result, highResult);
+  });
+
+  it("returns retry result even if still low confidence (no loop)", async () => {
+    const lowResult = makeResult(0.3);
+    let detectCalls = 0;
+
+    const mockDetector: DigitDetector = {
+      detect: async () => { detectCalls++; return lowResult; },
+    };
+    let captureFrameCalls = 0;
+    const captureFrame = async (): Promise<Buffer> => {
+      captureFrameCalls++;
+      return Buffer.alloc(0);
+    };
+
+    const result = await detectWithRetry(
+      Buffer.alloc(0), mockDetector, captureFrame, 1, 1, 0.85, noopDelay,
+    );
+
+    assert.equal(detectCalls, 2, "should detect exactly twice (no further retries)");
+    assert.equal(captureFrameCalls, 1, "should capture exactly once");
+    assert.deepEqual(result, lowResult);
+  });
+
+  it("invokes retryDelay before capturing the new frame", async () => {
+    const events: string[] = [];
+
+    const mockDetector: DigitDetector = {
+      detect: async () => {
+        events.push("detect");
+        return makeResult(0.3);
+      },
+    };
+    const captureFrame = async (): Promise<Buffer> => {
+      events.push("capture");
+      return Buffer.alloc(0);
+    };
+    const retryDelay = async (): Promise<void> => {
+      events.push("delay");
+    };
+
+    await detectWithRetry(
+      Buffer.alloc(0), mockDetector, captureFrame, 1, 1, 0.85, retryDelay,
+    );
+
+    assert.deepEqual(events, ["detect", "delay", "capture", "detect"]);
+  });
+});
 
 describe("DigitDetector (end-to-end)", () => {
   let config: Config;

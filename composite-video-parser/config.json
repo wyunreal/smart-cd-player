@@ -24,5 +24,10 @@
   "server": {
     "port": 3100,
     "captureIdleTimeoutMs": 300000
+  },
+  "detection": {
+    "minDigitConfidence": 0.85,
+    "retryDelayMinMs": 100,
+    "retryDelayMaxMs": 200
   }
 }
