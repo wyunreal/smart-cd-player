@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio Streamer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f13;
+      color: #e8e8e8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #1a1a24;
+      border: 1px solid #2e2e3e;
+      border-radius: 16px;
+      padding: 40px;
+      width: 360px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    h1 { font-size: 1.4rem; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    .subtitle { font-size: 0.8rem; color: #888; margin-bottom: 32px; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 28px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      background: #12121a;
+      border: 1px solid #2a2a3a;
+    }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #555;
+      transition: background 0.3s;
+    }
+    .dot.connecting { background: #f59e0b; animation: pulse 1s infinite; }
+    .dot.ready      { background: #10b981; }
+    .dot.playing    { background: #3b82f6; animation: pulse 0.8s infinite; }
+    .dot.error      { background: #ef4444; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    .play-btn {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: #fff;
+      font-size: 1.6rem;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+      margin-bottom: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .play-btn:hover:not(:disabled) { transform: scale(1.06); }
+    .play-btn:active:not(:disabled) { transform: scale(0.96); }
+    .play-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .codec-info {
+      font-size: 0.75rem;
+      color: #555;
+      line-height: 1.6;
+    }
+    .codec-info span { color: #6b7280; }
+
+    audio { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Audio Streamer</h1>
+    <p class="subtitle">Line-In → WebRTC → Browser</p>
+
+    <div class="status">
+      <div class="dot connecting" id="dot"></div>
+      <span id="status-text">Connecting…</span>
+    </div>
+
+    <br />
+    <button class="play-btn" id="play-btn" disabled title="Play">▶</button>
+
+    <div class="codec-info">
+      <span>Opus</span> · 510 kbps · 48 kHz · Stereo<br />
+      <span>WebRTC</span> low-latency HiFi stream
+    </div>
+
+    <audio id="audio" autoplay></audio>
+  </div>
+
+  <script src="/mediasoup-client.min.js"></script>
+  <script>
+    const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+
+    const dotEl        = document.getElementById('dot');
+    const statusEl     = document.getElementById('status-text');
+    const playBtn      = document.getElementById('play-btn');
+    const audioEl      = document.getElementById('audio');
+
+    let device, sendTransport, consumer;
+    let ws;
+
+    function setStatus(state, text) {
+      dotEl.className = 'dot ' + state;
+      statusEl.textContent = text;
+    }
+
+    function send(msg) {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+    }
+
+    // ── Signaling ────────────────────────────────────────────────────────────
+
+    function connect() {
+      setStatus('connecting', 'Connecting…');
+      ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        setStatus('connecting', 'Handshaking…');
+        send({ type: 'getRouterRtpCapabilities' });
+      };
+
+      ws.onclose = () => {
+        setStatus('error', 'Disconnected — retrying…');
+        playBtn.disabled = true;
+        setTimeout(connect, 3000);
+      };
+
+      ws.onerror = () => ws.close();
+
+      ws.onmessage = async (ev) => {
+        const msg = JSON.parse(ev.data);
+        try {
+          await handleMsg(msg);
+        } catch (e) {
+          console.error('Error handling', msg.type, e);
+          setStatus('error', String(e));
+        }
+      };
+    }
+
+    async function handleMsg(msg) {
+      switch (msg.type) {
+
+        case 'serverState': {
+          if (!msg.producerReady) setStatus('connecting', 'Waiting for audio source…');
+          break;
+        }
+
+        case 'routerRtpCapabilities': {
+          device = new mediasoupClient.Device();
+          await device.load({ routerRtpCapabilities: msg.rtpCapabilities });
+          send({ type: 'createWebRtcTransport' });
+          break;
+        }
+
+        case 'webRtcTransportCreated': {
+          sendTransport = device.createRecvTransport({
+            id:             msg.id,
+            iceParameters:  msg.iceParameters,
+            iceCandidates:  msg.iceCandidates,
+            dtlsParameters: msg.dtlsParameters,
+          });
+
+          sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
+            send({ type: 'connectWebRtcTransport', transportId: msg.id, dtlsParameters });
+            ws.addEventListener('message', function listener(ev) {
+              const m = JSON.parse(ev.data);
+              if (m.type === 'webRtcTransportConnected') {
+                ws.removeEventListener('message', listener);
+                callback();
+              } else if (m.type === 'error') {
+                ws.removeEventListener('message', listener);
+                errback(new Error(m.message));
+              }
+            });
+          });
+
+          send({
+            type: 'consume',
+            transportId: msg.id,
+            rtpCapabilities: device.rtpCapabilities,
+          });
+          break;
+        }
+
+        case 'webRtcTransportConnected':
+          // handled inside the transport 'connect' listener above
+          break;
+
+        case 'consumed': {
+          consumer = await sendTransport.consume({
+            id:            msg.id,
+            producerId:    msg.producerId,
+            kind:          msg.kind,
+            rtpParameters: msg.rtpParameters,
+          });
+
+          // Attach the track to the <audio> element
+          const stream = new MediaStream([consumer.track]);
+          audioEl.srcObject = stream;
+
+          send({ type: 'resumeConsumer', consumerId: msg.id });
+
+          setStatus('ready', 'Ready — click ▶ to play');
+          playBtn.disabled = false;
+          break;
+        }
+
+        case 'consumerResumed':
+          // Track is flowing; user must click play (autoplay policy)
+          break;
+
+        case 'consumeFailed':
+          setStatus('error', msg.reason ?? 'Audio source not ready');
+          setTimeout(() => send({ type: 'consume', rtpCapabilities: device.rtpCapabilities }), 4000);
+          break;
+
+        case 'error':
+          setStatus('error', msg.message);
+          break;
+      }
+    }
+
+    // ── Play button ──────────────────────────────────────────────────────────
+
+    playBtn.addEventListener('click', async () => {
+      try {
+        await audioEl.play();
+        playBtn.textContent = '⏸';
+        setStatus('playing', 'Playing');
+      } catch (e) {
+        setStatus('error', 'Playback blocked: ' + e.message);
+      }
+    });
+
+    audioEl.addEventListener('pause', () => {
+      playBtn.textContent = '▶';
+      setStatus('ready', 'Paused');
+    });
+
+    connect();
+  </script>
+</body>
+</html>

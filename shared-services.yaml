@@ -1,9 +1,9 @@
 # Shared service registry for cross-service references.
-# Both cd-manager and composite-video-parser deploy scripts
+# cd-manager, composite-video-parser and audio-streamer deploy scripts
 # include this file via: helm upgrade --install ... -f ../../shared-services.yaml
 #
 # When renaming a service or changing its port, update it here
-# and redeploy both services.
+# and redeploy the affected services.
 
 services:
   compositeVideoParser:
@@ -12,3 +12,6 @@ services:
   cdManager:
     name: cd-manager
     port: 3000
+  audioStreamer:
+    name: audio-streamer
+    port: 3200
