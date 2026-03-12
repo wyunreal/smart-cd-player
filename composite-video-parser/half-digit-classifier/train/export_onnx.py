@@ -18,8 +18,6 @@ def export_to_onnx(model, output_path):
     model.eval()
     dummy_input = torch.randn(1, 1, 21, 26)
 
-    batch_dim = torch.export.Dim("batch_size", min=1)
-
     # Suppress internal PyTorch/onnxscript warnings during export
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message=".*LeafSpec.*")
@@ -31,11 +29,11 @@ def export_to_onnx(model, output_path):
             dummy_input,
             output_path,
             export_params=True,
-            opset_version=18,
+            opset_version=17,
             do_constant_folding=True,
             input_names=["input"],
             output_names=["output"],
-            dynamic_shapes={"x": {0: batch_dim}},
+            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
         )
 
     # Validate

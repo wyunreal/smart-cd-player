@@ -25,8 +25,6 @@ const PlayerControlButtons = () => {
     displayState,
   } = useContext(DataRepositoryContext);
 
-  const isOff = displayState?.mode === "off";
-
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [searchOpen, setSearchOpen] = useState(false);

@@ -59,10 +59,13 @@ export const createDigitDetector = (
 
       const classification = await classifier.classify(cropped);
 
+      const sorted = [...classification.probabilities].sort((a, b) => b - a);
+      const confidenceMargin = sorted[0] - (sorted[1] ?? 0);
+
       results.push({
         name: rect.name,
         digit: classification.digit,
-        confidence: classification.confidence,
+        confidence: confidenceMargin,
       });
     }
 

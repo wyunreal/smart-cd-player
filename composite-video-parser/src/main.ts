@@ -101,7 +101,7 @@ async function main(): Promise<void> {
     }
   };
 
-  const { minDigitConfidence, retryDelayMinMs, retryDelayMaxMs } =
+  const { minDigitConfidenceMargin, retryDelayMinMs, retryDelayMaxMs } =
     config.detection;
 
   const randomRetryDelay = (): number =>
@@ -130,7 +130,7 @@ async function main(): Promise<void> {
       () => frameProvider.captureFrame(),
       config.frameProvider.width,
       config.frameProvider.height,
-      minDigitConfidence,
+      minDigitConfidenceMargin,
       () => new Promise<void>((resolve) => setTimeout(resolve, randomRetryDelay())),
     );
 

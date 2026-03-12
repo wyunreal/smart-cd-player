@@ -26,7 +26,7 @@
     "captureIdleTimeoutMs": 300000
   },
   "detection": {
-    "minDigitConfidence": 0.85,
+    "minDigitConfidenceMargin": 0.15,
     "retryDelayMinMs": 30,
     "retryDelayMaxMs": 50
   }

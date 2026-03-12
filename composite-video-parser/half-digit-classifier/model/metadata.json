@@ -3,8 +3,8 @@
   "input_height": 21,
   "input_channels": 1,
   "channel_extraction": "green",
-  "mean": 0.20751027762889862,
-  "std": 0.4055240750312805,
+  "mean": 0.1856643408536911,
+  "std": 0.3888355791568756,
   "class_labels": [
     "0",
     "1",
@@ -19,5 +19,5 @@
     "blank"
   ],
   "binarization_threshold": 140,
-  "validation_accuracy": 0.9878504672897196
+  "validation_accuracy": 1.0
 }

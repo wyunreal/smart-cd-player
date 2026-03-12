@@ -10,6 +10,7 @@
     "test": "node --test dist/test/classifier.test.js",
     "train:setup": "cd ../train && ./setup.sh",
     "train": "cd ../train && . .venv/bin/activate && python3 train.py",
+    "recapture": "cd ../train && . .venv/bin/activate && python3 recapture.py",
     "verify": "yarn build && node --test dist/test/classifier.test.js"
   },
   "dependencies": {

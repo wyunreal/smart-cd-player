@@ -23,53 +23,6 @@ interface Metadata {
   binarization_threshold: number;
 }
 
-/**
- * Morphological opening (erode then dilate) with a 3x3 cross kernel.
- * Removes isolated noise pixels while preserving segment shapes.
- */
-function morphologicalOpening(
-  src: Uint8Array,
-  width: number,
-  height: number,
-): Uint8Array {
-  const eroded = new Uint8Array(width * height);
-  const dilated = new Uint8Array(width * height);
-
-  // Erode: pixel is 1 only if itself and all 4-connected neighbours are 1
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const i = y * width + x;
-      if (
-        src[i] === 1 &&
-        (y === 0 || src[(y - 1) * width + x] === 1) &&
-        (y === height - 1 || src[(y + 1) * width + x] === 1) &&
-        (x === 0 || src[y * width + (x - 1)] === 1) &&
-        (x === width - 1 || src[y * width + (x + 1)] === 1)
-      ) {
-        eroded[i] = 1;
-      }
-    }
-  }
-
-  // Dilate: pixel is 1 if itself or any 4-connected neighbour is 1
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const i = y * width + x;
-      if (
-        eroded[i] === 1 ||
-        (y > 0 && eroded[(y - 1) * width + x] === 1) ||
-        (y < height - 1 && eroded[(y + 1) * width + x] === 1) ||
-        (x > 0 && eroded[y * width + (x - 1)] === 1) ||
-        (x < width - 1 && eroded[y * width + (x + 1)] === 1)
-      ) {
-        dilated[i] = 1;
-      }
-    }
-  }
-
-  return dilated;
-}
-
 export class DigitClassifier {
   private session: ort.InferenceSession | null = null;
   private metadata: Metadata | null = null;
@@ -122,12 +75,9 @@ export class DigitClassifier {
       binary[i] = minRgb > this.metadata.binarization_threshold ? 1 : 0;
     }
 
-    // Morphological opening (erosion then dilation) to remove isolated noise pixels
-    const opened = morphologicalOpening(binary, input_width, input_height);
-
     const tensor = new Float32Array(input_height * input_width);
     for (let i = 0; i < tensor.length; i++) {
-      tensor[i] = (opened[i] - mean) / std;
+      tensor[i] = (binary[i] - mean) / std;
     }
 
     // Run inference: input shape [1, 1, height, width]

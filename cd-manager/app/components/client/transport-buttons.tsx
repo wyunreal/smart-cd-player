@@ -2,7 +2,7 @@
 
 import { Box, IconButton } from "@mui/material";
 import { useCallback, useContext, useMemo } from "react";
-import { DataRepositoryContext } from "@/app/providers/data-repository";
+import { DataRepositoryContext, type PlayerSlot } from "@/app/providers/data-repository";
 import { PlayerCommand } from "@/api/types";
 import {
   SkipPreviousIcon,
@@ -21,7 +21,7 @@ const TransportButtons = () => {
   const totalTracks = useMemo(() => {
     if (selectedPlayer === null || displayState?.disc == null) return null;
     const slots = playerContent[selectedPlayer - 1];
-    const slot = slots?.find((s) => s.slot === displayState.disc);
+    const slot = slots?.find((s: PlayerSlot) => s.slot === displayState.disc);
     return slot?.cd?.tracks?.length ?? null;
   }, [selectedPlayer, playerContent, displayState?.disc]);
 

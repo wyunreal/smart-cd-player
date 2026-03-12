@@ -39,7 +39,7 @@ export interface ModePixelConfig {
 }
 
 export interface DetectionConfig {
-  minDigitConfidence: number;
+  minDigitConfidenceMargin: number;
   retryDelayMinMs: number;
   retryDelayMaxMs: number;
 }

@@ -6,10 +6,14 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 
+# 7 brightness variants: original (1.0) + 3 steps down + 3 steps up, evenly spaced ±7%
+BRIGHTNESS_VARIANTS = [1.0, 0.977, 0.953, 0.930, 1.023, 1.047, 1.070]
+
+
 class HalfDigitDataset(Dataset):
     """
     Loads images from source-digits/{0..9}/*.png.
-    Extracts the green channel as grayscale (green segments on black bg).
+    Each image is exposed as 7 brightness variants (±7%, evenly spaced).
     """
 
     def __init__(self, image_paths, labels, threshold=140, transform=None):
@@ -19,22 +23,30 @@ class HalfDigitDataset(Dataset):
         self.transform = transform
 
     def __len__(self):
-        return len(self.image_paths)
+        return len(self.image_paths) * len(BRIGHTNESS_VARIANTS)
 
     def __getitem__(self, idx):
-        img = Image.open(self.image_paths[idx]).convert("RGB")
-        pixels = np.array(img)
+        real_idx = idx // len(BRIGHTNESS_VARIANTS)
+        variant  = idx  % len(BRIGHTNESS_VARIANTS)
+        factor   = BRIGHTNESS_VARIANTS[variant]
+
+        img = Image.open(self.image_paths[real_idx]).convert("RGB")
+        pixels = np.array(img, dtype=np.float32)
+
+        if factor != 1.0:
+            pixels = np.clip(pixels * factor, 0, 255)
+
         # min(R,G,B) threshold: white pixels have all channels high, green bg has low R
         min_rgb = np.minimum(np.minimum(pixels[:, :, 0], pixels[:, :, 1]), pixels[:, :, 2])
-        green_channel = np.where(min_rgb > self.threshold, np.uint8(255), np.uint8(0))
-        img_gray = Image.fromarray(green_channel, mode="L")
+        binarized = np.where(min_rgb > self.threshold, np.uint8(255), np.uint8(0))
+        img_gray = Image.fromarray(binarized, mode="L")
 
         if self.transform:
             img_gray = self.transform(img_gray)
         else:
             img_gray = transforms.ToTensor()(img_gray)
 
-        return img_gray, self.labels[idx]
+        return img_gray, self.labels[real_idx]
 
 
 def load_dataset(source_dir):
@@ -114,7 +126,6 @@ def get_transforms(mean, std, training=True):
                     translate=(0.05, 0.05),
                     scale=(0.95, 1.05),
                 ),
-                transforms.ColorJitter(brightness=0.3),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[mean], std=[std]),
             ]
