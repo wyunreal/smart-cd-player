@@ -1,5 +1,6 @@
 # 1. Dependencies (no ffmpeg needed for build)
-FROM --platform=linux/amd64 cgr.dev/chainguard/node:latest-dev AS deps
+ARG BUILD_PLATFORM=linux/amd64
+FROM --platform=$BUILD_PLATFORM cgr.dev/chainguard/node:latest-dev AS deps
 USER root
 WORKDIR /app
 
@@ -9,7 +10,7 @@ COPY half-digit-classifier/inference/package.json half-digit-classifier/inferenc
 RUN yarn --frozen-lockfile --production=false
 
 # 2. Builder
-FROM --platform=linux/amd64 cgr.dev/chainguard/node:latest-dev AS builder
+FROM --platform=$BUILD_PLATFORM cgr.dev/chainguard/node:latest-dev AS builder
 USER root
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -23,7 +24,7 @@ RUN cp -r half-digit-classifier/inference/dist node_modules/half-digit-classifie
 RUN yarn build
 
 # 3. Runner — ffmpeg required for V4L2 video capture
-FROM --platform=linux/amd64 cgr.dev/chainguard/node:latest-dev AS runner
+FROM --platform=$BUILD_PLATFORM cgr.dev/chainguard/node:latest-dev AS runner
 WORKDIR /app
 
 USER root
