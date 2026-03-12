@@ -16,6 +16,7 @@ const TransportButtons = () => {
     useContext(DataRepositoryContext);
 
   const isPlaying = displayState?.mode === "playing";
+  const isOff = displayState?.mode === "off";
 
   const totalTracks = useMemo(() => {
     if (selectedPlayer === null || displayState?.disc == null) return null;
@@ -55,32 +56,28 @@ const TransportButtons = () => {
     <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
       <IconButton
         onClick={() => sendCommand(PlayerCommand.PreviousTrack)}
-        disabled={!isCommandSupported(PlayerCommand.PreviousTrack) || isFirstTrack}
-
+        disabled={isOff || !isCommandSupported(PlayerCommand.PreviousTrack) || isFirstTrack}
       >
         <SkipPreviousIcon />
       </IconButton>
       {isPlaying ? (
         <IconButton
           onClick={() => sendCommand(PlayerCommand.Pause)}
-          disabled={!isCommandSupported(PlayerCommand.Pause)}
-  
+          disabled={isOff || !isCommandSupported(PlayerCommand.Pause)}
         >
           <PauseIcon />
         </IconButton>
       ) : (
         <IconButton
           onClick={() => sendCommand(PlayerCommand.Play)}
-          disabled={!isCommandSupported(PlayerCommand.Play)}
-  
+          disabled={isOff || !isCommandSupported(PlayerCommand.Play)}
         >
           <PlayArrowIcon />
         </IconButton>
       )}
       <IconButton
         onClick={() => sendCommand(PlayerCommand.NextTrack)}
-        disabled={!isCommandSupported(PlayerCommand.NextTrack) || isLastTrack}
-
+        disabled={isOff || !isCommandSupported(PlayerCommand.NextTrack) || isLastTrack}
       >
         <SkipNextIcon />
       </IconButton>

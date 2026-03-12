@@ -26,7 +26,10 @@ const Page = () => {
     setSelectedPlayerSlots,
     lastPlayedSlots,
     setLastPlayedSlots,
+    displayState,
   } = useContext(DataRepositoryContext);
+
+  const isOff = displayState?.mode === "off";
   const [selectedPlayerRemoteIndex, setSelectedPlayerRemoteIndex] =
     useState<number>(1);
   useEffect(() => {
@@ -135,7 +138,7 @@ const Page = () => {
 
   const checkTrackPlaySupport = useCallback(
     (trackNumber: number) => {
-      if (!currentRemoteClient || !currentSlot) return false;
+      if (isOff || !currentRemoteClient || !currentSlot) return false;
 
       const isSameSlot =
         lastPlayedSlots[currentRemoteClientIndex] === currentSlot.slot;
@@ -150,6 +153,7 @@ const Page = () => {
       return currentRemoteClient.canExecuteSequence(sequence);
     },
     [
+      isOff,
       currentRemoteClient,
       currentSlot,
       lastPlayedSlots,
@@ -209,7 +213,7 @@ const Page = () => {
                       selectedPlayerSlots[selectedPlayerRemoteIndex - 1]
                     }
                     isPlayDiskButtonVisible={
-                      currentSlot && currentRemoteClient
+                      !isOff && currentSlot && currentRemoteClient
                         ? (() => {
                             const sequence = getPlayDiscOrder(currentSlot.slot);
                             const canExecute =

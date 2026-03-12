@@ -27,7 +27,7 @@
   },
   "detection": {
     "minDigitConfidence": 0.85,
-    "retryDelayMinMs": 100,
-    "retryDelayMaxMs": 200
+    "retryDelayMinMs": 30,
+    "retryDelayMaxMs": 50
   }
 }

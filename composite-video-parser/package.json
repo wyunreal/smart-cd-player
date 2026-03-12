@@ -1,6 +1,6 @@
 {
   "name": "composite-video-parser",
-  "version": "1.0.17",
+  "version": "1.0.19",
   "license": "MIT",
   "type": "module",
   "scripts": {
