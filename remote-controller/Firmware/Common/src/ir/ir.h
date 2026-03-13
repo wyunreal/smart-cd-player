@@ -7,6 +7,11 @@
 #include <IRutils.h>
 #include "../config/Config.h"
 
+// Shared mutex for time-critical operations on core 1.
+// Both IR send and S-Link tasks must acquire this before operating
+// to prevent timing interference.
+extern SemaphoreHandle_t core1TimingMutex;
+
 struct IrSignal
 {
     decode_type_t type;

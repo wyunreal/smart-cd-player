@@ -2,7 +2,8 @@
 
 import { Box, type SxProps, type Theme, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useContext } from "react";
+import { DataRepositoryContext } from "@/app/providers/data-repository";
 
 type SpectrumBackgroundProps = {
   children: React.ReactNode;
@@ -16,11 +17,16 @@ const FREQ_MAX = 18000;
 const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const { displayState } = useContext(DataRepositoryContext);
+  const isPlaying = displayState?.mode === "playing";
   const barCount = isMobile ? 16 : 32;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -30,11 +36,13 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    analyser.getByteFrequencyData(dataArray);
-
     const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    if (isPlayingRef.current) {
+      analyser.getByteFrequencyData(dataArray);
+    }
 
     const totalBars = barCount * 2;
     const barWidth = width / totalBars;

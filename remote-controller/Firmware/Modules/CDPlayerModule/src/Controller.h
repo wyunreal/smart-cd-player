@@ -5,6 +5,8 @@
 #include "Config.h"
 #include "Notifications.h"
 #include "SchedulerTasks.h"
+#include "slink/SLink.h"
+#include "SLinkSchedulerTasks.h"
 
 class Controller : public ModuleController
 {
@@ -21,6 +23,18 @@ public:
 
     bool sendIrCommand(const char *deviceName, const char *commandName);
 
+    // S-Link CD player control
+    void slinkPlay();
+    void slinkPause();
+    void slinkStop();
+    void slinkNextTrack();
+    void slinkPrevTrack();
+    void slinkSelectDisc(uint16_t discNumber);
+    void slinkPlayDiscTrack(uint16_t discNumber, uint8_t trackNumber);
+    void slinkPowerOn();
+    void slinkPowerOff();
+    CDPlayerState getSlinkState();
+
 private:
     static Controller controller;
     IrRemoteControl irRemoteControl;
@@ -28,6 +42,10 @@ private:
     IrCommandReadLoopTask irCommandReadLoopTask;
     IrCommandReadTimeoutTask irCommandReadTimeoutTask;
     ReadIrCommandTimeoutNotifier irReadTimeoutNotifier;
+
+    // S-Link
+    SLinkController slinkController;
+    SLinkPollTask slinkPollTask;
 };
 
 #endif

@@ -5,6 +5,8 @@
 IRrecv irrecv(IR_RECEIVE_PIN);
 IRsend irsend(IR_SEND_PIN);
 
+SemaphoreHandle_t core1TimingMutex = NULL;
+
 char IrRemoteControl::irCommandKey[15 + 1];
 QueueHandle_t IrRemoteControl::irSendQueue = NULL;
 SemaphoreHandle_t IrRemoteControl::irSendDone = NULL;
@@ -15,6 +17,9 @@ void IrRemoteControl::begin()
     irsend.begin();
     irrecv.enableIRIn();
 
+    if (core1TimingMutex == NULL) {
+        core1TimingMutex = xSemaphoreCreateMutex();
+    }
     irSendQueue = xQueueCreate(1, sizeof(IrSignal));
     irSendDone = xSemaphoreCreateBinary();
 
@@ -42,12 +47,16 @@ void IrRemoteControl::irSendTask(void *param)
 
 void IrRemoteControl::executeIrSend(const IrSignal &signal)
 {
+    xSemaphoreTake(core1TimingMutex, portMAX_DELAY);
+
     irrecv.disableIRIn();
 
     uint16_t repeats = irsend.minRepeats(signal.type);
     irsend.send(signal.type, signal.value, signal.bits, repeats);
 
     irrecv.enableIRIn();
+
+    xSemaphoreGive(core1TimingMutex);
 }
 
 void IrRemoteControl::clean()
