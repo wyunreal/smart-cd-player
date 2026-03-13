@@ -1,14 +1,12 @@
-# 1. Dependencies — needs build tools for mediasoup-worker (native C++)
+# 1. Dependencies
 ARG BUILD_PLATFORM=linux/amd64
-FROM --platform=$BUILD_PLATFORM node:22-bookworm AS deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      python3 build-essential && rm -rf /var/lib/apt/lists/*
+FROM --platform=$BUILD_PLATFORM node:22-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn --frozen-lockfile --production=false
 
 # 2. Builder — compile TypeScript and copy static assets
-FROM --platform=$BUILD_PLATFORM node:22-bookworm AS builder
+FROM --platform=$BUILD_PLATFORM node:22-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

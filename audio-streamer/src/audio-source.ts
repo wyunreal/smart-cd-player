@@ -1,28 +1,29 @@
 import { spawn, type ChildProcess } from 'child_process';
-import { OPUS_PAYLOAD_TYPE, OPUS_SSRC } from './mediasoup-mgr.js';
+import { EventEmitter } from 'events';
 
 export interface AudioSourceConfig {
-  device: string;   // ALSA device, e.g. "hw:0,0"
-  rtpPort: number;  // mediasoup PlainTransport port
+  device: string;   // ALSA device, e.g. "hw:1,0"
   sampleRate?: number;
   channels?: number;
-  bitrate?: string;
 }
 
-export class AudioSource {
+export class AudioSource extends EventEmitter {
   private process: ChildProcess | null = null;
   private readonly config: Required<AudioSourceConfig>;
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
 
   constructor(config: AudioSourceConfig) {
+    super();
     this.config = {
       sampleRate: 48000,
       channels: 2,
-      bitrate: '510k',
       ...config,
     };
   }
+
+  get sampleRate(): number { return this.config.sampleRate; }
+  get channels(): number { return this.config.channels; }
 
   start(): void {
     this.stopped = false;
@@ -42,40 +43,34 @@ export class AudioSource {
   }
 
   private spawn(): void {
-    const { device, rtpPort, sampleRate, channels, bitrate } = this.config;
+    const { device, sampleRate, channels } = this.config;
 
     const args = [
-      // Input: ALSA capture device
+      '-thread_queue_size', '4096',
       '-f', 'alsa',
       '-channels', String(channels),
       '-sample_rate', String(sampleRate),
       '-i', device,
 
-      // Encode to Opus (HiFi settings)
-      '-c:a', 'libopus',
-      '-b:a', bitrate,
+      // Output raw PCM S16LE to stdout
+      '-f', 's16le',
+      '-acodec', 'pcm_s16le',
       '-ar', String(sampleRate),
       '-ac', String(channels),
-      '-application', 'audio',      // Optimised for music / HiFi
-      '-frame_duration', '20',      // 20ms frames — good quality/latency balance
-      '-vbr', 'off',                // CBR for consistent quality
-      '-compression_level', '10',   // Max encoding quality
-
-      // RTP output
-      '-ssrc', String(OPUS_SSRC),
-      '-payload_type', String(OPUS_PAYLOAD_TYPE),
-      '-f', 'rtp',
-      `rtp://127.0.0.1:${rtpPort}`,
+      'pipe:1',
     ];
 
-    console.log(`[ffmpeg] Capturing ${device} → rtp://127.0.0.1:${rtpPort}`);
+    console.log(`[ffmpeg] Capturing ${device} → raw PCM s16le ${sampleRate}Hz ${channels}ch`);
 
     this.process = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
 
+    this.process.stdout?.on('data', (chunk: Buffer) => {
+      this.emit('data', chunk);
+    });
+
     this.process.stderr?.on('data', (data: Buffer) => {
-      // Log only first few lines (FFmpeg is verbose at startup)
       const line = data.toString().trim();
-      if (line.includes('Error') || line.includes('error') || line.includes('Warning')) {
+      if (line.includes('Error') || line.includes('error')) {
         console.warn(`[ffmpeg] ${line}`);
       }
     });

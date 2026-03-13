@@ -23,10 +23,8 @@ securityContext:
   privileged: true
   runAsUser: 0
 
-# Share host network namespace so mediasoup WebRTC UDP ports (20000-20100)
-# are directly reachable without NodePort UDP gymnastics.
-hostNetwork: true
-dnsPolicy: ClusterFirstWithHostNet
+hostNetwork: false
+dnsPolicy: ClusterFirst
 
 service:
   type: NodePort
@@ -47,15 +45,9 @@ affinity: {}
 
 env:
   PORT: "3200"
-  # REQUIRED: set to the IP of the k3s node so WebRTC ICE candidates are reachable.
-  # Override via secrets.yaml or --set env.ANNOUNCED_IP=<node-ip>
-  ANNOUNCED_IP: "192.168.68.50"
   # ALSA capture device on the host (hw:<card>,<device>).
   # Run `arecord -l` on the host to list available cards.
-  AUDIO_DEVICE: "hw:0,0"
-  # UDP port range allocated for WebRTC media (must be open on the host firewall).
-  MEDIASOUP_MIN_PORT: "20000"
-  MEDIASOUP_MAX_PORT: "20100"
+  AUDIO_DEVICE: "hw:1,0"
 
 # Mount /dev/snd from the host so FFmpeg can access the ALSA sound card.
 audioDevice:

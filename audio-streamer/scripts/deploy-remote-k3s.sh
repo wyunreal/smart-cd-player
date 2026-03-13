@@ -21,11 +21,16 @@ REMOTE_HOST=$2
 
 echo "🚀 Starting deployment of ${IMAGE_NAME}:${IMAGE_TAG} to ${REMOTE_USER}@${REMOTE_HOST}..."
 
+# Ensure docker group is available without requiring logout/login
+if ! docker info &>/dev/null; then
+    exec sg docker -c "$0 $1 $2"
+fi
+
 DOCKER_CMD="docker"
 
 # 1. Build Image
 echo "📦 Building Docker image..."
-$DOCKER_CMD build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+$DOCKER_CMD build --no-cache --platform linux/amd64 -t ${IMAGE_NAME}:${IMAGE_TAG} .
 
 # 2. Save and Compress
 echo "💾 Saving and compressing image..."

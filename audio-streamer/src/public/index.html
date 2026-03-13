@@ -84,13 +84,25 @@
     }
     .codec-info span { color: #6b7280; }
 
-    audio { display: none; }
+    .buffer-bar {
+      margin-top: 16px;
+      height: 4px;
+      background: #1e1e2e;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .buffer-fill {
+      height: 100%;
+      background: #3b82f6;
+      width: 0%;
+      transition: width 0.3s;
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>Audio Streamer</h1>
-    <p class="subtitle">Line-In → WebRTC → Browser</p>
+    <p class="subtitle">Line-In → PCM → WebSocket → Browser</p>
 
     <div class="status">
       <div class="dot connecting" id="dot"></div>
@@ -100,163 +112,137 @@
     <br />
     <button class="play-btn" id="play-btn" disabled title="Play">▶</button>
 
-    <div class="codec-info">
-      <span>Opus</span> · 510 kbps · 48 kHz · Stereo<br />
-      <span>WebRTC</span> low-latency HiFi stream
+    <div class="codec-info" id="codec-info">
+      <span>PCM</span> · Lossless · 16-bit · Stereo<br />
+      <span>WebSocket</span> low-latency stream
     </div>
 
-    <audio id="audio" autoplay></audio>
+    <div class="buffer-bar">
+      <div class="buffer-fill" id="buffer-fill"></div>
+    </div>
   </div>
 
-  <script src="/mediasoup-client.min.js"></script>
   <script>
     const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
 
-    const dotEl        = document.getElementById('dot');
-    const statusEl     = document.getElementById('status-text');
-    const playBtn      = document.getElementById('play-btn');
-    const audioEl      = document.getElementById('audio');
+    const dotEl      = document.getElementById('dot');
+    const statusEl   = document.getElementById('status-text');
+    const playBtn    = document.getElementById('play-btn');
+    const codecInfo  = document.getElementById('codec-info');
+    const bufferFill = document.getElementById('buffer-fill');
 
-    let device, sendTransport, consumer;
+    let audioCtx, scriptNode;
     let ws;
+    let streamConfig = null;
+    let playing = false;
+    // Ring buffer for PCM float samples (interleaved)
+    let pcmBuffer = new Float32Array(0);
 
     function setStatus(state, text) {
       dotEl.className = 'dot ' + state;
       statusEl.textContent = text;
     }
 
-    function send(msg) {
-      if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
-    }
-
-    // ── Signaling ────────────────────────────────────────────────────────────
+    // ── WebSocket ─────────────────────────────────────────────────────────────
 
     function connect() {
       setStatus('connecting', 'Connecting…');
       ws = new WebSocket(WS_URL);
+      ws.binaryType = 'arraybuffer';
 
-      ws.onopen = () => {
-        setStatus('connecting', 'Handshaking…');
-        send({ type: 'getRouterRtpCapabilities' });
+      ws.onopen = () => setStatus('connecting', 'Waiting for config…');
+
+      ws.onmessage = (ev) => {
+        if (typeof ev.data === 'string') {
+          // JSON config message
+          streamConfig = JSON.parse(ev.data);
+          const { sampleRate, channels, bitDepth } = streamConfig;
+          codecInfo.innerHTML =
+            `<span>PCM</span> · Lossless · ${bitDepth}-bit · ${sampleRate} Hz · ${channels}ch<br />` +
+            `<span>WebSocket</span> low-latency stream`;
+          if (playing) {
+            setStatus('playing', 'Playing');
+          } else {
+            setStatus('ready', 'Ready — click ▶ to play');
+          }
+          playBtn.disabled = false;
+          return;
+        }
+
+        // Binary PCM data — accumulate in ring buffer
+        if (!playing && !audioCtx) return;
+
+        const s16 = new Int16Array(ev.data);
+        const f32 = new Float32Array(s16.length);
+        for (let i = 0; i < s16.length; i++) {
+          f32[i] = s16[i] / 32768;
+        }
+        // Append to buffer (cap at ~5s to absorb reconnections)
+        const maxSamples = streamConfig.sampleRate * streamConfig.channels * 5;
+        const merged = new Float32Array(pcmBuffer.length + f32.length);
+        merged.set(pcmBuffer);
+        merged.set(f32, pcmBuffer.length);
+        pcmBuffer = merged.length > maxSamples ? merged.subarray(merged.length - maxSamples) : merged;
       };
 
       ws.onclose = () => {
-        setStatus('error', 'Disconnected — retrying…');
-        playBtn.disabled = true;
-        setTimeout(connect, 3000);
+        if (playing) {
+          // Keep playing state, just reconnect transparently
+          setStatus('playing', 'Reconnecting…');
+        } else {
+          setStatus('error', 'Disconnected — retrying…');
+        }
+        setTimeout(connect, 1000);
       };
 
       ws.onerror = () => ws.close();
-
-      ws.onmessage = async (ev) => {
-        const msg = JSON.parse(ev.data);
-        try {
-          await handleMsg(msg);
-        } catch (e) {
-          console.error('Error handling', msg.type, e);
-          setStatus('error', String(e));
-        }
-      };
-    }
-
-    async function handleMsg(msg) {
-      switch (msg.type) {
-
-        case 'serverState': {
-          if (!msg.producerReady) setStatus('connecting', 'Waiting for audio source…');
-          break;
-        }
-
-        case 'routerRtpCapabilities': {
-          device = new mediasoupClient.Device();
-          await device.load({ routerRtpCapabilities: msg.rtpCapabilities });
-          send({ type: 'createWebRtcTransport' });
-          break;
-        }
-
-        case 'webRtcTransportCreated': {
-          sendTransport = device.createRecvTransport({
-            id:             msg.id,
-            iceParameters:  msg.iceParameters,
-            iceCandidates:  msg.iceCandidates,
-            dtlsParameters: msg.dtlsParameters,
-          });
-
-          sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
-            send({ type: 'connectWebRtcTransport', transportId: msg.id, dtlsParameters });
-            ws.addEventListener('message', function listener(ev) {
-              const m = JSON.parse(ev.data);
-              if (m.type === 'webRtcTransportConnected') {
-                ws.removeEventListener('message', listener);
-                callback();
-              } else if (m.type === 'error') {
-                ws.removeEventListener('message', listener);
-                errback(new Error(m.message));
-              }
-            });
-          });
-
-          send({
-            type: 'consume',
-            transportId: msg.id,
-            rtpCapabilities: device.rtpCapabilities,
-          });
-          break;
-        }
-
-        case 'webRtcTransportConnected':
-          // handled inside the transport 'connect' listener above
-          break;
-
-        case 'consumed': {
-          consumer = await sendTransport.consume({
-            id:            msg.id,
-            producerId:    msg.producerId,
-            kind:          msg.kind,
-            rtpParameters: msg.rtpParameters,
-          });
-
-          // Attach the track to the <audio> element
-          const stream = new MediaStream([consumer.track]);
-          audioEl.srcObject = stream;
-
-          send({ type: 'resumeConsumer', consumerId: msg.id });
-
-          setStatus('ready', 'Ready — click ▶ to play');
-          playBtn.disabled = false;
-          break;
-        }
-
-        case 'consumerResumed':
-          // Track is flowing; user must click play (autoplay policy)
-          break;
-
-        case 'consumeFailed':
-          setStatus('error', msg.reason ?? 'Audio source not ready');
-          setTimeout(() => send({ type: 'consume', rtpCapabilities: device.rtpCapabilities }), 4000);
-          break;
-
-        case 'error':
-          setStatus('error', msg.message);
-          break;
-      }
     }
 
     // ── Play button ──────────────────────────────────────────────────────────
 
     playBtn.addEventListener('click', async () => {
-      try {
-        await audioEl.play();
-        playBtn.textContent = '⏸';
-        setStatus('playing', 'Playing');
-      } catch (e) {
-        setStatus('error', 'Playback blocked: ' + e.message);
-      }
-    });
+      if (!streamConfig) return;
 
-    audioEl.addEventListener('pause', () => {
-      playBtn.textContent = '▶';
-      setStatus('ready', 'Paused');
+      if (!playing) {
+        try {
+          const ch = streamConfig.channels;
+          if (!audioCtx) {
+            audioCtx = new AudioContext({
+              sampleRate: streamConfig.sampleRate,
+              latencyHint: 'playback',
+            });
+            const bufSize = 4096;
+            scriptNode = audioCtx.createScriptProcessor(bufSize, 0, ch);
+            scriptNode.onaudioprocess = (e) => {
+              const out = e.outputBuffer;
+              const frames = out.length;
+              const needed = frames * ch;
+              if (pcmBuffer.length >= needed) {
+                for (let i = 0; i < frames; i++) {
+                  for (let c = 0; c < ch; c++) {
+                    out.getChannelData(c)[i] = pcmBuffer[i * ch + c];
+                  }
+                }
+                pcmBuffer = pcmBuffer.subarray(needed);
+              } else {
+                for (let c = 0; c < ch; c++) out.getChannelData(c).fill(0);
+              }
+            };
+            scriptNode.connect(audioCtx.destination);
+          }
+          if (audioCtx.state === 'suspended') await audioCtx.resume();
+          playing = true;
+          playBtn.textContent = '⏸';
+          setStatus('playing', 'Playing');
+        } catch (e) {
+          setStatus('error', 'Playback error: ' + e.message);
+        }
+      } else {
+        playing = false;
+        if (audioCtx) await audioCtx.suspend();
+        playBtn.textContent = '▶';
+        setStatus('ready', 'Paused');
+      }
     });
 
     connect();
