@@ -28,9 +28,15 @@ fi
 
 DOCKER_CMD="docker"
 
-# 1. Build Image
+# 1. Ensure BuildKit is up to date to avoid stale CA certificate issues
+echo "🔧 Refreshing BuildKit builder..."
+docker pull moby/buildkit:buildx-stable-1
+docker buildx rm desktop-linux 2>/dev/null || true
+docker buildx create --name desktop-linux --use --bootstrap
+
+# 2. Build Image
 echo "📦 Building Docker image..."
-$DOCKER_CMD build --no-cache --platform linux/amd64 -t ${IMAGE_NAME}:${IMAGE_TAG} .
+$DOCKER_CMD build --no-cache --load --platform linux/amd64 -t ${IMAGE_NAME}:${IMAGE_TAG} .
 
 # 2. Save and Compress
 echo "💾 Saving and compressing image..."

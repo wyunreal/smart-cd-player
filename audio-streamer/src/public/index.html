@@ -132,11 +132,16 @@
     const playBtn    = document.getElementById('play-btn');
     const codecInfo  = document.getElementById('codec-info');
 
+    const PREBUFFER_SECONDS = 0.6; // accumulate 600 ms before scheduling
+
     let audioCtx;
     let nextStartTime = 0;
     let ws;
     let streamConfig = null;
     let playing = false;
+    let prebuffering = false;
+    let prebuffer = [];
+    let prebufferDuration = 0;
 
     // Initialize WASM FLAC decoder (streaming-capable)
     const flacDecoder = new FLACDecoder();
@@ -176,25 +181,24 @@
           return;
         }
 
-        // Binary FLAC data — decode and schedule for playback
-        if (!playing || !audioCtx) return;
-
+        // Binary FLAC data — always decode to keep decoder state in sync,
+        // but only schedule for playback when playing
         const { channelData, samplesDecoded } = await flacDecoder.decode(new Uint8Array(ev.data));
-        if (samplesDecoded === 0) return;
+        if (!playing || !audioCtx || samplesDecoded === 0) return;
 
-        const ch = channelData.length;
-        const audioBuffer = audioCtx.createBuffer(ch, samplesDecoded, streamConfig.sampleRate);
-        for (let c = 0; c < ch; c++) {
-          audioBuffer.copyToChannel(channelData[c], c);
+        if (prebuffering) {
+          prebuffer.push({ channelData: channelData.map(ch => ch.slice()), samplesDecoded });
+          prebufferDuration += samplesDecoded / streamConfig.sampleRate;
+          if (prebufferDuration < PREBUFFER_SECONDS) return;
+          prebuffering = false;
+          nextStartTime = audioCtx.currentTime;
+          for (const item of prebuffer) scheduleChunk(item.channelData, item.samplesDecoded);
+          prebuffer = [];
+          prebufferDuration = 0;
+          return;
         }
 
-        const source = audioCtx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioCtx.destination);
-
-        const startTime = Math.max(audioCtx.currentTime, nextStartTime);
-        source.start(startTime);
-        nextStartTime = startTime + audioBuffer.duration;
+        scheduleChunk(channelData, samplesDecoded);
       };
 
       ws.onclose = () => {
@@ -207,6 +211,18 @@
       };
 
       ws.onerror = () => ws.close();
+    }
+
+    function scheduleChunk(channelData, samplesDecoded) {
+      const ch = channelData.length;
+      const audioBuffer = audioCtx.createBuffer(ch, samplesDecoded, streamConfig.sampleRate);
+      for (let c = 0; c < ch; c++) audioBuffer.copyToChannel(channelData[c], c);
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioCtx.destination);
+      const startTime = Math.max(audioCtx.currentTime, nextStartTime);
+      source.start(startTime);
+      nextStartTime = startTime + audioBuffer.duration;
     }
 
     // ── Play button ──────────────────────────────────────────────────────────
@@ -223,6 +239,9 @@
             });
           }
           nextStartTime = 0;
+          prebuffering = true;
+          prebuffer = [];
+          prebufferDuration = 0;
           if (audioCtx.state === 'suspended') await audioCtx.resume();
           playing = true;
           playBtn.textContent = '⏸';
