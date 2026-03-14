@@ -58,6 +58,3 @@ helm upgrade --install ${IMAGE_NAME} ${CHART_PATH} \
 
 echo "✅ Deployment complete! Version: ${IMAGE_TAG}"
 echo "👉 Audio player available at http://${REMOTE_HOST}:30003"
-echo ""
-echo "⚠️  Make sure ANNOUNCED_IP in values.yaml (or secrets.yaml) is set to ${REMOTE_HOST}"
-echo "⚠️  Make sure UDP ports 20000-20100 are open in the host firewall"

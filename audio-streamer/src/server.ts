@@ -23,6 +23,7 @@ export function createServer(audioSource: AudioSource) {
 
   const config = {
     type: 'config',
+    codec: 'flac',
     sampleRate: audioSource.sampleRate,
     channels: audioSource.channels,
     bitDepth: 16,

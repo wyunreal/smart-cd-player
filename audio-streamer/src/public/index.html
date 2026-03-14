@@ -102,7 +102,7 @@
 <body>
   <div class="card">
     <h1>Audio Streamer</h1>
-    <p class="subtitle">Line-In → PCM → WebSocket → Browser</p>
+    <p class="subtitle">Line-In → FLAC → WebSocket → Browser</p>
 
     <div class="status">
       <div class="dot connecting" id="dot"></div>
@@ -113,7 +113,7 @@
     <button class="play-btn" id="play-btn" disabled title="Play">▶</button>
 
     <div class="codec-info" id="codec-info">
-      <span>PCM</span> · Lossless · 16-bit · Stereo<br />
+      <span>FLAC</span> · Lossless · Level 5 · Stereo<br />
       <span>WebSocket</span> low-latency stream
     </div>
 
@@ -122,21 +122,25 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { FLACDecoder } from '/flac-decoder.esm.js';
+
     const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
 
     const dotEl      = document.getElementById('dot');
     const statusEl   = document.getElementById('status-text');
     const playBtn    = document.getElementById('play-btn');
     const codecInfo  = document.getElementById('codec-info');
-    const bufferFill = document.getElementById('buffer-fill');
 
-    let audioCtx, scriptNode;
+    let audioCtx;
+    let nextStartTime = 0;
     let ws;
     let streamConfig = null;
     let playing = false;
-    // Ring buffer for PCM float samples (interleaved)
-    let pcmBuffer = new Float32Array(0);
+
+    // Initialize WASM FLAC decoder (streaming-capable)
+    const flacDecoder = new FLACDecoder();
+    await flacDecoder.ready;
 
     function setStatus(state, text) {
       dotEl.className = 'dot ' + state;
@@ -150,15 +154,18 @@
       ws = new WebSocket(WS_URL);
       ws.binaryType = 'arraybuffer';
 
-      ws.onopen = () => setStatus('connecting', 'Waiting for config…');
+      ws.onopen = () => {
+        flacDecoder.reset();
+        nextStartTime = 0;
+        setStatus('connecting', 'Waiting for config…');
+      };
 
-      ws.onmessage = (ev) => {
+      ws.onmessage = async (ev) => {
         if (typeof ev.data === 'string') {
-          // JSON config message
           streamConfig = JSON.parse(ev.data);
-          const { sampleRate, channels, bitDepth } = streamConfig;
+          const { sampleRate, channels } = streamConfig;
           codecInfo.innerHTML =
-            `<span>PCM</span> · Lossless · ${bitDepth}-bit · ${sampleRate} Hz · ${channels}ch<br />` +
+            `<span>FLAC</span> · Lossless · Level 5 · ${sampleRate} Hz · ${channels}ch<br />` +
             `<span>WebSocket</span> low-latency stream`;
           if (playing) {
             setStatus('playing', 'Playing');
@@ -169,25 +176,29 @@
           return;
         }
 
-        // Binary PCM data — accumulate in ring buffer
-        if (!playing && !audioCtx) return;
+        // Binary FLAC data — decode and schedule for playback
+        if (!playing || !audioCtx) return;
 
-        const s16 = new Int16Array(ev.data);
-        const f32 = new Float32Array(s16.length);
-        for (let i = 0; i < s16.length; i++) {
-          f32[i] = s16[i] / 32768;
+        const { channelData, samplesDecoded } = await flacDecoder.decode(new Uint8Array(ev.data));
+        if (samplesDecoded === 0) return;
+
+        const ch = channelData.length;
+        const audioBuffer = audioCtx.createBuffer(ch, samplesDecoded, streamConfig.sampleRate);
+        for (let c = 0; c < ch; c++) {
+          audioBuffer.copyToChannel(channelData[c], c);
         }
-        // Append to buffer (cap at ~5s to absorb reconnections)
-        const maxSamples = streamConfig.sampleRate * streamConfig.channels * 5;
-        const merged = new Float32Array(pcmBuffer.length + f32.length);
-        merged.set(pcmBuffer);
-        merged.set(f32, pcmBuffer.length);
-        pcmBuffer = merged.length > maxSamples ? merged.subarray(merged.length - maxSamples) : merged;
+
+        const source = audioCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioCtx.destination);
+
+        const startTime = Math.max(audioCtx.currentTime, nextStartTime);
+        source.start(startTime);
+        nextStartTime = startTime + audioBuffer.duration;
       };
 
       ws.onclose = () => {
         if (playing) {
-          // Keep playing state, just reconnect transparently
           setStatus('playing', 'Reconnecting…');
         } else {
           setStatus('error', 'Disconnected — retrying…');
@@ -205,31 +216,13 @@
 
       if (!playing) {
         try {
-          const ch = streamConfig.channels;
           if (!audioCtx) {
             audioCtx = new AudioContext({
               sampleRate: streamConfig.sampleRate,
-              latencyHint: 'playback',
+              latencyHint: 'interactive',
             });
-            const bufSize = 4096;
-            scriptNode = audioCtx.createScriptProcessor(bufSize, 0, ch);
-            scriptNode.onaudioprocess = (e) => {
-              const out = e.outputBuffer;
-              const frames = out.length;
-              const needed = frames * ch;
-              if (pcmBuffer.length >= needed) {
-                for (let i = 0; i < frames; i++) {
-                  for (let c = 0; c < ch; c++) {
-                    out.getChannelData(c)[i] = pcmBuffer[i * ch + c];
-                  }
-                }
-                pcmBuffer = pcmBuffer.subarray(needed);
-              } else {
-                for (let c = 0; c < ch; c++) out.getChannelData(c).fill(0);
-              }
-            };
-            scriptNode.connect(audioCtx.destination);
           }
+          nextStartTime = 0;
           if (audioCtx.state === 'suspended') await audioCtx.resume();
           playing = true;
           playBtn.textContent = '⏸';

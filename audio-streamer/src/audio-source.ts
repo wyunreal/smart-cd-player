@@ -52,15 +52,16 @@ export class AudioSource extends EventEmitter {
       '-sample_rate', String(sampleRate),
       '-i', device,
 
-      // Output raw PCM S16LE to stdout
-      '-f', 's16le',
-      '-acodec', 'pcm_s16le',
+      // Output FLAC (lossless, level 5, 4096-sample frames) to stdout
+      '-f', 'flac',
+      '-compression_level', '5',
+      '-frame_size', '4096',
       '-ar', String(sampleRate),
       '-ac', String(channels),
       'pipe:1',
     ];
 
-    console.log(`[ffmpeg] Capturing ${device} → raw PCM s16le ${sampleRate}Hz ${channels}ch`);
+    console.log(`[ffmpeg] Capturing ${device} → FLAC level 5 ${sampleRate}Hz ${channels}ch`);
 
     this.process = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
 
