@@ -5,7 +5,7 @@ export async function GET() {
 
   if (!baseUrl) {
     return NextResponse.json(
-      { error: "COMPOSITE_VIDEO_PARSER_URL not configured" },
+      { error: "Service unavailable" },
       { status: 503 },
     );
   }
@@ -15,7 +15,7 @@ export async function GET() {
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: `Upstream error: ${response.status} ${response.statusText}` },
+        { error: "Upstream service error" },
         { status: response.status },
       );
     }
@@ -24,9 +24,8 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Display proxy error:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Failed to fetch display state", details: errorMessage },
+      { error: "Failed to fetch display state" },
       { status: 500 },
     );
   }

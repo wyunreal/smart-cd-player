@@ -9,6 +9,7 @@ image:
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+# hostNetwork is required for mDNS/Avahi discovery of local CD player hardware
 hostNetwork: true
 
 serviceAccount:
@@ -23,14 +24,15 @@ podSecurityContext:
   # fsGroup: 2000
 
 securityContext:
-  runAsUser: 0
-  runAsGroup: 0
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+  runAsUser: 1001
+  runAsGroup: 1001
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_RAW  # Required for mDNS resolution of .local hostnames via Avahi
 
 service:
   type: NodePort
@@ -88,6 +90,7 @@ env:
   # COMPOSITE_VIDEO_PARSER_URL is auto-generated from shared-services.yaml
 
   # The secret must contain keys: AUTH_SECRET, DISCOGS_USER_TOKEN, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+  # and security config: ALLOWED_EMAILS, ALLOWED_PROXY_ORIGINS, ALLOWED_IMAGE_ORIGINS
   existingSecret: ""
 
 filebrowser:
@@ -100,5 +103,6 @@ filebrowser:
     port: 8082
     root: /data
     database: /data/filebrowser.db
+    # WARNING: FileBrowser default credentials are admin/admin - change immediately after first login
   service:
     nodePort: 30001

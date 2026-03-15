@@ -37,7 +37,7 @@ spec:
       initContainers:
         - name: volume-permissions
           image: busybox:latest
-          command: ["sh", "-c", "chown -R 1000:1000 /app/data"]
+          command: ["sh", "-c", "chown -R 1001:1001 /app/data"]
           volumeMounts:
             - name: data
               mountPath: /app/data
@@ -101,6 +101,21 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.existingSecret | default (include "cd-manager.fullname" .) }}
                   key: GOOGLE_CLIENT_SECRET
+            - name: ALLOWED_EMAILS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret | default (include "cd-manager.fullname" .) }}
+                  key: ALLOWED_EMAILS
+            - name: ALLOWED_PROXY_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret | default (include "cd-manager.fullname" .) }}
+                  key: ALLOWED_PROXY_ORIGINS
+            - name: ALLOWED_IMAGE_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret | default (include "cd-manager.fullname" .) }}
+                  key: ALLOWED_IMAGE_ORIGINS
           volumeMounts:
             - name: avahi-daemon-socket
               mountPath: /var/run/avahi-daemon/socket
@@ -114,6 +129,9 @@ spec:
         - name: filebrowser
           image: "{{ .Values.filebrowser.image.repository }}:{{ .Values.filebrowser.image.tag }}"
           imagePullPolicy: {{ .Values.filebrowser.image.pullPolicy }}
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
           args:
             - "--port={{ .Values.filebrowser.settings.port }}"
             - "--root={{ .Values.filebrowser.settings.root }}"

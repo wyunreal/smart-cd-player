@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { NextRequest } from "next/server";
 import { FILES_DIR } from "@/api/file-storage";
+import { isPathWithinDir } from "@/lib/security";
 
 export const GET = async (
   request: NextRequest,
@@ -10,6 +11,10 @@ export const GET = async (
   const { filename } = await params;
 
   const filePath = path.join(FILES_DIR, filename);
+
+  if (!isPathWithinDir(filePath, FILES_DIR)) {
+    return Response.json({ error: "Invalid filename" }, { status: 400 });
+  }
 
   if (!fs.existsSync(filePath)) {
     return Response.json({ error: "Image not found" }, { status: 404 });

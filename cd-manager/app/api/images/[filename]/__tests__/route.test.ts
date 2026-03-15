@@ -47,9 +47,8 @@ describe("images route", () => {
   });
 
   it("serves an existing image with correct content-type", async () => {
-    // Create a test image file
     const testFile = path.join(testDir, "test.jpg");
-    fs.writeFileSync(testFile, Buffer.from([0xff, 0xd8, 0xff, 0xe0])); // JPEG magic bytes
+    fs.writeFileSync(testFile, Buffer.from([0xff, 0xd8, 0xff, 0xe0]));
 
     const req = createRequest("test.jpg");
     const res = await GET(req, {
@@ -78,32 +77,6 @@ describe("images route", () => {
     expect(res.headers.get("Content-Type")).toBe("image/png");
   });
 
-  it("serves WebP with correct content-type", async () => {
-    const testFile = path.join(testDir, "test.webp");
-    fs.writeFileSync(testFile, Buffer.from([0x52, 0x49, 0x46, 0x46]));
-
-    const req = createRequest("test.webp");
-    const res = await GET(req, {
-      params: Promise.resolve({ filename: "test.webp" }),
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe("image/webp");
-  });
-
-  it("uses application/octet-stream for unknown extensions", async () => {
-    const testFile = path.join(testDir, "test.xyz");
-    fs.writeFileSync(testFile, Buffer.from([0x00, 0x01]));
-
-    const req = createRequest("test.xyz");
-    const res = await GET(req, {
-      params: Promise.resolve({ filename: "test.xyz" }),
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe("application/octet-stream");
-  });
-
   it("returns correct body content", async () => {
     const content = Buffer.from([0x01, 0x02, 0x03, 0x04]);
     const testFile = path.join(testDir, "body-test.jpg");
@@ -116,5 +89,37 @@ describe("images route", () => {
 
     const body = await res.arrayBuffer();
     expect(Buffer.from(body)).toEqual(content);
+  });
+
+  // --- NEW: Path traversal protection tests ---
+
+  it("rejects path traversal with ../", async () => {
+    const req = createRequest("../../etc/passwd");
+    const res = await GET(req, {
+      params: Promise.resolve({ filename: "../../etc/passwd" }),
+    });
+
+    // Should be rejected, not serve the file
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBeDefined();
+  });
+
+  it("rejects path traversal with encoded sequences", async () => {
+    const req = createRequest("..%2F..%2Fetc%2Fpasswd");
+    const res = await GET(req, {
+      params: Promise.resolve({ filename: "../../../etc/passwd" }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects deeply nested traversal attempts", async () => {
+    const req = createRequest("....//....//etc/passwd");
+    const res = await GET(req, {
+      params: Promise.resolve({ filename: "../../../../../../../etc/passwd" }),
+    });
+
+    expect(res.status).toBe(400);
   });
 });

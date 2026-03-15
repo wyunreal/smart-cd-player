@@ -40,22 +40,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    updateAge: 24 * 60 * 60, // Re-issue token every 24 hours
   },
   callbacks: {
+    async signIn({ user }) {
+      const allowedEmails = process.env.ALLOWED_EMAILS;
+      if (!allowedEmails || !allowedEmails.trim()) {
+        return false;
+      }
+      const emailSet = new Set(
+        allowedEmails.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean),
+      );
+      if (emailSet.size === 0) {
+        return false;
+      }
+      return emailSet.has(user.email?.toLowerCase() || "");
+    },
     async jwt({ token, user, profile }) {
-      // En el primer inicio de sesión, incluir la imagen del usuario
       if (user) {
         token.picture = user.image;
       }
-      // También desde el profile de OAuth
       if (profile && profile.picture) {
         token.picture = profile.picture;
       }
       return token;
     },
     async session({ session, token }) {
-      // Incluir la imagen del token JWT en la sesión
       if (session.user) {
         session.user.image = token.picture as string;
       }
@@ -65,13 +76,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const isLoggedIn = !!session?.user;
       const isPublicPage = nextUrl.pathname.startsWith("/public");
       const isAuthPage = nextUrl.pathname.startsWith("/auth");
-      const isApiPage = nextUrl.pathname.startsWith("/api");
 
-      if (isPublicPage || isAuthPage || isApiPage || isLoggedIn) {
+      if (isPublicPage || isAuthPage || isLoggedIn) {
         return true;
       }
 
-      return false; // Redirect unauthenticated users to login page
+      return false;
     },
   },
 });

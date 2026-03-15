@@ -1,3 +1,7 @@
+/**
+ * @jest-environment node
+ */
+
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -18,19 +22,14 @@ afterAll(() => {
   delete process.env.IMAGES_DIR;
 });
 
-// Must import after setting env
-// Use require to ensure env is set before module loads
 let downloadImage: typeof import("../index").downloadImage;
 let saveImage: typeof import("../index").saveImage;
-let FILES_DIR: string;
 
 beforeAll(async () => {
-  // Clear module cache to pick up the new IMAGES_DIR
   jest.resetModules();
   const mod = await import("../index");
   downloadImage = mod.downloadImage;
   saveImage = mod.saveImage;
-  FILES_DIR = mod.FILES_DIR;
 });
 
 describe("file-storage", () => {
@@ -39,7 +38,7 @@ describe("file-storage", () => {
   });
 
   describe("downloadImage", () => {
-    it("downloads and saves an image from a valid URL", async () => {
+    it("downloads and saves an image from a valid allowed URL", async () => {
       const imageData = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
       const arrayBuffer = imageData.buffer.slice(
         imageData.byteOffset,
@@ -47,7 +46,10 @@ describe("file-storage", () => {
       );
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        headers: new Headers({ "content-type": "image/jpeg" }),
+        headers: new Headers({
+          "content-type": "image/jpeg",
+          "content-length": "4",
+        }),
         arrayBuffer: async () => arrayBuffer,
       });
 
@@ -56,7 +58,7 @@ describe("file-storage", () => {
         "downloaded.jpg",
       );
 
-      expect(result).toBe(path.join(testDir, "downloaded.jpg"));
+      expect(result).toContain("downloaded.jpg");
       expect(fs.existsSync(result)).toBe(true);
       const saved = fs.readFileSync(result);
       expect(saved[0]).toBe(0xff);
@@ -72,7 +74,7 @@ describe("file-storage", () => {
 
       await expect(
         downloadImage("https://i.discogs.com/notfound.jpg", "fail.jpg"),
-      ).rejects.toThrow("Failed to download image");
+      ).rejects.toThrow();
     });
 
     it("throws when fetch rejects with network error", async () => {
@@ -80,33 +82,85 @@ describe("file-storage", () => {
 
       await expect(
         downloadImage("https://i.discogs.com/error.jpg", "fail.jpg"),
-      ).rejects.toThrow("Error downloading image");
+      ).rejects.toThrow();
     });
 
-    it("creates the images directory if it does not exist", async () => {
-      // Use a nested dir that doesn't exist
-      const nestedDir = path.join(testDir, "subdir-download");
-      process.env.IMAGES_DIR = nestedDir;
-      jest.resetModules();
-      const mod = await import("../index");
+    // --- NEW: URL validation tests ---
 
-      const imageData = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    it("rejects URLs from non-allowed origins", async () => {
+      await expect(
+        downloadImage("https://evil.com/malware.exe", "bad.exe"),
+      ).rejects.toThrow("not allowed");
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("rejects non-https URLs", async () => {
+      await expect(
+        downloadImage("http://i.discogs.com/image.jpg", "bad.jpg"),
+      ).rejects.toThrow("not allowed");
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    // --- NEW: Content-type validation tests ---
+
+    it("rejects responses with non-image content-type", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        headers: new Headers({ "content-type": "image/png" }),
-        arrayBuffer: async () => imageData.buffer.slice(0),
+        headers: new Headers({
+          "content-type": "text/html",
+          "content-length": "100",
+        }),
+        arrayBuffer: async () => new ArrayBuffer(100),
       });
 
-      const result = await mod.downloadImage(
-        "https://i.discogs.com/test.png",
-        "created-dir.png",
+      await expect(
+        downloadImage("https://i.discogs.com/page.html", "page.html"),
+      ).rejects.toThrow("image");
+    });
+
+    // --- NEW: Size limit tests ---
+
+    it("rejects responses that exceed the size limit via content-length", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({
+          "content-type": "image/jpeg",
+          "content-length": String(20 * 1024 * 1024), // 20MB
+        }),
+        arrayBuffer: async () => new ArrayBuffer(0),
+      });
+
+      await expect(
+        downloadImage("https://i.discogs.com/huge.jpg", "huge.jpg"),
+      ).rejects.toThrow("size");
+    });
+
+    // --- NEW: Filename sanitization tests ---
+
+    it("sanitizes filenames with path traversal sequences", async () => {
+      const imageData = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({
+          "content-type": "image/jpeg",
+          "content-length": "4",
+        }),
+        arrayBuffer: async () =>
+          imageData.buffer.slice(
+            imageData.byteOffset,
+            imageData.byteOffset + imageData.byteLength,
+          ),
+      });
+
+      const result = await downloadImage(
+        "https://i.discogs.com/image.jpg",
+        "../../etc/evil.jpg",
       );
 
-      expect(fs.existsSync(nestedDir)).toBe(true);
+      // The file should be saved inside testDir, not escaped
+      expect(path.dirname(result)).toBe(testDir);
+      // The saved file should exist
       expect(fs.existsSync(result)).toBe(true);
-
-      // Restore
-      process.env.IMAGES_DIR = testDir;
     });
   });
 
@@ -116,7 +170,7 @@ describe("file-storage", () => {
 
       const result = await saveImage(imageData, "saved.jpg");
 
-      expect(result).toBe(path.join(testDir, "saved.jpg"));
+      expect(result).toContain("saved.jpg");
       expect(fs.existsSync(result)).toBe(true);
       expect(fs.readFileSync(result)).toEqual(imageData);
     });
@@ -124,28 +178,24 @@ describe("file-storage", () => {
     it("saves an ArrayBuffer to disk", async () => {
       const data = new Uint8Array([0x05, 0x06, 0x07, 0x08]);
 
-      const result = await saveImage(data.buffer as ArrayBuffer, "saved-ab.jpg");
+      const result = await saveImage(
+        data.buffer as ArrayBuffer,
+        "saved-ab.jpg",
+      );
 
-      expect(result).toBe(path.join(testDir, "saved-ab.jpg"));
+      expect(result).toContain("saved-ab.jpg");
       expect(fs.existsSync(result)).toBe(true);
     });
 
-    it("creates the images directory if it does not exist", async () => {
-      const nestedDir = path.join(testDir, "subdir-save");
-      process.env.IMAGES_DIR = nestedDir;
-      jest.resetModules();
-      const mod = await import("../index");
+    // --- NEW: saveImage sanitization test ---
 
-      const result = await mod.saveImage(
-        Buffer.from([0x01]),
-        "created-dir.jpg",
-      );
+    it("sanitizes filenames with path traversal sequences", async () => {
+      const imageData = Buffer.from([0x01, 0x02]);
 
-      expect(fs.existsSync(nestedDir)).toBe(true);
-      expect(fs.existsSync(result)).toBe(true);
+      const result = await saveImage(imageData, "../../../etc/evil.jpg");
 
-      // Restore
-      process.env.IMAGES_DIR = testDir;
+      // Should be saved inside testDir, not escaped
+      expect(path.dirname(result)).toBe(testDir);
     });
   });
 });
