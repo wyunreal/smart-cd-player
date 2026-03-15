@@ -24,16 +24,22 @@ REMOTE_HOST=$2
 
 echo "🚀 Starting deployment of ${IMAGE_NAME}:${IMAGE_TAG} to ${REMOTE_USER}@${REMOTE_HOST}..."
 
-# Check for Docker permissions
-DOCKER_CMD="docker"
-if ! docker info > /dev/null 2>&1; then
-    echo "⚠️  User not in 'docker' group. Using 'sudo' for docker commands..."
-    DOCKER_CMD="sudo docker"
+# Ensure docker group is available without requiring logout/login
+if ! docker info &>/dev/null; then
+    exec sg docker -c "$0 $1 $2"
 fi
 
-# 1. Build Image
+DOCKER_CMD="docker"
+
+# 1. Ensure BuildKit is up to date to avoid stale CA certificate issues
+echo "🔧 Refreshing BuildKit builder..."
+docker pull moby/buildkit:buildx-stable-1
+docker buildx rm desktop-linux 2>/dev/null || true
+docker buildx create --name desktop-linux --use --bootstrap
+
+# 2. Build Image
 echo "📦 Building Docker image..."
-$DOCKER_CMD build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+$DOCKER_CMD build --no-cache --load --platform linux/amd64 -t ${IMAGE_NAME}:${IMAGE_TAG} .
 
 # 2. Save and Compress
 echo "💾 Saving and compressing image..."

@@ -3,13 +3,13 @@
 import { Box, type SxProps, type Theme, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import React, { useRef, useEffect, useCallback } from "react";
+import useAudioStream from "@/app/hooks/use-audio-stream";
 
 type SpectrumBackgroundProps = {
   children: React.ReactNode;
   sx?: SxProps<Theme>;
 };
 
-const FFT_SIZE = 8192;
 const FREQ_MIN = 20;
 const FREQ_MAX = 18000;
 
@@ -19,13 +19,12 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
   const barCount = isMobile ? 16 : 32;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const { analyserNode } = useAudioStream();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    const analyser = analyserRef.current;
-    if (!canvas || !analyser) return;
+    if (!canvas || !analyserNode) return;
+    const analyser = analyserNode;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -72,7 +71,7 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
     }
 
     animationRef.current = requestAnimationFrame(draw);
-  }, [theme.palette.primary.main, barCount]);
+  }, [theme.palette.primary.main, barCount, analyserNode]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -87,29 +86,15 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
     observer.observe(canvas);
     resizeCanvas();
 
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then((stream) => {
-        streamRef.current = stream;
-        const audioCtx = new AudioContext();
-        const source = audioCtx.createMediaStreamSource(stream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = FFT_SIZE;
-        analyser.smoothingTimeConstant = 0.8;
-        source.connect(analyser);
-        analyserRef.current = analyser;
-        animationRef.current = requestAnimationFrame(draw);
-      })
-      .catch(() => {
-        // Microphone not available or permission denied — render children without spectrum
-      });
+    if (analyserNode) {
+      animationRef.current = requestAnimationFrame(draw);
+    }
 
     return () => {
       cancelAnimationFrame(animationRef.current);
       observer.disconnect();
-      streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, [draw]);
+  }, [draw, analyserNode]);
 
   return (
     <Box

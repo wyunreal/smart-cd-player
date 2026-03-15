@@ -10,14 +10,16 @@ import { useTheme } from "@mui/material";
 import MainActions from "../components/client/main-actions";
 import { DataRepositoryProvider } from "@/app/providers/data-repository";
 import { CdSelectionProvider } from "@/app/providers/cd-selection-context";
+import { AudioStreamProvider } from "@/app/providers/audio-stream-provider";
 
 export default function Layout(props: { children: React.ReactNode }) {
   const theme = useTheme();
 
   return (
-    <CdSelectionProvider>
-      <DataRepositoryProvider>
-        <DashboardLayout
+    <AudioStreamProvider>
+      <CdSelectionProvider>
+        <DataRepositoryProvider>
+          <DashboardLayout
           slots={{
             toolbarAccount: ToolbarAccountOverride,
             sidebarFooter: SidebarFooterAccount,
@@ -68,9 +70,10 @@ export default function Layout(props: { children: React.ReactNode }) {
             },
           }}
         >
-          <PageContainer>{props.children}</PageContainer>
-        </DashboardLayout>
-      </DataRepositoryProvider>
-    </CdSelectionProvider>
+            <PageContainer>{props.children}</PageContainer>
+          </DashboardLayout>
+        </DataRepositoryProvider>
+      </CdSelectionProvider>
+    </AudioStreamProvider>
   );
 }

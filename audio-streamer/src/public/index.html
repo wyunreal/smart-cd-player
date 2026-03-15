@@ -123,9 +123,9 @@
   </div>
 
   <script type="module">
-    import { FLACDecoder } from '/flac-decoder.esm.js';
-
-    const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+    const basePath = location.pathname.replace(/\/?(?:index\.html)?$/, '');
+    const { FLACDecoder } = await import(`${basePath}/flac-decoder.esm.js`);
+    const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${basePath}/ws`;
 
     const dotEl      = document.getElementById('dot');
     const statusEl   = document.getElementById('status-text');

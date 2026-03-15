@@ -14,6 +14,7 @@ import {
   getPlayTrackOnDiskOrder,
 } from "@/api/player-remote/command-factory";
 import SpectrumBackground from "../components/client/spectrum-background";
+import AudioPlayer from "../components/client/audio-player";
 
 const Page = () => {
   const {
@@ -250,6 +251,7 @@ const Page = () => {
                     mt: 2,
                   }}
                 >
+                  <AudioPlayer shouldPlay={displayState?.mode === "playing"} />
                   <SpectrumBackground>
                     <Box sx={{ mb: 1 }}>
                       <Typography
