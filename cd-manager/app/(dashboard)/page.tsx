@@ -219,14 +219,6 @@ const Page = () => {
                             const sequence = getPlayDiscOrder(currentSlot.slot);
                             const canExecute =
                               currentRemoteClient.canExecuteSequence(sequence);
-                            console.log(
-                              "Page: Checking Play Button Visibility",
-                              {
-                                slot: currentSlot.slot,
-                                canExecute,
-                                sequenceLength: sequence.length,
-                              },
-                            );
                             return canExecute;
                           })()
                         : false

@@ -1,14 +1,5 @@
 import { auth } from "./auth";
 import { NextResponse } from "next/server";
-import { findRateLimiter } from "./lib/rate-limit.config";
-
-const getClientIp = (headers: Headers): string => {
-  const forwarded = headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
-  }
-  return headers.get("x-real-ip") || "unknown";
-};
 
 export default auth((req) => {
   const { nextUrl } = req;
@@ -21,23 +12,6 @@ export default auth((req) => {
 
   // 1. API Route Protection
   if (isApi) {
-    // Rate limiting (applied before auth to protect against unauthenticated floods)
-    const match = findRateLimiter(pathname);
-    if (match) {
-      const clientIp = getClientIp(req.headers);
-      if (match.limiter.isRateLimited(clientIp)) {
-        return NextResponse.json(
-          { error: "Too many requests" },
-          {
-            status: 429,
-            headers: {
-              "Retry-After": String(Math.ceil(match.rule.windowMs / 1000)),
-            },
-          },
-        );
-      }
-    }
-
     // Whitelist of public API routes
     const isPublicApi =
       pathname === "/api/health" ||

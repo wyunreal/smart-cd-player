@@ -82,7 +82,7 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
                     }
                 });
                 
-                console.log(`IR Remote Client (${deviceName}): Initialized with ${availableCommands.size} commands.`, Array.from(availableCommands));
+                // Initialized successfully
                 initialized = true;
             } else {
                 console.warn("IR Remote Client: Invalid response format", data);
@@ -140,7 +140,7 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
         const supported = sequence.every(item => isCommandSupported(item.command));
         if (!supported) {
             const unsupported = sequence.filter(item => !isCommandSupported(item.command));
-            console.log("IR Remote Client: Sequence not supported. Unsupported commands:", unsupported);
+            console.warn("IR Remote Client: Sequence not supported. Unsupported commands:", unsupported);
         }
         return supported;
     };

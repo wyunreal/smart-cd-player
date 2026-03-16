@@ -214,27 +214,25 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     const config = configRef.current;
     if (!config) return;
 
-    let ctx = audioCtxRef.current;
-    if (!ctx) {
-      ctx = new AudioContext({
-        sampleRate: config.sampleRate,
-        latencyHint: "interactive",
-      });
-      audioCtxRef.current = ctx;
-
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 8192;
-      analyser.smoothingTimeConstant = 0.8;
-      analyser.connect(ctx.destination);
-      analyserRef.current = analyser;
-
-      setAudioContext(ctx);
-      setAnalyserNode(analyser);
+    // Always create a fresh AudioContext to ensure no stale scheduled buffers
+    if (audioCtxRef.current) {
+      await audioCtxRef.current.close();
     }
 
-    if (ctx.state === "suspended") {
-      await ctx.resume();
-    }
+    const ctx = new AudioContext({
+      sampleRate: config.sampleRate,
+      latencyHint: "interactive",
+    });
+    audioCtxRef.current = ctx;
+
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 8192;
+    analyser.smoothingTimeConstant = 0.8;
+    analyser.connect(ctx.destination);
+    analyserRef.current = analyser;
+
+    setAudioContext(ctx);
+    setAnalyserNode(analyser);
 
     nextStartTimeRef.current = 0;
     prebufferingRef.current = true;
@@ -249,9 +247,16 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     prebufferingRef.current = false;
     prebufferRef.current = [];
     prebufferDurationRef.current = 0;
+    nextStartTimeRef.current = 0;
 
+    // Close the AudioContext entirely to kill all scheduled BufferSource nodes.
+    // A fresh one is created on the next play() call.
     if (audioCtxRef.current) {
-      await audioCtxRef.current.suspend();
+      await audioCtxRef.current.close();
+      audioCtxRef.current = null;
+      analyserRef.current = null;
+      setAudioContext(null);
+      setAnalyserNode(null);
     }
 
     setStatus(configRef.current ? "ready" : "stopped");

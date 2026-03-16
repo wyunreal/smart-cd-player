@@ -239,11 +239,6 @@ const calculateConsensusCd = (
     expectedTrackCount,
   );
 
-  console.log(
-    "Selected releases for tracks:",
-    JSON.stringify(selectedReleases, null, 2),
-  );
-
   // Track count is strictly the count from the selected releases (never more)
   const trackCount =
     selectedReleases.length > 0 ? selectedReleases[0].tracks.length : 0;
