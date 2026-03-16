@@ -3,9 +3,9 @@ import path from "path";
 /**
  * Builds a Set of allowed origins from environment variables.
  */
-function buildAllowedOrigins(
+const buildAllowedOrigins = (
   ...envVarNames: (string | undefined)[]
-): Set<string> {
+): Set<string> => {
   const origins = new Set<string>();
   for (const value of envVarNames) {
     if (!value) continue;
@@ -21,7 +21,7 @@ function buildAllowedOrigins(
     }
   }
   return origins;
-}
+};
 
 /**
  * Validates a URL against the proxy allowlist.
@@ -29,7 +29,7 @@ function buildAllowedOrigins(
  * Also allows any .local mDNS hostname (local network devices discovered via Avahi).
  * Only http: and https: schemes are permitted.
  */
-export function isAllowedProxyUrl(url: string): boolean {
+export const isAllowedProxyUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
@@ -47,14 +47,14 @@ export function isAllowedProxyUrl(url: string): boolean {
   } catch {
     return false;
   }
-}
+};
 
 /**
  * Validates a URL against the image download allowlist.
  * Allowed origins: known CDNs (Spotify, Discogs, Google) + ALLOWED_IMAGE_ORIGINS.
  * Only https: scheme is permitted.
  */
-export function isAllowedImageUrl(url: string): boolean {
+export const isAllowedImageUrl = (url: string): boolean => {
   const BUILTIN_IMAGE_ORIGINS = [
     "https://i.scdn.co",
     "https://i.discogs.com",
@@ -74,25 +74,25 @@ export function isAllowedImageUrl(url: string): boolean {
   } catch {
     return false;
   }
-}
+};
 
 /**
  * Sanitizes a filename by extracting the basename and replacing
  * characters that are not alphanumeric, dots, hyphens, or underscores.
  */
-export function sanitizeFilename(filename: string): string {
+export const sanitizeFilename = (filename: string): string => {
   const base = path.basename(filename);
   return base.replace(/[^a-zA-Z0-9._-]/g, "_");
-}
+};
 
 /**
  * Checks whether a file path resolves to a location within the given directory.
  */
-export function isPathWithinDir(filePath: string, dir: string): boolean {
+export const isPathWithinDir = (filePath: string, dir: string): boolean => {
   const resolvedPath = path.resolve(filePath);
   const resolvedDir = path.resolve(dir);
   return resolvedPath.startsWith(resolvedDir + path.sep) || resolvedPath === resolvedDir;
-}
+};
 
 /**
  * In-memory sliding window rate limiter.
