@@ -145,6 +145,12 @@ spec:
               mountPath: {{ .Values.filebrowser.settings.root }}
         {{- end }}
       volumes:
+        - name: avahi-daemon-socket
+          hostPath:
+            path: /var/run/avahi-daemon/socket
+        - name: dbus-socket
+          hostPath:
+            path: /var/run/dbus/system_bus_socket
         {{- if .Values.persistence.enabled }}
         - name: data
           persistentVolumeClaim:
@@ -162,15 +168,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      volumes:
-        - name: avahi-daemon-socket
-          hostPath:
-            path: /var/run/avahi-daemon/socket
-        - name: dbus-socket
-          hostPath:
-            path: /var/run/dbus/system_bus_socket
-        {{- if .Values.persistence.enabled }}
-        - name: data
-          persistentVolumeClaim:
-            claimName: {{ include "cd-manager.fullname" . }}
-        {{- end }}

@@ -61,12 +61,33 @@ echo "⚓ Deploying with Helm..."
 # We explicitly set image.tag to force K8s to pick up the new version
 # We also set image.pullPolicy to IfNotPresent (default) because each tag is unique
 SHARED_VALUES="$(dirname "$0")/../../shared-services.yaml"
-helm upgrade --install ${IMAGE_NAME} ${CHART_PATH} \
-    --set image.tag=${IMAGE_TAG} \
-    --set image.repository=${IMAGE_NAME} \
-    -f ${CHART_PATH}/values.yaml \
-    -f ${SHARED_VALUES} \
-    -f ${CHART_PATH}/secrets.yaml
+SEALED_SECRET_FILE="${CHART_PATH}/sealed-secret.yaml"
+
+if [ -f "${SEALED_SECRET_FILE}" ]; then
+    # Sealed Secrets mode: apply the SealedSecret and reference it as existingSecret
+    echo "🔒 Using Sealed Secrets (${SEALED_SECRET_FILE})..."
+    kubectl apply -f "${SEALED_SECRET_FILE}"
+    helm upgrade --install ${IMAGE_NAME} ${CHART_PATH} \
+        --set image.tag=${IMAGE_TAG} \
+        --set image.repository=${IMAGE_NAME} \
+        --set secrets.existingSecret=cd-manager-sealed \
+        -f ${CHART_PATH}/values.yaml \
+        -f ${SHARED_VALUES}
+elif [ -f "${CHART_PATH}/secrets.yaml" ]; then
+    # Legacy mode: pass plaintext secrets via Helm values (gitignored file)
+    echo "⚠️  Using plaintext secrets.yaml (consider migrating to Sealed Secrets)"
+    helm upgrade --install ${IMAGE_NAME} ${CHART_PATH} \
+        --set image.tag=${IMAGE_TAG} \
+        --set image.repository=${IMAGE_NAME} \
+        -f ${CHART_PATH}/values.yaml \
+        -f ${SHARED_VALUES} \
+        -f ${CHART_PATH}/secrets.yaml
+else
+    echo "❌ No secrets found. Provide one of:"
+    echo "   - ${SEALED_SECRET_FILE} (recommended: run ./scripts/seal-secrets.sh)"
+    echo "   - ${CHART_PATH}/secrets.yaml (legacy: copy from secrets.example.yaml)"
+    exit 1
+fi
 
 echo "✅ Deployment complete! Version: ${IMAGE_TAG}"
 echo "👉 Application should be available at http://${REMOTE_HOST}:30000"

@@ -89,9 +89,14 @@ env:
   NEXTAUTH_URL: "https://web.smart-cd.app"
   # COMPOSITE_VIDEO_PARSER_URL is auto-generated from shared-services.yaml
 
-  # The secret must contain keys: AUTH_SECRET, DISCOGS_USER_TOKEN, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-  # and security config: ALLOWED_EMAILS, ALLOWED_PROXY_ORIGINS, ALLOWED_IMAGE_ORIGINS
+secrets:
+  # Use an existing Secret instead of creating one from plaintext values.
+  # When using Sealed Secrets, set this to "cd-manager-sealed" (the name of the Secret
+  # that the SealedSecret controller creates from sealed-secret.yaml).
+  # When empty, the chart creates a Secret from values in secrets.yaml (legacy mode).
   existingSecret: ""
+  # Required keys: AUTH_SECRET, DISCOGS_USER_TOKEN, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+  # Optional keys: ALLOWED_EMAILS, ALLOWED_PROXY_ORIGINS, ALLOWED_IMAGE_ORIGINS
 
 filebrowser:
   enabled: true
