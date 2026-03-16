@@ -130,8 +130,7 @@ spec:
           image: "{{ .Values.filebrowser.image.repository }}:{{ .Values.filebrowser.image.tag }}"
           imagePullPolicy: {{ .Values.filebrowser.image.pullPolicy }}
           securityContext:
-            runAsUser: 0
-            runAsGroup: 0
+            {{- toYaml .Values.filebrowser.securityContext | nindent 12 }}
           args:
             - "--port={{ .Values.filebrowser.settings.port }}"
             - "--root={{ .Values.filebrowser.settings.root }}"

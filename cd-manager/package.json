@@ -1,6 +1,6 @@
 {
   "name": "smart-cd",
-  "version": "1.0.51",
+  "version": "1.0.53",
   "scripts": {
     "dev": "next dev",
     "start": "next start",
@@ -22,7 +22,7 @@
     "dayjs": "^1",
     "disconnect": "^1.2.2",
     "dotenv": "^17.2.3",
-    "next": "^15",
+    "next": "^15.5.12",
     "next-auth": "^5.0.0-beta.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

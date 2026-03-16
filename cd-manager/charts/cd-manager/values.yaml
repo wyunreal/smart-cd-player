@@ -102,8 +102,16 @@ filebrowser:
   enabled: true
   image:
     repository: filebrowser/filebrowser
-    tag: latest
+    tag: v2.32.0
     pullPolicy: IfNotPresent
+  securityContext:
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
   settings:
     port: 8082
     root: /data
