@@ -1,0 +1,17 @@
+{
+  "activeProfile": "behringer",
+  "port": 3200,
+  "profiles": {
+    "august": {
+      "device": "hw:MS210x,0",
+      "sampleRate": 48000,
+      "channels": 2
+    },
+    "behringer": {
+      "device": "hw:U192k,0",
+      "sampleRate": 48000,
+      "channels": 2,
+      "inputCodec": "pcm_s32le"
+    }
+  }
+}

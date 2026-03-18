@@ -2,9 +2,10 @@ import { spawn, type ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 
 export interface AudioSourceConfig {
-  device: string;   // ALSA device, e.g. "hw:1,0"
+  device: string;       // ALSA device, e.g. "hw:1,0" or "hw:U192k,0"
   sampleRate?: number;
   channels?: number;
+  inputCodec?: string;  // e.g. "pcm_s32le" for Behringer UMC204HD
 }
 
 export class AudioSource extends EventEmitter {
@@ -18,6 +19,7 @@ export class AudioSource extends EventEmitter {
     this.config = {
       sampleRate: 48000,
       channels: 2,
+      inputCodec: '',
       ...config,
     };
   }
@@ -43,14 +45,19 @@ export class AudioSource extends EventEmitter {
   }
 
   private spawn(): void {
-    const { device, sampleRate, channels } = this.config;
+    const { device, sampleRate, channels, inputCodec } = this.config;
 
-    const args = [
+    const inputArgs = [
       '-thread_queue_size', '4096',
       '-f', 'alsa',
+      ...(inputCodec ? ['-acodec', inputCodec] : []),
       '-channels', String(channels),
       '-sample_rate', String(sampleRate),
       '-i', device,
+    ];
+
+    const args = [
+      ...inputArgs,
 
       // Output FLAC (lossless, level 5, 4096-sample frames) to stdout
       '-f', 'flac',

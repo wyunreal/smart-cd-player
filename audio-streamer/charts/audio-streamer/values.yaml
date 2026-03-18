@@ -45,9 +45,10 @@ affinity: {}
 
 env:
   PORT: "3200"
-  # ALSA capture device on the host (hw:<card>,<device>).
-  # Run `arecord -l` on the host to list available cards.
-  AUDIO_DEVICE: "hw:1,0"
+  # Path to the JSON config file inside the container.
+  # The config file defines audio profiles (device, sampleRate, channels, inputCodec).
+  # Set AUDIO_PROFILE to override the activeProfile from the config file.
+  AUDIO_CONFIG: "/app/audio-config.json"
 
 # Mount /dev/snd from the host so FFmpeg can access the ALSA sound card.
 audioDevice:
