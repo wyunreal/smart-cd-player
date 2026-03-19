@@ -96,6 +96,54 @@ export const editCd = async (cdData: CdInputData, cdId: number) => {
   writeJsonToFile<Cd[]>(FILE_PATH, cds);
 };
 
+const isExternalUrl = (uri: string) => uri.startsWith("http");
+
+const downloadArtImages = async (
+  art: Art | undefined,
+  cdId: number,
+  type: "album" | "artist" | "cd",
+) => {
+  if (!art?.uri || !isExternalUrl(art.uri)) return;
+
+  const ext = art.uri.split(".").pop() || "jpg";
+  const filename = `${cdId}-${type}.${ext}`;
+  const filename150 = `${cdId}-${type}-150.${ext}`;
+
+  await downloadImage(art.uri, filename);
+  art.uri = `/api/images/${filename}`;
+
+  if (art.uri150 && isExternalUrl(art.uri150)) {
+    await downloadImage(art.uri150, filename150);
+    art.uri150 = `/api/images/${filename150}`;
+  }
+};
+
+export const migrateImages = async (): Promise<number> => {
+  const cds = await getCdCollection();
+  let migratedCount = 0;
+
+  for (const cd of cds) {
+    if (!cd.art) continue;
+
+    const hasExternal = [cd.art.album, cd.art.artist, cd.art.cd].some(
+      (art) => art?.uri && isExternalUrl(art.uri),
+    );
+    if (!hasExternal) continue;
+
+    try {
+      await downloadArtImages(cd.art.album, cd.id, "album");
+      await downloadArtImages(cd.art.artist, cd.id, "artist");
+      await downloadArtImages(cd.art.cd, cd.id, "cd");
+      migratedCount++;
+    } catch (error) {
+      console.error(`Failed to migrate images for CD ${cd.id} (${cd.title}):`, error);
+    }
+  }
+
+  await writeJsonToFile<Cd[]>(FILE_PATH, cds);
+  return migratedCount;
+};
+
 export const deleteCd = async (cdId: number) => {
   const data = await getCdCollection();
   const index = data.findIndex((cd) => cd.id === cdId);
