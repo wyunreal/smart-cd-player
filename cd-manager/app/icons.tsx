@@ -21,6 +21,8 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 
 export {
   AlbumIcon,
@@ -46,4 +48,6 @@ export {
   PauseIcon,
   PowerSettingsNewIcon,
   KeyboardArrowDownIcon,
+  VolumeUpIcon,
+  VolumeOffIcon,
 };

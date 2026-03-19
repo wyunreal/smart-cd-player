@@ -9,26 +9,19 @@ import React, {
   useState,
 } from "react";
 
-export type AudioStreamStatus =
-  | "connecting"
-  | "ready"
-  | "playing"
-  | "stopped"
-  | "error";
-
 export type AudioStreamContextType = {
-  status: AudioStreamStatus;
-  play: () => Promise<void>;
-  stop: () => Promise<void>;
+  ready: boolean;
+  muted: boolean;
+  toggleMute: () => void;
   analyserLeft: AnalyserNode | null;
   analyserRight: AnalyserNode | null;
   audioContext: AudioContext | null;
 };
 
 export const AudioStreamContext = createContext<AudioStreamContextType>({
-  status: "connecting",
-  play: async () => {},
-  stop: async () => {},
+  ready: false,
+  muted: true,
+  toggleMute: () => {},
   analyserLeft: null,
   analyserRight: null,
   audioContext: null,
@@ -50,7 +43,8 @@ type PrebufferItem = {
 };
 
 export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
-  const [status, setStatus] = useState<AudioStreamStatus>("connecting");
+  const [ready, setReady] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [analyserLeft, setAnalyserLeft] = useState<AnalyserNode | null>(null);
   const [analyserRight, setAnalyserRight] = useState<AnalyserNode | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
@@ -62,8 +56,7 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
   const splitterRef = useRef<ChannelSplitterNode | null>(null);
   const playbackGainRef = useRef<GainNode | null>(null);
   const configRef = useRef<StreamConfig | null>(null);
-  const playingRef = useRef(false);
-  const prebufferingRef = useRef(false);
+  const prebufferingRef = useRef(true);
   const prebufferRef = useRef<PrebufferItem[]>([]);
   const prebufferDurationRef = useRef(0);
   const nextPlaybackTimeRef = useRef(0);
@@ -73,6 +66,45 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     null,
   );
   const mountedRef = useRef(true);
+  const audioGraphReadyRef = useRef(false);
+
+  // Create the AudioContext and audio graph once when the stream config arrives.
+  const ensureAudioGraph = useCallback((config: StreamConfig) => {
+    if (audioGraphReadyRef.current) return;
+
+    const ctx = new AudioContext({
+      sampleRate: config.sampleRate,
+      latencyHint: "interactive",
+    });
+    audioCtxRef.current = ctx;
+
+    const splitter = ctx.createChannelSplitter(2);
+    splitterRef.current = splitter;
+
+    const aLeft = ctx.createAnalyser();
+    aLeft.fftSize = 8192;
+    aLeft.smoothingTimeConstant = 0.8;
+    splitter.connect(aLeft, 0);
+    analyserLeftRef.current = aLeft;
+
+    const aRight = ctx.createAnalyser();
+    aRight.fftSize = 8192;
+    aRight.smoothingTimeConstant = 0.8;
+    splitter.connect(aRight, 1);
+    analyserRightRef.current = aRight;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    gain.connect(ctx.destination);
+    playbackGainRef.current = gain;
+
+    setAudioContext(ctx);
+    setAnalyserLeft(aLeft);
+    setAnalyserRight(aRight);
+    setReady(true);
+
+    audioGraphReadyRef.current = true;
+  }, []);
 
   const feedAnalyser = useCallback(
     (channelData: Float32Array[], samplesDecoded: number) => {
@@ -123,8 +155,6 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     const protocol = location.protocol === "https:" ? "wss" : "ws";
     const wsUrl = `${protocol}://${location.host}/audio-stream/ws`;
 
-    // Lazy-init FLAC decoder — loaded from the audio-streamer static files
-    // served through the ingress at /audio-stream/
     if (!decoderRef.current) {
       const decoderUrl = "/audio-stream/flac-decoder.esm.js";
       const decoderModule = await import(/* webpackIgnore: true */ decoderUrl);
@@ -135,8 +165,6 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
 
     if (!mountedRef.current) return;
 
-    setStatus("connecting");
-
     const ws = new WebSocket(wsUrl);
     ws.binaryType = "arraybuffer";
     wsRef.current = ws;
@@ -145,6 +173,9 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
       if (!mountedRef.current) return;
       decoderRef.current?.reset();
       nextPlaybackTimeRef.current = 0;
+      prebufferingRef.current = true;
+      prebufferRef.current = [];
+      prebufferDurationRef.current = 0;
     };
 
     ws.onmessage = async (ev: MessageEvent) => {
@@ -154,34 +185,24 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
       if (typeof ev.data === "string") {
         const config: StreamConfig = JSON.parse(ev.data);
         configRef.current = config;
-        if (playingRef.current) {
-          setStatus("playing");
-        } else {
-          setStatus("ready");
-        }
+        ensureAudioGraph(config);
         return;
       }
 
-      // Binary FLAC data — always decode to keep decoder state in sync
+      // Binary FLAC data — always decode and feed the audio graph
       const decoder = decoderRef.current;
-      if (!decoder) return;
+      if (!decoder || !audioCtxRef.current) return;
 
       const { channelData, samplesDecoded } = await decoder.decode(
         new Uint8Array(ev.data),
       );
 
-      if (
-        !playingRef.current ||
-        !audioCtxRef.current ||
-        samplesDecoded === 0
-      ) {
-        return;
-      }
+      if (samplesDecoded === 0) return;
 
       // Feed analyser immediately (zero-latency spectrum)
       feedAnalyser(channelData, samplesDecoded);
 
-      // Prebuffering phase for playback only
+      // Prebuffering phase for gapless playback
       if (prebufferingRef.current) {
         prebufferRef.current.push({
           channelData: channelData.map((ch: Float32Array) => ch.slice()),
@@ -208,9 +229,6 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
 
     ws.onclose = () => {
       if (!mountedRef.current) return;
-      if (!playingRef.current) {
-        setStatus("error");
-      }
       reconnectTimeoutRef.current = setTimeout(() => {
         if (mountedRef.current) connect();
       }, 1000);
@@ -219,7 +237,7 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     ws.onerror = () => {
       ws.close();
     };
-  }, [feedAnalyser, schedulePlayback]);
+  }, [feedAnalyser, schedulePlayback, ensureAudioGraph]);
 
   // Connect on mount
   useEffect(() => {
@@ -236,81 +254,57 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [connect]);
 
-  const play = useCallback(async () => {
-    const config = configRef.current;
-    if (!config) return;
+  // Handle iOS Safari "interrupted" state (tab switch, screen lock, phone call).
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const ctx = audioCtxRef.current;
+        if (ctx && (ctx.state === "suspended" || ctx.state === ("interrupted" as AudioContextState))) {
+          ctx.resume();
+        }
+      }
+    };
 
-    // Always create a fresh AudioContext to ensure no stale scheduled buffers
-    if (audioCtxRef.current) {
-      await audioCtxRef.current.close();
-    }
-
-    const ctx = new AudioContext({
-      sampleRate: config.sampleRate,
-      latencyHint: "interactive",
-    });
-    audioCtxRef.current = ctx;
-
-    // Split stereo into L/R, each with its own analyser (not connected to destination)
-    const splitter = ctx.createChannelSplitter(2);
-    splitterRef.current = splitter;
-
-    const aLeft = ctx.createAnalyser();
-    aLeft.fftSize = 8192;
-    aLeft.smoothingTimeConstant = 0.8;
-    splitter.connect(aLeft, 0);
-    analyserLeftRef.current = aLeft;
-
-    const aRight = ctx.createAnalyser();
-    aRight.fftSize = 8192;
-    aRight.smoothingTimeConstant = 0.8;
-    splitter.connect(aRight, 1);
-    analyserRightRef.current = aRight;
-
-    // Playback: prebuffered path → destination
-    const gain = ctx.createGain();
-    gain.connect(ctx.destination);
-    playbackGainRef.current = gain;
-
-    setAudioContext(ctx);
-    setAnalyserLeft(aLeft);
-    setAnalyserRight(aRight);
-
-    nextPlaybackTimeRef.current = 0;
-    prebufferingRef.current = true;
-    prebufferRef.current = [];
-    prebufferDurationRef.current = 0;
-    playingRef.current = true;
-    setStatus("playing");
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
-  const stop = useCallback(async () => {
-    playingRef.current = false;
-    prebufferingRef.current = false;
-    prebufferRef.current = [];
-    prebufferDurationRef.current = 0;
-    nextPlaybackTimeRef.current = 0;
+  // Toggle mute/unmute. Always called from an onClick handler (user gesture).
+  const toggleMute = useCallback(() => {
+    const ctx = audioCtxRef.current;
+    const gain = playbackGainRef.current;
+    if (!ctx || !gain) return;
 
-    // Close the AudioContext entirely to kill all scheduled BufferSource nodes.
-    // A fresh one is created on the next play() call.
-    if (audioCtxRef.current) {
-      await audioCtxRef.current.close();
-      audioCtxRef.current = null;
-      analyserLeftRef.current = null;
-      analyserRightRef.current = null;
-      splitterRef.current = null;
-      playbackGainRef.current = null;
-      setAudioContext(null);
-      setAnalyserLeft(null);
-      setAnalyserRight(null);
+    if (gain.gain.value > 0) {
+      gain.gain.value = 0;
+      setMuted(true);
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nav = navigator as any;
+      if (nav.audioSession) {
+        nav.audioSession.type = "playback";
+      }
+
+      if (ctx.state === "suspended" || ctx.state === ("interrupted" as AudioContextState)) {
+        ctx.resume();
+      }
+
+      // Reset playback timing so audio starts from the live stream position
+      nextPlaybackTimeRef.current = ctx.currentTime;
+      prebufferingRef.current = true;
+      prebufferRef.current = [];
+      prebufferDurationRef.current = 0;
+
+      gain.gain.value = 1;
+      setMuted(false);
     }
-
-    setStatus(configRef.current ? "ready" : "stopped");
   }, []);
 
   return (
     <AudioStreamContext.Provider
-      value={{ status, play, stop, analyserLeft, analyserRight, audioContext }}
+      value={{ ready, muted, toggleMute, analyserLeft, analyserRight, audioContext }}
     >
       {children}
     </AudioStreamContext.Provider>

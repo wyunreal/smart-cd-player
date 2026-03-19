@@ -9,11 +9,15 @@ import {
   PlayArrowIcon,
   PauseIcon,
   SkipNextIcon,
+  VolumeUpIcon,
+  VolumeOffIcon,
 } from "@/app/icons";
+import useAudioStream from "@/app/hooks/use-audio-stream";
 
 const TransportButtons = () => {
   const { selectedPlayer, irRemoteClients, displayState, playerContent } =
     useContext(DataRepositoryContext);
+  const { muted, toggleMute, ready: audioReady } = useAudioStream();
 
   const isPlaying = displayState?.mode === "playing";
   const isOff = displayState?.mode === "off";
@@ -80,6 +84,12 @@ const TransportButtons = () => {
         disabled={isOff || !isCommandSupported(PlayerCommand.NextTrack) || isLastTrack}
       >
         <SkipNextIcon />
+      </IconButton>
+      <IconButton
+        onClick={toggleMute}
+        disabled={!audioReady}
+      >
+        {muted ? <VolumeOffIcon /> : <VolumeUpIcon />}
       </IconButton>
     </Box>
   );
