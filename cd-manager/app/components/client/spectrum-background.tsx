@@ -11,7 +11,14 @@ type SpectrumBackgroundProps = {
 };
 
 const FREQ_MIN = 20;
-const FREQ_MAX = 18000;
+const FREQ_MAX = 20000;
+
+// Perceptual gain: attenuate mids, boost treble, leave bass untouched.
+// Below 200 Hz: 1.0 (no change). Above 200 Hz: gentle power curve.
+function perceptualGain(f: number): number {
+  if (f <= 150) return 1.0;
+  return Math.pow(f / 150, 0.18);
+}
 
 const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
   const theme = useTheme();
@@ -19,18 +26,19 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
   const barCount = isMobile ? 16 : 32;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
-  const { analyserNode } = useAudioStream();
+  const { analyserLeft, analyserRight } = useAudioStream();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !analyserNode) return;
-    const analyser = analyserNode;
+    if (!canvas || !analyserLeft || !analyserRight) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    analyser.getByteFrequencyData(dataArray);
+    const leftData = new Uint8Array(analyserLeft.frequencyBinCount);
+    const rightData = new Uint8Array(analyserRight.frequencyBinCount);
+    analyserLeft.getByteFrequencyData(leftData);
+    analyserRight.getByteFrequencyData(rightData);
 
     const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
@@ -38,7 +46,7 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
     const totalBars = barCount * 2;
     const barWidth = width / totalBars;
 
-    const nyquist = analyser.context.sampleRate / 2;
+    const nyquist = analyserLeft.context.sampleRate / 2;
     const logMin = Math.log10(FREQ_MIN);
     const logMax = Math.log10(FREQ_MAX);
 
@@ -50,28 +58,41 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
     for (let i = 0; i < barCount; i++) {
       const logFreqLow = logMin + (i / barCount) * (logMax - logMin);
       const logFreqHigh = logMin + ((i + 1) / barCount) * (logMax - logMin);
-      // Clamp to bin 1 minimum to skip DC component (bin 0)
-      const binLow = Math.max(1, Math.floor((Math.pow(10, logFreqLow) / nyquist) * dataArray.length));
-      const binHigh = Math.max(binLow + 1, Math.ceil((Math.pow(10, logFreqHigh) / nyquist) * dataArray.length));
+      const binLow = Math.max(1, Math.floor((Math.pow(10, logFreqLow) / nyquist) * leftData.length));
+      const binHigh = Math.max(binLow + 1, Math.ceil((Math.pow(10, logFreqHigh) / nyquist) * leftData.length));
 
-      let sum = 0;
+      const centerFreq = Math.pow(10, (logFreqLow + logFreqHigh) / 2);
+      const gain = perceptualGain(centerFreq);
       const count = Math.max(1, binHigh - binLow);
-      for (let j = binLow; j < binHigh && j < dataArray.length; j++) {
-        sum += dataArray[j];
-      }
-      const value = sum / count;
-      const barHeight = (value / 255) * height;
-      const opacity = 0.15 + (value / 255) * 0.45;
 
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
-      // Left half: mirrored (high frequencies at edges, low at center)
-      ctx.fillRect((barCount - 1 - i) * barWidth, height - barHeight, barWidth - 1, barHeight);
-      // Right half: normal (low at center, high at edges)
-      ctx.fillRect((barCount + i) * barWidth, height - barHeight, barWidth - 1, barHeight);
+      // Left channel
+      let sumL = 0;
+      for (let j = binLow; j < binHigh && j < leftData.length; j++) {
+        sumL += leftData[j];
+      }
+      const valueL = Math.min(255, (sumL / count) * gain);
+      const barHeightL = (valueL / 255) * height;
+      const opacityL = 0.15 + (valueL / 255) * 0.45;
+
+      // Right channel
+      let sumR = 0;
+      for (let j = binLow; j < binHigh && j < rightData.length; j++) {
+        sumR += rightData[j];
+      }
+      const valueR = Math.min(255, (sumR / count) * gain);
+      const barHeightR = (valueR / 255) * height;
+      const opacityR = 0.15 + (valueR / 255) * 0.45;
+
+      // Left half: left channel, frequencies inverted (high at edge, low at center)
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityL})`;
+      ctx.fillRect((barCount - 1 - i) * barWidth, height - barHeightL, barWidth - 1, barHeightL);
+      // Right half: right channel (low at center, high at edge)
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityR})`;
+      ctx.fillRect((barCount + i) * barWidth, height - barHeightR, barWidth - 1, barHeightR);
     }
 
     animationRef.current = requestAnimationFrame(draw);
-  }, [theme.palette.primary.main, barCount, analyserNode]);
+  }, [theme.palette.primary.main, barCount, analyserLeft, analyserRight]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -86,7 +107,7 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
     observer.observe(canvas);
     resizeCanvas();
 
-    if (analyserNode) {
+    if (analyserLeft && analyserRight) {
       animationRef.current = requestAnimationFrame(draw);
     }
 
@@ -94,7 +115,7 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
       cancelAnimationFrame(animationRef.current);
       observer.disconnect();
     };
-  }, [draw, analyserNode]);
+  }, [draw, analyserLeft, analyserRight]);
 
   return (
     <Box

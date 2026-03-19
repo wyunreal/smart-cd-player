@@ -48,7 +48,11 @@ export class AudioSource extends EventEmitter {
     const { device, sampleRate, channels, inputCodec } = this.config;
 
     const inputArgs = [
-      '-thread_queue_size', '4096',
+      '-fflags', '+nobuffer',
+      '-flags', '+low_delay',
+      '-probesize', '32',
+      '-analyzeduration', '0',
+      '-thread_queue_size', '512',
       '-f', 'alsa',
       ...(inputCodec ? ['-acodec', inputCodec] : []),
       '-channels', String(channels),
@@ -59,10 +63,11 @@ export class AudioSource extends EventEmitter {
     const args = [
       ...inputArgs,
 
-      // Output FLAC (lossless, level 5, 4096-sample frames) to stdout
+      // Output FLAC (lossless, level 5, 1024-sample frames) to stdout
       '-f', 'flac',
       '-compression_level', '5',
-      '-frame_size', '4096',
+      '-frame_size', '1024',
+      '-flush_packets', '1',
       '-ar', String(sampleRate),
       '-ac', String(channels),
       'pipe:1',
