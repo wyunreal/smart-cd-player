@@ -9,6 +9,7 @@ export type SpectrumVisualizationContext = {
   sampleRate: number;
   barCount: number;
   color: { r: number; g: number; b: number };
+  hasAudioSignal: boolean;
 };
 
 export type SpectrumVisualization = (context: SpectrumVisualizationContext) => void;

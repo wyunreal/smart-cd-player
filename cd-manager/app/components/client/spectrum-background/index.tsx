@@ -12,23 +12,43 @@ import React, { useRef, useEffect, useCallback, useState } from "react";
 import useAudioStream from "@/app/hooks/use-audio-stream";
 import {
   getVisualization,
+  visualizationStyles,
   type VisualizationStyle,
 } from "./visualizations";
 
 const CHILDREN_HIDE_DELAY_MS = 5000;
 const CHILDREN_FADE_DURATION_MS = 600;
 const AUDIO_SIGNAL_THRESHOLD = 5;
+const STORAGE_KEY = "spectrum-visualization";
+
+const loadVisualization = (): VisualizationStyle => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored && visualizationStyles.includes(stored as VisualizationStyle)) {
+      return stored as VisualizationStyle;
+    }
+  } catch {
+    // silent fail
+  }
+  return visualizationStyles[0];
+};
+
+const saveVisualization = (style: VisualizationStyle) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, style);
+  } catch {
+    // silent fail
+  }
+};
 
 type SpectrumBackgroundProps = {
   children: React.ReactNode;
   sx?: SxProps<Theme>;
-  visualization?: VisualizationStyle;
 };
 
 const SpectrumBackground = ({
   children,
   sx,
-  visualization = "bars",
 }: SpectrumBackgroundProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -36,6 +56,17 @@ const SpectrumBackground = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const { analyserLeft, analyserRight } = useAudioStream();
+
+  const [visualization, setVisualization] = useState<VisualizationStyle>(loadVisualization);
+
+  const handleToggleVisualization = useCallback(() => {
+    setVisualization((prev) => {
+      const idx = visualizationStyles.indexOf(prev);
+      const next = visualizationStyles[(idx + 1) % visualizationStyles.length];
+      saveVisualization(next);
+      return next;
+    });
+  }, []);
 
   const [isAudioActive, setIsAudioActive] = useState(false);
   const [childrenVisible, setChildrenVisible] = useState(true);
@@ -57,7 +88,7 @@ const SpectrumBackground = ({
   // Observe DOM mutations in children to detect content changes
   useEffect(() => {
     const container = childrenContainerRef.current;
-    if (!container || !isAudioActive) {
+    if (!container || !isAudioActive || visualization === "none") {
       // No audio → always show children, clear any pending timer
       if (hideTimerRef.current !== null) {
         clearTimeout(hideTimerRef.current);
@@ -87,7 +118,7 @@ const SpectrumBackground = ({
         hideTimerRef.current = null;
       }
     };
-  }, [isAudioActive, resetHideTimer]);
+  }, [isAudioActive, visualization, resetHideTimer]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -144,6 +175,7 @@ const SpectrumBackground = ({
       sampleRate: analyserLeft.context.sampleRate,
       barCount,
       color: { r, g, b },
+      hasAudioSignal: hasSignal,
     });
 
     animationRef.current = requestAnimationFrame(draw);
@@ -174,8 +206,10 @@ const SpectrumBackground = ({
 
   return (
     <Box
+      onClick={handleToggleVisualization}
       sx={{
         position: "relative",
+        cursor: "pointer",
         ...sx,
       }}
     >
