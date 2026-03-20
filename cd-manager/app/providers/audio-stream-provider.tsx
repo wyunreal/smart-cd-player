@@ -291,13 +291,21 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
         ctx.resume();
       }
 
+      // Replace the GainNode so that any BufferSources scheduled while muted
+      // (on the old node) are discarded. This prevents a brief "double audio"
+      // burst when unmuting.
+      gain.disconnect();
+      const newGain = ctx.createGain();
+      newGain.gain.value = 1;
+      newGain.connect(ctx.destination);
+      playbackGainRef.current = newGain;
+
       // Reset playback timing so audio starts from the live stream position
       nextPlaybackTimeRef.current = ctx.currentTime;
       prebufferingRef.current = true;
       prebufferRef.current = [];
       prebufferDurationRef.current = 0;
 
-      gain.gain.value = 1;
       setMuted(false);
     }
   }, []);

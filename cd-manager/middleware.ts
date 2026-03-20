@@ -15,6 +15,7 @@ export default auth((req) => {
     // Whitelist of public API routes
     const isPublicApi =
       pathname === "/api/health" ||
+      pathname.startsWith("/api/images/") ||
       pathname.startsWith("/api/auth/signin") ||
       pathname.startsWith("/api/auth/callback") ||
       pathname.startsWith("/api/auth/csrf") ||
