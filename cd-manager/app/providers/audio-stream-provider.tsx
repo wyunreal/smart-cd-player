@@ -144,6 +144,12 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
       source.buffer = audioBuffer;
       source.connect(gain);
 
+      // When unmuted, also route through the analyser splitter for synced spectrum
+      const splitter = splitterRef.current;
+      if (splitter && gain.gain.value > 0) {
+        source.connect(splitter);
+      }
+
       const startTime = Math.max(ctx.currentTime, nextPlaybackTimeRef.current);
       source.start(startTime);
       nextPlaybackTimeRef.current = startTime + audioBuffer.duration;
@@ -199,8 +205,12 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
 
       if (samplesDecoded === 0) return;
 
-      // Feed analyser immediately (zero-latency spectrum)
-      feedAnalyser(channelData, samplesDecoded);
+      // Feed analyser immediately when muted or during prebuffer while unmuted;
+      // once unmuted playback starts, the analyser is fed via schedulePlayback.
+      const unmuted = playbackGainRef.current && playbackGainRef.current.gain.value > 0;
+      if (!unmuted || prebufferingRef.current) {
+        feedAnalyser(channelData, samplesDecoded);
+      }
 
       // Prebuffering phase for gapless playback
       if (prebufferingRef.current) {
