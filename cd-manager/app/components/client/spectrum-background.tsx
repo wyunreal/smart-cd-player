@@ -1,9 +1,19 @@
 "use client";
 
-import { Box, type SxProps, type Theme, useMediaQuery } from "@mui/material";
+import {
+  Box,
+  Fade,
+  type SxProps,
+  type Theme,
+  useMediaQuery,
+} from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useState } from "react";
 import useAudioStream from "@/app/hooks/use-audio-stream";
+
+const CHILDREN_HIDE_DELAY_MS = 5000;
+const CHILDREN_FADE_DURATION_MS = 600;
+const AUDIO_SIGNAL_THRESHOLD = 5;
 
 type SpectrumBackgroundProps = {
   children: React.ReactNode;
@@ -28,6 +38,58 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
   const animationRef = useRef<number>(0);
   const { analyserLeft, analyserRight } = useAudioStream();
 
+  const [isAudioActive, setIsAudioActive] = useState(false);
+  const [childrenVisible, setChildrenVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const childrenContainerRef = useRef<HTMLDivElement>(null);
+  const wasAudioActiveRef = useRef(false);
+
+  const resetHideTimer = useCallback(() => {
+    if (hideTimerRef.current !== null) {
+      clearTimeout(hideTimerRef.current);
+    }
+    setChildrenVisible(true);
+    hideTimerRef.current = setTimeout(() => {
+      setChildrenVisible(false);
+      hideTimerRef.current = null;
+    }, CHILDREN_HIDE_DELAY_MS);
+  }, []);
+
+  // Observe DOM mutations in children to detect content changes
+  useEffect(() => {
+    const container = childrenContainerRef.current;
+    if (!container || !isAudioActive) {
+      // No audio → always show children, clear any pending timer
+      if (hideTimerRef.current !== null) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+      setChildrenVisible(true);
+      return;
+    }
+
+    // Audio just became active — start the hide timer
+    resetHideTimer();
+
+    const observer = new MutationObserver(() => {
+      resetHideTimer();
+    });
+
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+
+    return () => {
+      observer.disconnect();
+      if (hideTimerRef.current !== null) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    };
+  }, [isAudioActive, resetHideTimer]);
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !analyserLeft || !analyserRight) return;
@@ -39,6 +101,24 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
     const rightData = new Uint8Array(analyserRight.frequencyBinCount);
     analyserLeft.getByteFrequencyData(leftData);
     analyserRight.getByteFrequencyData(rightData);
+
+    // Detect real audio signal by checking if any frequency bin exceeds threshold
+    let maxVal = 0;
+    for (let i = 0; i < leftData.length; i++) {
+      if (leftData[i] > maxVal) maxVal = leftData[i];
+      if (maxVal >= AUDIO_SIGNAL_THRESHOLD) break;
+    }
+    if (maxVal < AUDIO_SIGNAL_THRESHOLD) {
+      for (let i = 0; i < rightData.length; i++) {
+        if (rightData[i] > maxVal) maxVal = rightData[i];
+        if (maxVal >= AUDIO_SIGNAL_THRESHOLD) break;
+      }
+    }
+    const hasSignal = maxVal >= AUDIO_SIGNAL_THRESHOLD;
+    if (hasSignal !== wasAudioActiveRef.current) {
+      wasAudioActiveRef.current = hasSignal;
+      setIsAudioActive(hasSignal);
+    }
 
     const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
@@ -134,15 +214,18 @@ const SpectrumBackground = ({ children, sx }: SpectrumBackgroundProps) => {
           pointerEvents: "none",
         }}
       />
-      <Box
-        sx={{
-          position: "relative",
-          flex: 1,
-          zIndex: 1,
-        }}
-      >
-        {children}
-      </Box>
+      <Fade in={childrenVisible} timeout={CHILDREN_FADE_DURATION_MS}>
+        <Box
+          ref={childrenContainerRef}
+          sx={{
+            position: "relative",
+            flex: 1,
+            zIndex: 1,
+          }}
+        >
+          {children}
+        </Box>
+      </Fade>
     </Box>
   );
 };
