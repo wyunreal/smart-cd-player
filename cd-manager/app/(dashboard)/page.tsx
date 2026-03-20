@@ -242,7 +242,7 @@ const Page = () => {
                     mt: 2,
                   }}
                 >
-                  <SpectrumBackground>
+                  <SpectrumBackground visualization="waveform">
                     <Box sx={{ mb: 1 }}>
                       <Typography
                         variant="h3"
