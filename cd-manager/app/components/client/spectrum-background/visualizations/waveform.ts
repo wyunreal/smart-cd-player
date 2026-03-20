@@ -7,7 +7,8 @@ const LAYER_SPREAD = 2.5;
 const drawWave = (
   ctx: CanvasRenderingContext2D,
   data: Uint8Array,
-  width: number,
+  drawX: number,
+  drawWidth: number,
   centerY: number,
   amplitude: number,
   edgeGradient: CanvasGradient,
@@ -24,13 +25,13 @@ const drawWave = (
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
 
-    const step = data.length / width;
-    for (let x = 0; x < width; x++) {
+    const step = data.length / drawWidth;
+    for (let x = 0; x < drawWidth; x++) {
       const idx = Math.floor(x * step);
       const v = (data[idx] - 128) / 128;
       const y = centerY + v * amplitude + offset;
-      if (x === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      if (x === 0) ctx.moveTo(drawX + x, y);
+      else ctx.lineTo(drawX + x, y);
     }
     ctx.stroke();
   }
@@ -46,29 +47,31 @@ const waveform: SpectrumVisualization = ({
   rightTimeDomain,
   color: { r, g, b },
   hasAudioSignal,
+  paddingX,
 }) => {
   if (!hasAudioSignal) return;
-  const edgeFade = width * EDGE_FADE_RATIO;
+  const drawWidth = width - paddingX * 2;
+  const edgeFade = drawWidth * EDGE_FADE_RATIO;
   const amplitude = height * 0.3;
   const leftCenterY = height * 0.35;
   const rightCenterY = height * 0.65;
 
   // Create horizontal gradient that fades at both edges
   const makeEdgeGradient = (opacity: number) => {
-    const grad = ctx.createLinearGradient(0, 0, width, 0);
+    const grad = ctx.createLinearGradient(paddingX, 0, paddingX + drawWidth, 0);
     const solid = `rgba(${r}, ${g}, ${b}, ${opacity})`;
     const transparent = `rgba(${r}, ${g}, ${b}, 0)`;
     grad.addColorStop(0, transparent);
-    grad.addColorStop(edgeFade / width, solid);
-    grad.addColorStop(1 - edgeFade / width, solid);
+    grad.addColorStop(edgeFade / drawWidth, solid);
+    grad.addColorStop(1 - edgeFade / drawWidth, solid);
     grad.addColorStop(1, transparent);
     return grad;
   };
 
   const gradient = makeEdgeGradient(0.6);
 
-  drawWave(ctx, leftTimeDomain, width, leftCenterY, amplitude, gradient, 1.2);
-  drawWave(ctx, rightTimeDomain, width, rightCenterY, amplitude, gradient, 1.2);
+  drawWave(ctx, leftTimeDomain, paddingX, drawWidth, leftCenterY, amplitude, gradient, 1.2);
+  drawWave(ctx, rightTimeDomain, paddingX, drawWidth, rightCenterY, amplitude, gradient, 1.2);
 };
 
 export default waveform;

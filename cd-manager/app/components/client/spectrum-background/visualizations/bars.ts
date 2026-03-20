@@ -17,9 +17,11 @@ const bars: SpectrumVisualization = ({
   sampleRate,
   barCount,
   color: { r, g, b },
+  paddingX,
 }) => {
+  const drawWidth = width - paddingX * 2;
   const totalBars = barCount * 2;
-  const barWidth = width / totalBars;
+  const barWidth = drawWidth / totalBars;
 
   const nyquist = sampleRate / 2;
   const logMin = Math.log10(FREQ_MIN);
@@ -62,7 +64,7 @@ const bars: SpectrumVisualization = ({
     // Left half: left channel, frequencies inverted (high at edge, low at center)
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityL})`;
     ctx.fillRect(
-      (barCount - 1 - i) * barWidth,
+      paddingX + (barCount - 1 - i) * barWidth,
       height - barHeightL,
       barWidth - 1,
       barHeightL,
@@ -70,7 +72,7 @@ const bars: SpectrumVisualization = ({
     // Right half: right channel (low at center, high at edge)
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityR})`;
     ctx.fillRect(
-      (barCount + i) * barWidth,
+      paddingX + (barCount + i) * barWidth,
       height - barHeightR,
       barWidth - 1,
       barHeightR,

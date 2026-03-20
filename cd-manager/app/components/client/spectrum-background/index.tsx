@@ -176,6 +176,7 @@ const SpectrumBackground = ({
       barCount,
       color: { r, g, b },
       hasAudioSignal: hasSignal,
+      paddingX: 8,
     });
 
     animationRef.current = requestAnimationFrame(draw);
@@ -230,6 +231,7 @@ const SpectrumBackground = ({
             position: "relative",
             flex: 1,
             zIndex: 1,
+            px: "8px",
           }}
         >
           {children}

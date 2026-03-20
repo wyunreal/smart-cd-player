@@ -10,6 +10,7 @@ export type SpectrumVisualizationContext = {
   barCount: number;
   color: { r: number; g: number; b: number };
   hasAudioSignal: boolean;
+  paddingX: number;
 };
 
 export type SpectrumVisualization = (context: SpectrumVisualizationContext) => void;
