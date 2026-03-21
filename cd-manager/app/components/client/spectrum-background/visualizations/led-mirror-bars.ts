@@ -4,13 +4,16 @@ const FREQ_MIN = 20;
 const FREQ_MAX = 20000;
 const CENTER_GAP = 2;
 const AMPLITUDE = 0.7;
+const LED_HEIGHT = 4;
+const LED_GAP = 2;
+const LED_STEP = LED_HEIGHT + LED_GAP;
 
 const perceptualGain = (f: number): number => {
   if (f <= 150) return 1.0;
   return Math.pow(f / 150, 0.18);
 };
 
-const mirrorBars: SpectrumVisualization = ({
+const ledMirrorBars: SpectrumVisualization = ({
   ctx,
   width,
   height,
@@ -26,6 +29,7 @@ const mirrorBars: SpectrumVisualization = ({
   const barWidth = drawWidth / mirrorBarCount;
   const centerY = height / 2;
   const halfHeight = centerY - CENTER_GAP / 2;
+  const totalSegments = Math.floor(halfHeight / LED_STEP);
 
   const nyquist = sampleRate / 2;
   const logMin = Math.log10(FREQ_MIN);
@@ -46,6 +50,7 @@ const mirrorBars: SpectrumVisualization = ({
     const centerFreq = Math.pow(10, (logFreqLow + logFreqHigh) / 2);
     const gain = perceptualGain(centerFreq);
     const count = Math.max(1, binHigh - binLow);
+    const xPos = paddingX + i * barWidth;
 
     // Left channel — grows upward from center
     let sumL = 0;
@@ -53,16 +58,14 @@ const mirrorBars: SpectrumVisualization = ({
       sumL += leftData[j];
     }
     const valueL = Math.min(255, (sumL / count) * gain);
-    const barHeightL = (valueL / 255) * halfHeight * AMPLITUDE;
-    const opacityL = 0.15 + (valueL / 255) * 0.45;
+    const litSegmentsL = Math.round((valueL / 255) * totalSegments * AMPLITUDE);
+    const opacityL = 0.15 + (valueL / 255) * 0.85;
 
-    const xPos = paddingX + i * barWidth;
-    const yL = centerY - CENTER_GAP / 2 - barHeightL;
-    const gradL = ctx.createLinearGradient(0, centerY - CENTER_GAP / 2, 0, yL);
-    gradL.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
-    gradL.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${opacityL})`);
-    ctx.fillStyle = gradL;
-    ctx.fillRect(xPos, yL, barWidth - 1, barHeightL);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityL})`;
+    for (let s = 0; s < litSegmentsL; s++) {
+      const y = centerY - CENTER_GAP / 2 - (s + 1) * LED_STEP + LED_GAP;
+      ctx.fillRect(xPos, y, barWidth - 1, LED_HEIGHT);
+    }
 
     // Right channel — grows downward from center
     let sumR = 0;
@@ -70,16 +73,15 @@ const mirrorBars: SpectrumVisualization = ({
       sumR += rightData[j];
     }
     const valueR = Math.min(255, (sumR / count) * gain);
-    const barHeightR = (valueR / 255) * halfHeight * AMPLITUDE;
-    const opacityR = 0.15 + (valueR / 255) * 0.45;
+    const litSegmentsR = Math.round((valueR / 255) * totalSegments * AMPLITUDE);
+    const opacityR = 0.15 + (valueR / 255) * 0.85;
 
-    const yRBase = centerY + CENTER_GAP / 2;
-    const gradR = ctx.createLinearGradient(0, yRBase, 0, yRBase + barHeightR);
-    gradR.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
-    gradR.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${opacityR})`);
-    ctx.fillStyle = gradR;
-    ctx.fillRect(xPos, yRBase, barWidth - 1, barHeightR);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityR})`;
+    for (let s = 0; s < litSegmentsR; s++) {
+      const y = centerY + CENTER_GAP / 2 + s * LED_STEP;
+      ctx.fillRect(xPos, y, barWidth - 1, LED_HEIGHT);
+    }
   }
 };
 
-export default mirrorBars;
+export default ledMirrorBars;

@@ -2,13 +2,16 @@ import type { SpectrumVisualization } from "./types";
 
 const FREQ_MIN = 20;
 const FREQ_MAX = 20000;
+const LED_HEIGHT = 4;
+const LED_GAP = 2;
+const LED_STEP = LED_HEIGHT + LED_GAP;
 
 const perceptualGain = (f: number): number => {
   if (f <= 150) return 1.0;
   return Math.pow(f / 150, 0.18);
 };
 
-const bars: SpectrumVisualization = ({
+const ledBars: SpectrumVisualization = ({
   ctx,
   width,
   height,
@@ -22,6 +25,7 @@ const bars: SpectrumVisualization = ({
   const drawWidth = width - paddingX * 2;
   const totalBars = barCount * 2;
   const barWidth = drawWidth / totalBars;
+  const totalSegments = Math.floor(height / LED_STEP);
 
   const nyquist = sampleRate / 2;
   const logMin = Math.log10(FREQ_MIN);
@@ -49,8 +53,8 @@ const bars: SpectrumVisualization = ({
       sumL += leftData[j];
     }
     const valueL = Math.min(255, (sumL / count) * gain);
-    const barHeightL = (valueL / 255) * height;
-    const opacityL = 0.15 + (valueL / 255) * 0.45;
+    const litSegmentsL = Math.round((valueL / 255) * totalSegments);
+    const opacityL = 0.15 + (valueL / 255) * 0.85;
 
     // Right channel
     let sumR = 0;
@@ -58,27 +62,25 @@ const bars: SpectrumVisualization = ({
       sumR += rightData[j];
     }
     const valueR = Math.min(255, (sumR / count) * gain);
-    const barHeightR = (valueR / 255) * height;
-    const opacityR = 0.15 + (valueR / 255) * 0.45;
+    const litSegmentsR = Math.round((valueR / 255) * totalSegments);
+    const opacityR = 0.15 + (valueR / 255) * 0.85;
 
     // Left half: left channel, frequencies inverted (high at edge, low at center)
     const xL = paddingX + (barCount - 1 - i) * barWidth;
-    const yL = height - barHeightL;
-    const gradL = ctx.createLinearGradient(0, height, 0, yL);
-    gradL.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
-    gradL.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${opacityL})`);
-    ctx.fillStyle = gradL;
-    ctx.fillRect(xL, yL, barWidth - 1, barHeightL);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityL})`;
+    for (let s = 0; s < litSegmentsL; s++) {
+      const y = height - (s + 1) * LED_STEP + LED_GAP;
+      ctx.fillRect(xL, y, barWidth - 1, LED_HEIGHT);
+    }
 
     // Right half: right channel (low at center, high at edge)
     const xR = paddingX + (barCount + i) * barWidth;
-    const yR = height - barHeightR;
-    const gradR = ctx.createLinearGradient(0, height, 0, yR);
-    gradR.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
-    gradR.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${opacityR})`);
-    ctx.fillStyle = gradR;
-    ctx.fillRect(xR, yR, barWidth - 1, barHeightR);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityR})`;
+    for (let s = 0; s < litSegmentsR; s++) {
+      const y = height - (s + 1) * LED_STEP + LED_GAP;
+      ctx.fillRect(xR, y, barWidth - 1, LED_HEIGHT);
+    }
   }
 };
 
-export default bars;
+export default ledBars;

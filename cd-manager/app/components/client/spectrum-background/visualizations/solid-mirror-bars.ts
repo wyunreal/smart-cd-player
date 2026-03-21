@@ -10,7 +10,7 @@ const perceptualGain = (f: number): number => {
   return Math.pow(f / 150, 0.18);
 };
 
-const mirrorBars: SpectrumVisualization = ({
+const solidMirrorBars: SpectrumVisualization = ({
   ctx,
   width,
   height,
@@ -54,15 +54,15 @@ const mirrorBars: SpectrumVisualization = ({
     }
     const valueL = Math.min(255, (sumL / count) * gain);
     const barHeightL = (valueL / 255) * halfHeight * AMPLITUDE;
-    const opacityL = 0.15 + (valueL / 255) * 0.45;
+    const opacityL = 0.15 + (valueL / 255) * 0.85;
 
-    const xPos = paddingX + i * barWidth;
-    const yL = centerY - CENTER_GAP / 2 - barHeightL;
-    const gradL = ctx.createLinearGradient(0, centerY - CENTER_GAP / 2, 0, yL);
-    gradL.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
-    gradL.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${opacityL})`);
-    ctx.fillStyle = gradL;
-    ctx.fillRect(xPos, yL, barWidth - 1, barHeightL);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityL})`;
+    ctx.fillRect(
+      paddingX + i * barWidth,
+      centerY - CENTER_GAP / 2 - barHeightL,
+      barWidth - 1,
+      barHeightL,
+    );
 
     // Right channel — grows downward from center
     let sumR = 0;
@@ -71,15 +71,16 @@ const mirrorBars: SpectrumVisualization = ({
     }
     const valueR = Math.min(255, (sumR / count) * gain);
     const barHeightR = (valueR / 255) * halfHeight * AMPLITUDE;
-    const opacityR = 0.15 + (valueR / 255) * 0.45;
+    const opacityR = 0.15 + (valueR / 255) * 0.85;
 
-    const yRBase = centerY + CENTER_GAP / 2;
-    const gradR = ctx.createLinearGradient(0, yRBase, 0, yRBase + barHeightR);
-    gradR.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
-    gradR.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${opacityR})`);
-    ctx.fillStyle = gradR;
-    ctx.fillRect(xPos, yRBase, barWidth - 1, barHeightR);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityR})`;
+    ctx.fillRect(
+      paddingX + i * barWidth,
+      centerY + CENTER_GAP / 2,
+      barWidth - 1,
+      barHeightR,
+    );
   }
 };
 
-export default mirrorBars;
+export default solidMirrorBars;

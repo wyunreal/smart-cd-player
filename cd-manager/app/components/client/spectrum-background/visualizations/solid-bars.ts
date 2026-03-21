@@ -8,7 +8,7 @@ const perceptualGain = (f: number): number => {
   return Math.pow(f / 150, 0.18);
 };
 
-const bars: SpectrumVisualization = ({
+const solidBars: SpectrumVisualization = ({
   ctx,
   width,
   height,
@@ -50,7 +50,7 @@ const bars: SpectrumVisualization = ({
     }
     const valueL = Math.min(255, (sumL / count) * gain);
     const barHeightL = (valueL / 255) * height;
-    const opacityL = 0.15 + (valueL / 255) * 0.45;
+    const opacityL = 0.15 + (valueL / 255) * 0.85;
 
     // Right channel
     let sumR = 0;
@@ -59,26 +59,25 @@ const bars: SpectrumVisualization = ({
     }
     const valueR = Math.min(255, (sumR / count) * gain);
     const barHeightR = (valueR / 255) * height;
-    const opacityR = 0.15 + (valueR / 255) * 0.45;
+    const opacityR = 0.15 + (valueR / 255) * 0.85;
 
     // Left half: left channel, frequencies inverted (high at edge, low at center)
-    const xL = paddingX + (barCount - 1 - i) * barWidth;
-    const yL = height - barHeightL;
-    const gradL = ctx.createLinearGradient(0, height, 0, yL);
-    gradL.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
-    gradL.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${opacityL})`);
-    ctx.fillStyle = gradL;
-    ctx.fillRect(xL, yL, barWidth - 1, barHeightL);
-
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityL})`;
+    ctx.fillRect(
+      paddingX + (barCount - 1 - i) * barWidth,
+      height - barHeightL,
+      barWidth - 1,
+      barHeightL,
+    );
     // Right half: right channel (low at center, high at edge)
-    const xR = paddingX + (barCount + i) * barWidth;
-    const yR = height - barHeightR;
-    const gradR = ctx.createLinearGradient(0, height, 0, yR);
-    gradR.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
-    gradR.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${opacityR})`);
-    ctx.fillStyle = gradR;
-    ctx.fillRect(xR, yR, barWidth - 1, barHeightR);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacityR})`;
+    ctx.fillRect(
+      paddingX + (barCount + i) * barWidth,
+      height - barHeightR,
+      barWidth - 1,
+      barHeightR,
+    );
   }
 };
 
-export default bars;
+export default solidBars;
