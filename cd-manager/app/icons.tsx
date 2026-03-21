@@ -23,6 +23,7 @@ import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import EqualizerIcon from "@mui/icons-material/Equalizer";
 
 export {
   AlbumIcon,
@@ -50,4 +51,5 @@ export {
   KeyboardArrowDownIcon,
   VolumeUpIcon,
   VolumeOffIcon,
+  EqualizerIcon,
 };

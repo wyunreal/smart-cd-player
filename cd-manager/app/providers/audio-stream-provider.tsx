@@ -9,6 +9,13 @@ import React, {
   useState,
 } from "react";
 
+export const EQ_BANDS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+export const EQ_MIN_DB = -12;
+export const EQ_MAX_DB = 12;
+const EQ_Q = 1.414; // ~1 octave bandwidth
+const EQ_STORAGE_KEY = "eq-gains";
+const EQ_ENABLED_STORAGE_KEY = "eq-enabled";
+
 export type AudioStreamContextType = {
   ready: boolean;
   muted: boolean;
@@ -16,6 +23,32 @@ export type AudioStreamContextType = {
   analyserLeft: AnalyserNode | null;
   analyserRight: AnalyserNode | null;
   audioContext: AudioContext | null;
+  eqEnabled: boolean;
+  setEqEnabled: (enabled: boolean) => void;
+  eqGains: number[];
+  setEqGain: (bandIndex: number, gain: number) => void;
+  resetEq: () => void;
+};
+
+const defaultEqGains = () => EQ_BANDS.map(() => 0);
+
+const loadEqGains = (): number[] => {
+  try {
+    const stored = localStorage.getItem(EQ_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length === EQ_BANDS.length) return parsed;
+    }
+  } catch { /* ignore */ }
+  return defaultEqGains();
+};
+
+const loadEqEnabled = (): boolean => {
+  try {
+    const stored = localStorage.getItem(EQ_ENABLED_STORAGE_KEY);
+    if (stored !== null) return JSON.parse(stored);
+  } catch { /* ignore */ }
+  return false;
 };
 
 export const AudioStreamContext = createContext<AudioStreamContextType>({
@@ -25,6 +58,11 @@ export const AudioStreamContext = createContext<AudioStreamContextType>({
   analyserLeft: null,
   analyserRight: null,
   audioContext: null,
+  eqEnabled: false,
+  setEqEnabled: () => {},
+  eqGains: defaultEqGains(),
+  setEqGain: () => {},
+  resetEq: () => {},
 });
 
 const PREBUFFER_SECONDS = 0.6;
@@ -48,6 +86,8 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
   const [analyserLeft, setAnalyserLeft] = useState<AnalyserNode | null>(null);
   const [analyserRight, setAnalyserRight] = useState<AnalyserNode | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [eqEnabled, setEqEnabledState] = useState(false);
+  const [eqGains, setEqGainsState] = useState<number[]>(defaultEqGains);
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -55,6 +95,10 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
   const analyserRightRef = useRef<AnalyserNode | null>(null);
   const splitterRef = useRef<ChannelSplitterNode | null>(null);
   const playbackGainRef = useRef<GainNode | null>(null);
+  const eqFiltersRef = useRef<BiquadFilterNode[]>([]);
+  const eqInputRef = useRef<GainNode | null>(null);
+  const eqEnabledRef = useRef(false);
+  const eqGainsRef = useRef<number[]>(defaultEqGains());
   const configRef = useRef<StreamConfig | null>(null);
   const prebufferingRef = useRef(true);
   const prebufferRef = useRef<PrebufferItem[]>([]);
@@ -78,8 +122,37 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     });
     audioCtxRef.current = ctx;
 
+    // EQ chain: input gain → 10 peaking filters → output
+    const eqInput = ctx.createGain();
+    eqInputRef.current = eqInput;
+
+    const savedGains = loadEqGains();
+    const savedEnabled = loadEqEnabled();
+    eqGainsRef.current = savedGains;
+    eqEnabledRef.current = savedEnabled;
+    setEqGainsState(savedGains);
+    setEqEnabledState(savedEnabled);
+
+    const filters: BiquadFilterNode[] = EQ_BANDS.map((freq, i) => {
+      const filter = ctx.createBiquadFilter();
+      filter.type = "peaking";
+      filter.frequency.value = freq;
+      filter.Q.value = EQ_Q;
+      filter.gain.value = savedEnabled ? savedGains[i] : 0;
+      return filter;
+    });
+
+    // Chain: eqInput → filter[0] → filter[1] → ... → filter[9]
+    eqInput.connect(filters[0]);
+    for (let i = 0; i < filters.length - 1; i++) {
+      filters[i].connect(filters[i + 1]);
+    }
+    eqFiltersRef.current = filters;
+    const eqOutput = filters[filters.length - 1];
+
     const splitter = ctx.createChannelSplitter(2);
     splitterRef.current = splitter;
+    eqOutput.connect(splitter);
 
     const aLeft = ctx.createAnalyser();
     aLeft.fftSize = 8192;
@@ -95,6 +168,7 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
 
     const gain = ctx.createGain();
     gain.gain.value = 0;
+    eqOutput.connect(gain);
     gain.connect(ctx.destination);
     playbackGainRef.current = gain;
 
@@ -110,8 +184,8 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     (channelData: Float32Array[], samplesDecoded: number) => {
       const ctx = audioCtxRef.current;
       const config = configRef.current;
-      const splitter = splitterRef.current;
-      if (!ctx || !config || !splitter) return;
+      const eqInput = eqInputRef.current;
+      if (!ctx || !config || !eqInput) return;
 
       const ch = channelData.length;
       const audioBuffer = ctx.createBuffer(ch, samplesDecoded, config.sampleRate);
@@ -121,7 +195,7 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
 
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(splitter);
+      source.connect(eqInput);
       source.start();
     },
     [],
@@ -132,7 +206,8 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
       const ctx = audioCtxRef.current;
       const config = configRef.current;
       const gain = playbackGainRef.current;
-      if (!ctx || !config || !gain) return;
+      const eqInput = eqInputRef.current;
+      if (!ctx || !config || !gain || !eqInput) return;
 
       const ch = channelData.length;
       const audioBuffer = ctx.createBuffer(ch, samplesDecoded, config.sampleRate);
@@ -142,13 +217,9 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
 
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(gain);
-
-      // When unmuted, also route through the analyser splitter for synced spectrum
-      const splitter = splitterRef.current;
-      if (splitter && gain.gain.value > 0) {
-        source.connect(splitter);
-      }
+      // EQ output is permanently connected to both splitter and gain,
+      // so routing through eqInput feeds both analyser and playback.
+      source.connect(eqInput);
 
       const startTime = Math.max(ctx.currentTime, nextPlaybackTimeRef.current);
       source.start(startTime);
@@ -305,9 +376,16 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
       // (on the old node) are discarded. This prevents a brief "double audio"
       // burst when unmuting.
       gain.disconnect();
+      const eqOutput = eqFiltersRef.current[eqFiltersRef.current.length - 1];
+      if (eqOutput) {
+        eqOutput.disconnect(gain);
+      }
       const newGain = ctx.createGain();
       newGain.gain.value = 1;
       newGain.connect(ctx.destination);
+      if (eqOutput) {
+        eqOutput.connect(newGain);
+      }
       playbackGainRef.current = newGain;
 
       // Reset playback timing so audio starts from the live stream position
@@ -320,9 +398,43 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const setEqEnabled = useCallback((enabled: boolean) => {
+    eqEnabledRef.current = enabled;
+    setEqEnabledState(enabled);
+    localStorage.setItem(EQ_ENABLED_STORAGE_KEY, JSON.stringify(enabled));
+    eqFiltersRef.current.forEach((filter, i) => {
+      filter.gain.value = enabled ? eqGainsRef.current[i] : 0;
+    });
+  }, []);
+
+  const setEqGain = useCallback((bandIndex: number, gain: number) => {
+    const clamped = Math.max(EQ_MIN_DB, Math.min(EQ_MAX_DB, gain));
+    const newGains = [...eqGainsRef.current];
+    newGains[bandIndex] = clamped;
+    eqGainsRef.current = newGains;
+    setEqGainsState(newGains);
+    localStorage.setItem(EQ_STORAGE_KEY, JSON.stringify(newGains));
+    if (eqEnabledRef.current && eqFiltersRef.current[bandIndex]) {
+      eqFiltersRef.current[bandIndex].gain.value = clamped;
+    }
+  }, []);
+
+  const resetEq = useCallback(() => {
+    const zeros = defaultEqGains();
+    eqGainsRef.current = zeros;
+    setEqGainsState(zeros);
+    localStorage.setItem(EQ_STORAGE_KEY, JSON.stringify(zeros));
+    eqFiltersRef.current.forEach((filter) => {
+      filter.gain.value = 0;
+    });
+  }, []);
+
   return (
     <AudioStreamContext.Provider
-      value={{ ready, muted, toggleMute, analyserLeft, analyserRight, audioContext }}
+      value={{
+        ready, muted, toggleMute, analyserLeft, analyserRight, audioContext,
+        eqEnabled, setEqEnabled, eqGains, setEqGain, resetEq,
+      }}
     >
       {children}
     </AudioStreamContext.Provider>
