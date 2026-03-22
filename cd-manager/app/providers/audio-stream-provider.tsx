@@ -184,8 +184,8 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     (channelData: Float32Array[], samplesDecoded: number) => {
       const ctx = audioCtxRef.current;
       const config = configRef.current;
-      const eqInput = eqInputRef.current;
-      if (!ctx || !config || !eqInput) return;
+      const splitter = splitterRef.current;
+      if (!ctx || !config || !splitter) return;
 
       const ch = channelData.length;
       const audioBuffer = ctx.createBuffer(ch, samplesDecoded, config.sampleRate);
@@ -195,7 +195,10 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
 
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(eqInput);
+      // Connect directly to the splitter (analysers only), bypassing
+      // EQ and playback gain to keep visualisation in sync with the
+      // live stream and avoid sending audio to speakers.
+      source.connect(splitter);
       source.start();
     },
     [],
@@ -276,10 +279,12 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
 
       if (samplesDecoded === 0) return;
 
-      // Feed analyser immediately when muted or during prebuffer while unmuted;
-      // once unmuted playback starts, the analyser is fed via schedulePlayback.
+      // When muted, feed the analyser directly (bypasses EQ/prebuffer)
+      // so the visualisation stays in sync with the live amplifier output.
+      // When unmuted, the analyser is fed exclusively via schedulePlayback
+      // (through the EQ chain) so the visualisation matches what the user hears.
       const unmuted = playbackGainRef.current && playbackGainRef.current.gain.value > 0;
-      if (!unmuted || prebufferingRef.current) {
+      if (!unmuted) {
         feedAnalyser(channelData, samplesDecoded);
       }
 
