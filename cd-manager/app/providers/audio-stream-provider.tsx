@@ -65,7 +65,7 @@ export const AudioStreamContext = createContext<AudioStreamContextType>({
   resetEq: () => {},
 });
 
-const PREBUFFER_SECONDS = 0.6;
+const PREBUFFER_SECONDS = 2;
 
 type StreamConfig = {
   type: string;

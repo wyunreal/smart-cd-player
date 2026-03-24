@@ -49,6 +49,7 @@ const CdDetailsDialog = ({
         }
         forcedHeight={isMobile ? undefined : 500}
         noHeader
+        noScroll
       >
         {cd && (
           <Box

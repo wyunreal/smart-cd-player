@@ -20,6 +20,7 @@ type FullScreenDialogProps = {
   forcedHeight?: number;
   noHeader?: boolean;
   noPadding?: boolean;
+  noScroll?: boolean;
   headless?: boolean;
   adaptToContentInMobile?: boolean;
   children: React.ReactNode;
@@ -41,6 +42,7 @@ const ResponsiveDialog = ({
   forcedHeight,
   noHeader,
   noPadding,
+  noScroll,
   headless,
   adaptToContentInMobile,
   children,
@@ -78,7 +80,9 @@ const ResponsiveDialog = ({
               : { borderRadius: 0 }
             : {
                 width: "600px",
-                height: forcedHeight ?? height + (headless ? 0 : TITLE_BAR_HEIGHT) + 3 * PADDING,
+                height:
+                  forcedHeight ??
+                  height + (headless ? 0 : TITLE_BAR_HEIGHT) + 3 * PADDING,
                 maxHeight: "90vh",
                 transition: "height 0.5s",
                 overflow: "hidden",
@@ -135,7 +139,7 @@ const ResponsiveDialog = ({
                   ? "100dvh"
                   : `calc(100dvh - ${TITLE_BAR_HEIGHT}px)`
               : "300px",
-            overflowY: isMobile && noPadding ? "hidden" : "auto",
+            overflowY: (isMobile && noPadding) || noScroll ? "hidden" : "auto",
             display: "flex",
             flexDirection: "column",
             scrollbarWidth: "none",
