@@ -377,21 +377,19 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
         ctx.resume();
       }
 
-      // Replace the GainNode so that any BufferSources scheduled while muted
-      // (on the old node) are discarded. This prevents a brief "double audio"
-      // burst when unmuting.
-      gain.disconnect();
-      const eqOutput = eqFiltersRef.current[eqFiltersRef.current.length - 1];
-      if (eqOutput) {
-        eqOutput.disconnect(gain);
+      // Replace the eqInput node so that any BufferSources scheduled while
+      // muted are disconnected. Sources connect to eqInput (upstream of gain),
+      // so replacing only the GainNode would still let old sources flow through
+      // the EQ chain into the new gain, causing brief "double audio".
+      const oldEqInput = eqInputRef.current;
+      if (oldEqInput) {
+        oldEqInput.disconnect();
       }
-      const newGain = ctx.createGain();
-      newGain.gain.value = 1;
-      newGain.connect(ctx.destination);
-      if (eqOutput) {
-        eqOutput.connect(newGain);
-      }
-      playbackGainRef.current = newGain;
+      const newEqInput = ctx.createGain();
+      newEqInput.connect(eqFiltersRef.current[0]);
+      eqInputRef.current = newEqInput;
+
+      gain.gain.value = 1;
 
       // Reset playback timing so audio starts from the live stream position
       nextPlaybackTimeRef.current = ctx.currentTime;

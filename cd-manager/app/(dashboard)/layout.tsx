@@ -11,6 +11,7 @@ import MainActions from "../components/client/main-actions";
 import { DataRepositoryProvider } from "@/app/providers/data-repository";
 import { CdSelectionProvider } from "@/app/providers/cd-selection-context";
 import { AudioStreamProvider } from "@/app/providers/audio-stream-provider";
+import MediaSessionBridge from "@/app/components/client/media-session-bridge";
 
 export default function Layout(props: { children: React.ReactNode }) {
   const theme = useTheme();
@@ -19,6 +20,7 @@ export default function Layout(props: { children: React.ReactNode }) {
     <AudioStreamProvider>
       <CdSelectionProvider>
         <DataRepositoryProvider>
+          <MediaSessionBridge />
           <DashboardLayout
           slots={{
             toolbarAccount: ToolbarAccountOverride,
