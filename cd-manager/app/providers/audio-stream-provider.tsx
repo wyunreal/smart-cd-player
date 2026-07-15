@@ -190,7 +190,7 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
       const ch = channelData.length;
       const audioBuffer = ctx.createBuffer(ch, samplesDecoded, config.sampleRate);
       for (let c = 0; c < ch; c++) {
-        audioBuffer.copyToChannel(channelData[c], c);
+        audioBuffer.copyToChannel(new Float32Array(channelData[c]), c);
       }
 
       const source = ctx.createBufferSource();
@@ -215,7 +215,7 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
       const ch = channelData.length;
       const audioBuffer = ctx.createBuffer(ch, samplesDecoded, config.sampleRate);
       for (let c = 0; c < ch; c++) {
-        audioBuffer.copyToChannel(channelData[c], c);
+        audioBuffer.copyToChannel(new Float32Array(channelData[c]), c);
       }
 
       const source = ctx.createBufferSource();
@@ -281,14 +281,16 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
 
       // When muted, feed the analyser directly (bypasses EQ/prebuffer)
       // so the visualisation stays in sync with the live amplifier output.
-      // When unmuted, the analyser is fed exclusively via schedulePlayback
-      // (through the EQ chain) so the visualisation matches what the user hears.
+      // Return immediately — do NOT call schedulePlayback, which would queue
+      // future sources on the EQ chain → splitter, overloading the graph and
+      // causing the analyser to drift.
       const unmuted = playbackGainRef.current && playbackGainRef.current.gain.value > 0;
       if (!unmuted) {
         feedAnalyser(channelData, samplesDecoded);
+        return;
       }
 
-      // Prebuffering phase for gapless playback
+      // Prebuffering phase for gapless playback (unmuted only)
       if (prebufferingRef.current) {
         prebufferRef.current.push({
           channelData: channelData.map((ch: Float32Array) => ch.slice()),
