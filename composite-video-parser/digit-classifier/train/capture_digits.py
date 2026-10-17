@@ -22,6 +22,8 @@ from urllib.request import urlopen
 
 from PIL import Image
 
+from frame_url import DEFAULT_FRAME_URL, resolve_frame_url
+
 # Digit region: time_4 (seconds unit) from config.json
 DEFAULT_REGION = (610, 50, 26, 21)  # x, y, width, height
 
@@ -64,14 +66,16 @@ def capture_loop(url: str, fps: float, output_dir: Path, region: tuple[int, int,
 
 def main():
     parser = argparse.ArgumentParser(description="Capture digit crops from live video feed")
-    parser.add_argument("--fps", type=float, required=True, help="Capture rate in frames per second")
+    parser.add_argument("--fps", type=float, default=2.0, help="Capture rate in frames per second (default: 2)")
     parser.add_argument("--output", type=str, default="./captured", help="Output directory (default: ./captured)")
-    parser.add_argument("--url", type=str, default="http://localhost:3100/frame", help="Frame URL")
+    parser.add_argument("--url", type=str, default=None,
+                        help=f"Frame URL (default: $FRAME_URL or {DEFAULT_FRAME_URL})")
     parser.add_argument("--region", type=str, default=None,
-                        help="Crop region as x,y,w,h (default: 598,0,26,21 = time_4)")
+                        help="Crop region as x,y,w,h (default: 610,50,26,21 = time_4)")
     parser.add_argument("--prefix", type=str, default="frame",
                         help="Filename prefix (default: frame)")
     args = parser.parse_args()
+    args.url = resolve_frame_url(args.url)
 
     region = DEFAULT_REGION
     if args.region:

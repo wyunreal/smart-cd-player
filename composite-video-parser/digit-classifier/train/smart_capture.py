@@ -13,7 +13,10 @@ Usage:
   python3 smart_capture.py \
     --disc1 1 --disc2 2 --disc3 blank \
     --track1 blank --track2 2 \
-    --time1 blank --time2 3 --time3 3 --time4 9
+    --time1 blank --time2 3 --time3 3 --time4 9 \
+    --url http://<host>:30002/frame
+
+  (or set FRAME_URL=http://<host>:30002/frame instead of --url)
 """
 
 import argparse
@@ -27,10 +30,11 @@ from urllib.request import urlopen
 import numpy as np
 from PIL import Image
 
+from frame_url import DEFAULT_FRAME_URL, resolve_frame_url
+
 BASE_DIR = Path(__file__).parent.parent
 CONFIG_PATH = BASE_DIR.parent / "config.json"
 SOURCE_DIR = BASE_DIR / "source-digits"
-URL = "http://192.168.68.50:30002/frame"
 TARGET = 50
 CHANGE_THRESHOLD = 0.08  # fraction of pixels that must differ to count as a digit change
 
@@ -74,8 +78,13 @@ def main():
     parser.add_argument("--time3", required=True)
     parser.add_argument("--time4", required=True)
     parser.add_argument("--target", type=int, default=TARGET)
-    parser.add_argument("--url", default=URL)
+    parser.add_argument(
+        "--url",
+        default=None,
+        help=f"Frame URL (default: $FRAME_URL or {DEFAULT_FRAME_URL})",
+    )
     args = parser.parse_args()
+    args.url = resolve_frame_url(args.url)
 
     with open(CONFIG_PATH) as f:
         config = json.load(f)

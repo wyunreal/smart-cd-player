@@ -9,7 +9,7 @@
     "dev": "tsx src/main.ts",
     "test": "node --test dist/test/digit-detector.test.js",
     "test:docker": "docker build -f Dockerfile.test -t composite-video-parser-test . && docker run --rm composite-video-parser-test",
-    "capture": "python3 digit-classifier/train/capture_digits.py"
+    "capture": "python3 digit-classifier/train/capture_digits.py --url \"${FRAME_URL:-http://localhost:3100/frame}\""
   },
   "dependencies": {
     "digit-classifier": "file:./digit-classifier/inference",

@@ -10,7 +10,8 @@ Replaces all existing training images.
 
 Usage:
     python3 recapture.py
-    python3 recapture.py --url http://192.168.68.50:30002/frame --target 50 --margin 0.6
+    python3 recapture.py --url http://<host>:30002/frame --target 50 --margin 0.6
+    FRAME_URL=http://<host>:30002/frame python3 recapture.py
 """
 
 import argparse
@@ -26,13 +27,14 @@ import numpy as np
 import onnxruntime as ort
 from PIL import Image
 
+from frame_url import DEFAULT_FRAME_URL, resolve_frame_url
+
 BASE_DIR = Path(__file__).parent.parent
 CONFIG_PATH = BASE_DIR.parent / "config.json"
 MODEL_PATH = BASE_DIR / "model" / "digit_classifier.onnx"
 METADATA_PATH = BASE_DIR / "model" / "metadata.json"
 SOURCE_DIR = BASE_DIR / "source-digits"
 
-DEFAULT_URL = "http://192.168.68.50:30002/frame"
 DEFAULT_TARGET = 50
 DEFAULT_MARGIN = 0.6
 
@@ -90,10 +92,15 @@ def clear_source_dirs(labels: list[str]):
 
 def main():
     parser = argparse.ArgumentParser(description="Auto-capture training images from live frames")
-    parser.add_argument("--url", default=DEFAULT_URL, help="Frame URL")
+    parser.add_argument(
+        "--url",
+        default=None,
+        help=f"Frame URL (default: $FRAME_URL or {DEFAULT_FRAME_URL})",
+    )
     parser.add_argument("--target", type=int, default=DEFAULT_TARGET, help="Target images per class")
     parser.add_argument("--margin", type=float, default=DEFAULT_MARGIN, help="Min confidence margin to accept")
     args = parser.parse_args()
+    args.url = resolve_frame_url(args.url)
 
     print("Loading config and model...")
     config = load_config()
