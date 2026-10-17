@@ -4,15 +4,15 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "tsc && mkdir -p dist/half-digit-classifier && cp -r half-digit-classifier/model dist/half-digit-classifier/model",
+    "build": "tsc && mkdir -p dist/digit-classifier && cp -r digit-classifier/model dist/digit-classifier/model",
     "start": "node dist/src/main.js",
     "dev": "tsx src/main.ts",
     "test": "node --test dist/test/digit-detector.test.js",
     "test:docker": "docker build -f Dockerfile.test -t composite-video-parser-test . && docker run --rm composite-video-parser-test",
-    "capture": "python3 half-digit-classifier/train/capture_digits.py"
+    "capture": "python3 digit-classifier/train/capture_digits.py"
   },
   "dependencies": {
-    "half-digit-classifier": "file:./half-digit-classifier/inference",
+    "digit-classifier": "file:./digit-classifier/inference",
     "sharp": "^0.33.0"
   },
   "devDependencies": {

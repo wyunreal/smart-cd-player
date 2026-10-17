@@ -325,6 +325,12 @@ detect-node@^2.0.4:
   resolved "https://registry.yarnpkg.com/detect-node/-/detect-node-2.1.0.tgz#c9c70775a49c3d03bc2c06d9a73be550f978f8b1"
   integrity sha512-T0NIuQpnTvFDATNuHN5roPwSBG83rFsuO+MXXH9/3N1eFbn4wcPjttvjMLEPWJ0RGUYgQE7cGgS3tNxbqCGM7g==
 
+"digit-classifier@file:./digit-classifier/inference":
+  version "1.0.0"
+  dependencies:
+    onnxruntime-node "^1.24.2"
+    sharp "^0.33.0"
+
 es-define-property@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/es-define-property/-/es-define-property-1.0.1.tgz#983eb2f9a6724e9303f61addf011c72e09e0b0fa"
@@ -413,12 +419,6 @@ gopd@^1.0.1:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/gopd/-/gopd-1.2.0.tgz#89f56b8217bdbc8802bd299df6d7f1081d7e51a1"
   integrity sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==
-
-"half-digit-classifier@file:./half-digit-classifier/inference":
-  version "1.0.0"
-  dependencies:
-    onnxruntime-node "^1.24.2"
-    sharp "^0.33.0"
 
 has-property-descriptors@^1.0.0:
   version "1.0.2"

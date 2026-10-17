@@ -1,9 +1,9 @@
 node_modules/
 dist/
-half-digit-classifier/inference/node_modules/
-half-digit-classifier/inference/dist/
-half-digit-classifier/train/.venv/
-half-digit-classifier/train/__pycache__/
-half-digit-classifier/filtered-source-digits/
+digit-classifier/inference/node_modules/
+digit-classifier/inference/dist/
+digit-classifier/train/.venv/
+digit-classifier/train/__pycache__/
+digit-classifier/filtered-source-digits/
 *.tar.gz
 .git/

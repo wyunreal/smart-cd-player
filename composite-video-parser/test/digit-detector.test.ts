@@ -5,7 +5,7 @@ import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import sharp from "sharp";
-import { DigitClassifier } from "half-digit-classifier";
+import { DigitClassifier } from "digit-classifier";
 
 import {
   createDigitDetector,
@@ -149,11 +149,11 @@ describe("DigitDetector (end-to-end)", () => {
     classifier = new DigitClassifier({
       modelPath: path.resolve(
         projectRoot,
-        "half-digit-classifier/model/digit_classifier.onnx",
+        "digit-classifier/model/digit_classifier.onnx",
       ),
       metadataPath: path.resolve(
         projectRoot,
-        "half-digit-classifier/model/metadata.json",
+        "digit-classifier/model/metadata.json",
       ),
     });
     await classifier.initialize();

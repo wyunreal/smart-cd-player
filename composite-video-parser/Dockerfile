@@ -5,7 +5,7 @@ USER root
 WORKDIR /app
 
 COPY package.json yarn.lock ./
-COPY half-digit-classifier/inference/package.json half-digit-classifier/inference/
+COPY digit-classifier/inference/package.json digit-classifier/inference/
 
 RUN yarn --frozen-lockfile --production=false
 
@@ -17,9 +17,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build inference package (tsc is in root node_modules/.bin/)
-RUN cd half-digit-classifier/inference && ../../node_modules/.bin/tsc
+RUN cd digit-classifier/inference && ../../node_modules/.bin/tsc
 # Sync built output to the node_modules copy (yarn v1 file: protocol copies at install time)
-RUN cp -r half-digit-classifier/inference/dist node_modules/half-digit-classifier/
+RUN cp -r digit-classifier/inference/dist node_modules/digit-classifier/
 # Build main project
 RUN yarn build
 
@@ -35,9 +35,9 @@ ENV NODE_ENV=production
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/half-digit-classifier/model ./half-digit-classifier/model
-COPY --from=builder /app/half-digit-classifier/inference/dist ./half-digit-classifier/inference/dist
-COPY --from=builder /app/half-digit-classifier/inference/package.json ./half-digit-classifier/inference/
+COPY --from=builder /app/digit-classifier/model ./digit-classifier/model
+COPY --from=builder /app/digit-classifier/inference/dist ./digit-classifier/inference/dist
+COPY --from=builder /app/digit-classifier/inference/package.json ./digit-classifier/inference/
 COPY --from=builder /app/config.json ./config.json
 
 EXPOSE 3100

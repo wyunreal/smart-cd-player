@@ -1,7 +1,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { DigitClassifier } from "half-digit-classifier";
+import { DigitClassifier } from "digit-classifier";
 
 import { createDigitDetector, detectWithRetry } from "./digit-detector.js";
 
@@ -15,8 +15,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 async function main(): Promise<void> {
   const config = await loadConfig();
 
-  // Resolve model paths relative to the half-digit-classifier package
-  const modelDir = resolve(__dirname, "../half-digit-classifier/model");
+  // Resolve model paths relative to the digit-classifier package
+  const modelDir = resolve(__dirname, "../digit-classifier/model");
   const modelPath = resolve(modelDir, "digit_classifier.onnx");
   const metadataPath = resolve(modelDir, "metadata.json");
 

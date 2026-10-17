@@ -9,18 +9,18 @@
     "contrast": 240
   },
   "rects": [
-    { "name": "disc_1", "x": 115, "y": 0, "width": 26, "height": 21 },
-    { "name": "disc_2", "x": 144, "y": 0, "width": 26, "height": 21 },
-    { "name": "disc_3", "x": 172, "y": 0, "width": 26, "height": 21 },
-    { "name": "track_1", "x": 373, "y": 0, "width": 26, "height": 21 },
-    { "name": "track_2", "x": 400, "y": 0, "width": 26, "height": 21 },
-    { "name": "time_1", "x": 486, "y": 0, "width": 26, "height": 21 },
-    { "name": "time_2", "x": 513, "y": 0, "width": 26, "height": 21 },
-    { "name": "time_3", "x": 571, "y": 0, "width": 26, "height": 21 },
-    { "name": "time_4", "x": 598, "y": 0, "width": 26, "height": 21 }
+    { "name": "disc_1", "x": 160, "y": 50, "width": 26, "height": 21 },
+    { "name": "disc_2", "x": 186, "y": 50, "width": 26, "height": 21 },
+    { "name": "disc_3", "x": 213, "y": 50, "width": 26, "height": 21 },
+    { "name": "track_1", "x": 398, "y": 50, "width": 26, "height": 21 },
+    { "name": "track_2", "x": 425, "y": 50, "width": 26, "height": 21 },
+    { "name": "time_1", "x": 504, "y": 50, "width": 26, "height": 21 },
+    { "name": "time_2", "x": 531, "y": 50, "width": 26, "height": 21 },
+    { "name": "time_3", "x": 584, "y": 50, "width": 26, "height": 21 },
+    { "name": "time_4", "x": 610, "y": 50, "width": 26, "height": 21 }
   ],
-  "powerPixel": { "x": 645, "y": 5 },
-  "modePixel": { "x": 650, "y": 25 },
+  "powerPixel": { "x": 200, "y": 47 },
+  "modePixel": { "x": 470, "y": 60 },
   "server": {
     "port": 3100,
     "captureIdleTimeoutMs": 300000

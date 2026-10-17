@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { DigitClassifier } from "half-digit-classifier";
+import { DigitClassifier } from "digit-classifier";
 
 import type { RectConfig } from "./config.js";
 
