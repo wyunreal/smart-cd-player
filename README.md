@@ -175,7 +175,6 @@ All nine rect names are required (`disc_1..3`, `track_1..2`, `time_1..4`), and
 | Endpoint | Description |
 |---|---|
 | `GET /display` | map of stream id → `{ status, mode, disc, track, minutes, seconds, timestamp }` |
-| `GET /display/:id` | one flat reading (`404` with `availableStreams` when the id is unknown) |
 | `GET /streams` | capture id/device, size, fps, `capturing`, `hasFrame`, `lastError` |
 | `GET /frame?id=<id>` | latest frame as PNG (`id` optional when there is a single stream) |
 | `GET /frame-filtered?id=<id>` | binarized frame (same threshold the model uses) |

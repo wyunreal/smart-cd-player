@@ -357,54 +357,6 @@ describe("DigitDetector (end-to-end)", () => {
     }
   });
 
-  it("GET /display/:id should return one flat reading", async () => {
-    const results = await detector.detect(rawFrame, frameWidth, frameHeight);
-    const state: DigitState = {
-      digits: results,
-      mode: "playing",
-      timestamp: Date.now(),
-    };
-
-    const { server, baseUrl } = await startServer([
-      makeStream("player-1", state, rawFrame),
-    ]);
-
-    try {
-      const res = await fetch(`${baseUrl}/display/player-1`);
-      assert.equal(res.status, 200);
-
-      const body = (await res.json()) as Record<string, unknown>;
-      assert.equal(body.status, "ok");
-      assert.equal(body.mode, "playing");
-      assert.equal(body.disc, 129);
-      assert.equal(body.track, 12);
-      assert.equal(body.minutes, 1);
-      assert.equal(body.seconds, 5);
-    } finally {
-      server.close();
-    }
-  });
-
-  it("GET /display/:id should return 404 for an unknown stream", async () => {
-    const state: DigitState = {
-      digits: [],
-      mode: "off",
-      timestamp: Date.now(),
-    };
-    const { server, baseUrl } = await startServer([
-      makeStream("player-1", state, rawFrame),
-    ]);
-
-    try {
-      const res = await fetch(`${baseUrl}/display/player-9`);
-      assert.equal(res.status, 404);
-      const body = (await res.json()) as Record<string, unknown>;
-      assert.deepEqual(body.availableStreams, ["player-1"]);
-    } finally {
-      server.close();
-    }
-  });
-
   it("GET /frame?id=<id> should return a PNG for the selected stream", async () => {
     const state: DigitState = {
       digits: [],

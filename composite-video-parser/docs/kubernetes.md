@@ -128,7 +128,6 @@ Once deployed, the service is available at `http://<NODE_IP>:30002`:
 |----------------------|--------------------------------------------------|
 | `GET /health`        | Health check and per-stream capture state        |
 | `GET /display`       | All readings, keyed by player id                 |
-| `GET /display/<id>`  | One reading, flat object                         |
 | `GET /streams`       | Stream/capture diagnostics                       |
 | `GET /frame?id=<id>` | Latest captured frame as PNG                     |
 | `GET /frame-filtered?id=<id>` | Binarized frame (threshold visualization) as PNG |
@@ -207,10 +206,11 @@ python3 digit-classifier/train/fetch_crops.py --stream player-2 \
   --url "http://<host>:30002/frame?id=player-2"
 ```
 
-When the geometry looks right, verify the reading:
+When the geometry looks right, verify the reading for that stream in
+`GET /display`:
 
 ```bash
-curl "http://<host>:30002/display/player-2"
+curl "http://<host>:30002/display"
 ```
 
 

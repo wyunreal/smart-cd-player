@@ -446,29 +446,6 @@ export function createHttpServer(deps: ServerDeps): Server {
       }
 
       default: {
-        const match = /^\/display\/([^/]+)$/.exec(url.pathname);
-        if (match) {
-          const id = decodeURIComponent(match[1]);
-          const stream = streamById.get(id);
-          if (!stream) {
-            sendJson(res, 404, {
-              error: "Unknown stream",
-              availableStreams: streamIds,
-            });
-            return;
-          }
-
-          try {
-            await ensureCapturing([stream]);
-            await waitForStates([stream]);
-            sendJson(res, 200, buildReading(stream));
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            sendJson(res, 500, { error: msg });
-          }
-          return;
-        }
-
         sendJson(res, 404, { error: "Not found" });
       }
     }

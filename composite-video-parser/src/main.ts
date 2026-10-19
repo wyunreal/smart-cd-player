@@ -53,7 +53,6 @@ async function main(): Promise<void> {
     console.log("");
     console.log("Endpoints:");
     console.log("  GET  /display              - all stream readings");
-    console.log("  GET  /display/<id>         - one stream reading");
     console.log("  GET  /streams              - stream/capture diagnostics");
     console.log("  GET  /frame?id=<id>        - latest frame as PNG");
     console.log(
