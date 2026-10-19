@@ -14,13 +14,12 @@ Usage:
     --disc1 1 --disc2 2 --disc3 blank \
     --track1 blank --track2 2 \
     --time1 blank --time2 3 --time3 3 --time4 9 \
-    --url http://<host>:30002/frame
+    --stream player-1 --url http://<host>:30002/frame
 
-  (or set FRAME_URL=http://<host>:30002/frame instead of --url)
+  (or set FRAME_URL=http://<host>:30002/frame and FRAME_STREAM=player-1)
 """
 
 import argparse
-import json
 import sys
 import time
 from io import BytesIO
@@ -30,10 +29,15 @@ from urllib.request import urlopen
 import numpy as np
 from PIL import Image
 
-from frame_url import DEFAULT_FRAME_URL, resolve_frame_url
+from config_geometry import get_geometry, load_config
+from frame_url import (
+    DEFAULT_FRAME_URL,
+    resolve_frame_url,
+    resolve_stream_id,
+    with_stream,
+)
 
 BASE_DIR = Path(__file__).parent.parent
-CONFIG_PATH = BASE_DIR.parent / "config.json"
 SOURCE_DIR = BASE_DIR / "source-digits"
 TARGET = 50
 CHANGE_THRESHOLD = 0.08  # fraction of pixels that must differ to count as a digit change
@@ -83,13 +87,20 @@ def main():
         default=None,
         help=f"Frame URL (default: $FRAME_URL or {DEFAULT_FRAME_URL})",
     )
+    parser.add_argument(
+        "--stream",
+        default=None,
+        help="Stream id (default: $FRAME_STREAM or the first configured stream)",
+    )
     args = parser.parse_args()
-    args.url = resolve_frame_url(args.url)
+    args.stream = resolve_stream_id(args.stream)
+    args.url = with_stream(resolve_frame_url(args.url), args.stream)
 
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
+    config = load_config()
+    args.stream, geometry = get_geometry(config, args.stream)
+    rects = geometry["rects"]
 
-    rects = {r["name"]: r for r in config["rects"]}
+    print(f"Stream: {args.stream}")
 
     # Current label state
     labels = {

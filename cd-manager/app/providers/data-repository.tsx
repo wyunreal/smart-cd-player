@@ -5,7 +5,8 @@ import {
   createIrRemoteClient,
   IrRemoteClient,
 } from "@/api/player-remote/client";
-import { Cd, CdSlot, PlayerDefinition } from "@/api/types";
+import { Cd, CdSlot, DisplayState, PlayerDefinition } from "@/api/types";
+import { getPlayerStreamId, normalizeDisplayResponse } from "@/lib/display";
 import React, {
   createContext,
   ReactNode,
@@ -14,7 +15,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { DisplayState } from "@/app/components/client/now-playing";
 
 export type PlayerDefinitionsProps = {
   playerDefinitions: PlayerDefinition[] | null;
@@ -272,8 +272,9 @@ export const DataRepositoryProvider = ({
    * Display State (composite-video-parser polling)
    * Use ?mockDisplay=true to enable mock mode without the real service.
    */
-  const [displayState, setDisplayState] = useState<DisplayState | null>(null);
-  const displayPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [displayStreams, setDisplayStreams] = useState<
+    Record<string, DisplayState>
+  >({});
   const mockSecondsRef = useRef(0);
 
   const isMockDisplay =
@@ -281,51 +282,69 @@ export const DataRepositoryProvider = ({
     new URLSearchParams(window.location.search).has("mockDisplay");
 
   useEffect(() => {
-    if (displayPollingRef.current) {
-      clearInterval(displayPollingRef.current);
-      displayPollingRef.current = null;
-    }
+    if (!isMockDisplay) return;
 
-    if (isMockDisplay) {
-      const mockTick = () => {
-        const sec = mockSecondsRef.current;
-        const minutes = Math.floor(sec / 60);
-        const seconds = sec % 60;
-        setDisplayState({
-          mode: "playing",
-          disc: 1,
-          track: 3,
-          minutes,
-          seconds,
-          timestamp: Date.now(),
-        });
-        mockSecondsRef.current = sec + 2;
+    const mockTick = () => {
+      const sec = mockSecondsRef.current;
+      const reading: DisplayState = {
+        status: "ok",
+        mode: "playing",
+        disc: 1,
+        track: 3,
+        minutes: Math.floor(sec / 60),
+        seconds: sec % 60,
+        timestamp: Date.now(),
       };
-      mockTick();
-      displayPollingRef.current = setInterval(mockTick, 2000);
-      return () => {
-        if (displayPollingRef.current) clearInterval(displayPollingRef.current);
-      };
-    }
+
+      const streamIds =
+        playerDefinitions.length > 0
+          ? playerDefinitions.map(
+              (definition) =>
+                definition.streamId ?? `player-${definition.remoteIndex}`,
+            )
+          : ["player-1"];
+
+      const next: Record<string, DisplayState> = {};
+      for (const streamId of streamIds) {
+        next[streamId] = reading;
+      }
+
+      setDisplayStreams(next);
+      mockSecondsRef.current = sec + 2;
+    };
+
+    mockTick();
+    const timer = setInterval(mockTick, 2000);
+    return () => clearInterval(timer);
+  }, [isMockDisplay, playerDefinitions]);
+
+  useEffect(() => {
+    if (isMockDisplay) return;
 
     const fetchDisplay = () => {
       fetch("/api/display")
         .then((res) => (res.ok ? res.json() : null))
-        .then((data: DisplayState | null) => {
-          if (data) setDisplayState(data);
+        .then((data: unknown) => {
+          if (data) setDisplayStreams(normalizeDisplayResponse(data));
         })
-        .catch(() => setDisplayState(null));
+        .catch(() => setDisplayStreams({}));
     };
 
     fetchDisplay();
-    displayPollingRef.current = setInterval(fetchDisplay, 1000);
-
-    return () => {
-      if (displayPollingRef.current) {
-        clearInterval(displayPollingRef.current);
-      }
-    };
+    const timer = setInterval(fetchDisplay, 1000);
+    return () => clearInterval(timer);
   }, [isMockDisplay]);
+
+  const selectedPlayerDefinition = playerDefinitions.find(
+    (definition) => definition.remoteIndex === selectedPlayer,
+  );
+  const selectedStreamId = getPlayerStreamId(
+    selectedPlayerDefinition,
+    selectedPlayer,
+  );
+  const displayState = selectedStreamId
+    ? displayStreams[selectedStreamId] ?? null
+    : null;
 
   /**
    * Player State

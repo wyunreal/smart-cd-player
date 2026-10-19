@@ -3,12 +3,9 @@ import { fileURLToPath } from "node:url";
 
 import { DigitClassifier } from "digit-classifier";
 
-import { createDigitDetector, detectWithRetry } from "./digit-detector.js";
-
 import { loadConfig } from "./config.js";
-import { createFrameProvider } from "./frame-provider-factory.js";
-import type { DetectionResult } from "./digit-detector.js";
-import { createHttpServer, type DigitState } from "./server.js";
+import { createDigitStream } from "./digit-stream.js";
+import { createHttpServer } from "./server.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -20,179 +17,57 @@ async function main(): Promise<void> {
   const modelPath = resolve(modelDir, "digit_classifier.onnx");
   const metadataPath = resolve(modelDir, "metadata.json");
 
-  // Initialize classifier
+  // Initialize the classifier once and share it between all streams
   const classifier = new DigitClassifier({ modelPath, metadataPath });
   await classifier.initialize();
   console.log(`Classifier initialized (model: ${modelPath})`);
 
-  // Create frame provider
-  const frameProvider = createFrameProvider(config.frameProvider);
+  const streams = Object.entries(config.streams).map(([id, streamConfig]) =>
+    createDigitStream({
+      id,
+      stream: streamConfig,
+      classifier,
+      detection: config.detection,
+    }),
+  );
 
-  // Create detector
-  const detector = createDigitDetector(classifier, config.rects);
-
-  // Shared state for API responses
-  let state: DigitState = { digits: [], mode: "off", timestamp: 0 };
-  let detecting = false;
-
-  const PAUSE_DETECT_MS = 2000;
-
-  const isPoweredOn = (frame: Buffer): boolean => {
-    const { x, y } = config.powerPixel;
-    const offset = (y * config.frameProvider.width + x) * 3;
-    const r = frame[offset];
-    const g = frame[offset + 1];
-    const b = frame[offset + 2];
-    // Green pixel when on, black when off
-    return g > 30 && g > r && g > b;
-  };
-
-  const isPixelStopped = (frame: Buffer): boolean => {
-    const { x, y } = config.modePixel;
-    const offset = (y * config.frameProvider.width + x) * 3;
-    const minRgb = Math.min(
-      frame[offset],
-      frame[offset + 1],
-      frame[offset + 2],
-    );
-    return minRgb > classifier.binarizationThreshold;
-  };
-
-  const getSeconds = (digits: DetectionResult[]): number | null => {
-    const byName = new Map(digits.map((d) => [d.name, d.digit]));
-    const t3 = byName.get("time_3");
-    const t4 = byName.get("time_4");
-    if (t3 == null && t4 == null) return null;
-    return (t3 ?? 0) * 10 + (t4 ?? 0);
-  };
-
-  let lastSeconds: number | null = null;
-  let lastSecondsChangeTime = 0;
-
-  const detectMode = (
-    digits: DetectionResult[],
-  ): "stopped" | "playing" | "paused" => {
-    const seconds = getSeconds(digits);
-    const now = Date.now();
-
-    if (seconds === null) {
-      lastSeconds = null;
-      lastSecondsChangeTime = 0;
-      return "stopped";
-    }
-
-    if (seconds !== lastSeconds) {
-      lastSeconds = seconds;
-      lastSecondsChangeTime = now;
-      return "playing";
-    }
-
-    return now - lastSecondsChangeTime >= PAUSE_DETECT_MS
-      ? "paused"
-      : "playing";
-  };
-
-  // Listeners waiting for a fresh detection result
-  const freshStateListeners: Array<(s: DigitState) => void> = [];
-
-  const resolveFreshListeners = () => {
-    while (freshStateListeners.length > 0) {
-      freshStateListeners.shift()!(state);
-    }
-  };
-
-  const { minDigitConfidenceMargin, retryDelayMinMs, retryDelayMaxMs } =
-    config.detection;
-
-  const randomRetryDelay = (): number =>
-    retryDelayMinMs + Math.random() * (retryDelayMaxMs - retryDelayMinMs);
-
-  const processFrame = async (frame: Buffer): Promise<void> => {
-    if (!isPoweredOn(frame)) {
-      lastSeconds = null;
-      lastSecondsChangeTime = 0;
-      state = { digits: [], mode: "off", timestamp: Date.now() };
-      resolveFreshListeners();
-      return;
-    }
-
-    if (isPixelStopped(frame)) {
-      lastSeconds = null;
-      lastSecondsChangeTime = 0;
-      state = { digits: [], mode: "stopped", timestamp: Date.now() };
-      resolveFreshListeners();
-      return;
-    }
-
-    const digits = await detectWithRetry(
-      frame,
-      detector,
-      () => frameProvider.captureFrame(),
-      config.frameProvider.width,
-      config.frameProvider.height,
-      minDigitConfidenceMargin,
-      () => new Promise<void>((resolve) => setTimeout(resolve, randomRetryDelay())),
-    );
-
-    const mode = detectMode(digits);
-    state = { digits, mode, timestamp: Date.now() };
-    resolveFreshListeners();
-  };
-
-  // Detection loop: process frames as they arrive, skip if busy
-  frameProvider.on("frame", (frame: Buffer) => {
-    if (detecting) return;
-    detecting = true;
-
-    processFrame(frame)
-      .catch((err) => {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error(`[detector] error: ${msg}`);
-      })
-      .finally(() => {
-        detecting = false;
-      });
-  });
-
-  const waitForFreshState = (): Promise<DigitState> =>
-    new Promise((resolve) => {
-      freshStateListeners.push(resolve);
-    });
-
-  // Start HTTP server
   const server = createHttpServer({
     port: config.server.port,
-    frameProvider,
-    getState: () => state,
-    waitForFreshState,
-    frameWidth: config.frameProvider.width,
-    frameHeight: config.frameProvider.height,
+    streams,
     binarizationThreshold: classifier.binarizationThreshold,
     captureIdleTimeoutMs: config.server.captureIdleTimeoutMs,
+    staleAfterMs: config.server.staleAfterMs,
   });
 
   server.listen(config.server.port, () => {
     console.log(`HTTP server listening on port ${config.server.port}`);
-    console.log(`  GET  /display        - disc, track, minutes, seconds`);
-    console.log(`  GET  /frame          - latest frame as PNG`);
+    console.log("");
+    console.log("Streams:");
+    for (const stream of streams) {
+      const source = stream.capture.device ?? stream.capture.url;
+      console.log(
+        `  ${stream.id}: capture=${stream.capture.id} source=${source} ` +
+          `(${stream.width}x${stream.height} @ ${stream.capture.fps}fps)`,
+      );
+    }
+    console.log("");
+    console.log("Endpoints:");
+    console.log("  GET  /display              - all stream readings");
+    console.log("  GET  /display/<id>         - one stream reading");
+    console.log("  GET  /streams              - stream/capture diagnostics");
+    console.log("  GET  /frame?id=<id>        - latest frame as PNG");
     console.log(
-      `  GET  /frame-filtered - frame with binarization threshold ${classifier.binarizationThreshold}`,
+      `  GET  /frame-filtered?id=<id> - binarized frame (threshold ${classifier.binarizationThreshold})`,
     );
-    console.log(`  GET  /health         - health check`);
-    console.log(`  POST /capture/start  - start video capture`);
-    console.log(`  POST /capture/stop   - stop video capture`);
+    console.log("  GET  /health               - health check");
+    console.log("  POST /capture/start?id=<id> - start one stream (or all)");
+    console.log("  POST /capture/stop?id=<id>  - stop one stream (or all)");
   });
-
-  console.log(
-    `Frame provider ready (type: ${config.frameProvider.type}, ` +
-      `${config.frameProvider.width}x${config.frameProvider.height} @ ${config.frameProvider.fps}fps)`,
-  );
-  console.log(`Monitoring ${config.rects.length} digit region(s)`);
 
   // Graceful shutdown
   const shutdown = async () => {
     console.log("\nShutting down...");
-    await frameProvider.stop();
+    await Promise.all(streams.map((stream) => stream.stop()));
     server.close();
     await classifier.dispose();
     process.exit(0);

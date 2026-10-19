@@ -1,27 +1,61 @@
 {
-  "frameProvider": {
-    "type": "http",
-    "url": "http://localhost:3100/frame",
-    "width": 720,
-    "height": 480,
-    "fps": 2
+  "streams": {
+    "player-1": {
+      "capture": {
+        "id": "fixture-a",
+        "url": "http://localhost:8000/frame-all-digits.png",
+        "width": 720,
+        "height": 480,
+        "fps": 2
+      },
+      "geometry": {
+        "powerPixel": { "x": 200, "y": 47 },
+        "modePixel": { "x": 470, "y": 60 },
+        "rects": {
+          "disc_1": { "x": 160, "y": 50, "width": 26, "height": 21 },
+          "disc_2": { "x": 186, "y": 50, "width": 26, "height": 21 },
+          "disc_3": { "x": 213, "y": 50, "width": 26, "height": 21 },
+          "track_1": { "x": 398, "y": 50, "width": 26, "height": 21 },
+          "track_2": { "x": 425, "y": 50, "width": 26, "height": 21 },
+          "time_1": { "x": 504, "y": 50, "width": 26, "height": 21 },
+          "time_2": { "x": 531, "y": 50, "width": 26, "height": 21 },
+          "time_3": { "x": 584, "y": 50, "width": 26, "height": 21 },
+          "time_4": { "x": 610, "y": 50, "width": 26, "height": 21 }
+        }
+      }
+    },
+    "player-2": {
+      "capture": {
+        "id": "fixture-b",
+        "url": "http://localhost:8000/frame-all-digits.png",
+        "width": 720,
+        "height": 480,
+        "fps": 2
+      },
+      "geometry": {
+        "powerPixel": { "x": 201, "y": 48 },
+        "modePixel": { "x": 471, "y": 61 },
+        "rects": {
+          "disc_1": { "x": 161, "y": 51, "width": 26, "height": 21 },
+          "disc_2": { "x": 187, "y": 51, "width": 26, "height": 21 },
+          "disc_3": { "x": 214, "y": 51, "width": 26, "height": 21 },
+          "track_1": { "x": 399, "y": 51, "width": 26, "height": 21 },
+          "track_2": { "x": 426, "y": 51, "width": 26, "height": 21 },
+          "time_1": { "x": 505, "y": 51, "width": 26, "height": 21 },
+          "time_2": { "x": 532, "y": 51, "width": 26, "height": 21 },
+          "time_3": { "x": 585, "y": 51, "width": 26, "height": 21 },
+          "time_4": { "x": 611, "y": 51, "width": 26, "height": 21 }
+        }
+      }
+    }
   },
-  "rects": [
-    { "name": "disc_1", "x": 160, "y": 50, "width": 26, "height": 21 },
-    { "name": "disc_2", "x": 186, "y": 50, "width": 26, "height": 21 },
-    { "name": "disc_3", "x": 213, "y": 50, "width": 26, "height": 21 },
-    { "name": "track_1", "x": 398, "y": 50, "width": 26, "height": 21 },
-    { "name": "track_2", "x": 425, "y": 50, "width": 26, "height": 21 },
-    { "name": "time_1", "x": 504, "y": 50, "width": 26, "height": 21 },
-    { "name": "time_2", "x": 531, "y": 50, "width": 26, "height": 21 },
-    { "name": "time_3", "x": 584, "y": 50, "width": 26, "height": 21 },
-    { "name": "time_4", "x": 610, "y": 50, "width": 26, "height": 21 }
-  ],
-  "powerPixel": { "x": 200, "y": 47 },
-  "modePixel": { "x": 470, "y": 60 },
+
   "server": {
-    "port": 3100
+    "port": 3100,
+    "captureIdleTimeoutMs": 300000,
+    "staleAfterMs": 5000
   },
+
   "detection": {
     "minDigitConfidenceMargin": 0.15,
     "retryDelayMinMs": 30,

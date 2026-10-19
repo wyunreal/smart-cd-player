@@ -34,7 +34,17 @@ describe("display route", () => {
 
   it("returns display data when upstream responds successfully", async () => {
     process.env.COMPOSITE_VIDEO_PARSER_URL = "http://parser:8080";
-    const displayData = { track: 1, time: "02:30", state: "playing" };
+    const displayData = {
+      "player-1": {
+        status: "ok",
+        mode: "playing",
+        disc: 1,
+        track: 2,
+        minutes: 3,
+        seconds: 4,
+        timestamp: 123,
+      },
+    };
 
     mockFetch.mockResolvedValueOnce({
       ok: true,

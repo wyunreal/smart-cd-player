@@ -3,5 +3,6 @@ dist/
 __pycache__/
 .venv/
 filtered-source-digits/
+digit-classifier/bootstrap-work/
 *.tar.gz
 .claude/

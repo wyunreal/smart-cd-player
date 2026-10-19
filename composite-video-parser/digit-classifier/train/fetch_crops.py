@@ -3,22 +3,25 @@
 Fetch one frame and save all rect crops (defined in config.json) to /tmp/cd_crops/.
 
 Usage:
-    python3 fetch_crops.py --url http://<host>:30002/frame
-    FRAME_URL=http://<host>:30002/frame python3 fetch_crops.py
+    python3 fetch_crops.py --stream player-1 --url http://<host>:30002/frame
+    FRAME_URL=http://<host>:30002/frame FRAME_STREAM=player-1 python3 fetch_crops.py
 """
 
 import argparse
-import json
 from io import BytesIO
 from pathlib import Path
 from urllib.request import urlopen
 
 from PIL import Image
 
-from frame_url import DEFAULT_FRAME_URL, resolve_frame_url
+from config_geometry import get_geometry, load_config, rect_list
+from frame_url import (
+    DEFAULT_FRAME_URL,
+    resolve_frame_url,
+    resolve_stream_id,
+    with_stream,
+)
 
-BASE_DIR = Path(__file__).parent.parent
-CONFIG_PATH = BASE_DIR.parent / "config.json"
 OUT_DIR = Path("/tmp/cd_crops")
 
 
@@ -29,18 +32,27 @@ def main():
         default=None,
         help=f"Frame URL (default: $FRAME_URL or {DEFAULT_FRAME_URL})",
     )
+    parser.add_argument(
+        "--stream",
+        default=None,
+        help="Stream id (default: $FRAME_STREAM or the first configured stream)",
+    )
     args = parser.parse_args()
-    url = resolve_frame_url(args.url)
 
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
+    stream_id = resolve_stream_id(args.stream)
+    url = with_stream(resolve_frame_url(args.url), stream_id)
+
+    config = load_config()
+    stream_id, geometry = get_geometry(config, stream_id)
+    rects = rect_list(geometry)
 
     OUT_DIR.mkdir(exist_ok=True)
 
     with urlopen(url, timeout=5) as resp:
         frame = Image.open(BytesIO(resp.read())).convert("RGB")
 
-    for rect in config["rects"]:
+    print(f"Stream: {stream_id}")
+    for rect in rects:
         x, y, w, h = rect["x"], rect["y"], rect["width"], rect["height"]
         crop = frame.crop((x, y, x + w, y + h))
         crop.save(OUT_DIR / f"{rect['name']}.png")

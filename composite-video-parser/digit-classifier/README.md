@@ -18,6 +18,16 @@ digit-classifier/
     dataset.py            # Data loading, green channel extraction, augmentation
     train.py              # Training, evaluation, ONNX export
     export_onnx.py        # Standalone ONNX export
+    config_geometry.py    # Per-stream geometry loading from config.json
+    frame_url.py          # Frame URL / stream resolution (--url, $FRAME_URL)
+    annotate_rects.py     # Draw a stream's rects on a frame (calibration)
+    check_live.py         # Classify one live frame with the current model
+    bootstrap_dataset.py  # Rebuild source-digits/ by glyph clustering
+    fetch_crops.py        # Save a frame's rect crops
+    capture_digits.py     # Capture time_4 crops
+    smart_capture.py      # Transition-tracked capture
+    recapture.py          # Model-labelled capture
+    make_fixture.mjs      # Regenerate test/fixtures/frame-all-digits.png
   model/                  # Generated artifacts
     digit_classifier.onnx # Trained ONNX model
     metadata.json         # Preprocessing params (mean, std, dimensions)
@@ -27,6 +37,74 @@ digit-classifier/
     test/classifier.test.ts
 ```
 
+## Multiple streams / per-player geometry
+
+`config.json` is keyed by player id. Each stream has its own `capture` and
+`geometry`; there is no global rect list and no inheritance.
+
+```json
+{
+  "streams": {
+    "player-1": {
+      "capture": { "id": "capturadora-a", "device": "/dev/video0", "width": 720, "height": 480, "fps": 2 },
+      "geometry": {
+        "powerPixel": { "x": 200, "y": 47 },
+        "modePixel": { "x": 470, "y": 60 },
+        "rects": {
+          "disc_1": { "x": 160, "y": 50, "width": 26, "height": 21 }
+        }
+      }
+    }
+  },
+  "server": { "port": 3100 },
+  "detection": { "minDigitConfidenceMargin": 0.15, "retryDelayMinMs": 30, "retryDelayMaxMs": 50 }
+}
+```
+
+The full config must contain all nine rect names (`disc_1..3`, `track_1..2`,
+`time_1..4`). See `config.json` for the complete example.
+
+The training scripts take `--stream <id>` and use that stream's geometry. See
+[Workflows](#workflows) for the commands.
+
+## Workflows
+
+Run the commands below from `digit-classifier/train/` with the venv active
+(`source .venv/bin/activate`). Each script points at a running parser's frame
+endpoint; `--stream` picks the player geometry.
+
+### Calibrating a new capture device or player
+
+Draw the stream's rects/pixels on a frame, adjust its `geometry` in
+`config.json` until the boxes sit on the glyphs, then check the reading:
+
+```bash
+python3 check_live.py --stream player-2 --url http://<host>:30002/frame
+```
+
+Full procedure: [Calibrating a stream](../docs/kubernetes.md#calibrating-a-stream).
+
+### Choosing how to (re)build the dataset
+
+| Situation | Use |
+|---|---|
+| New capture device/player, or the model misreads the display | `bootstrap_dataset.py` (see [Bootstrapping the dataset](#bootstrapping-the-dataset-new-capture-device-or-player)) |
+| Model already works, you just want more samples | `recapture.py` |
+| One uninterrupted playback and the starting labels are known | `smart_capture.py` |
+| Just inspect `time_4` crops | `capture_digits.py` |
+
+### How much data
+
+Play a CD and collect for ~150 s: the seconds digit cycles 0-9 every second, so
+that covers every class. 40-60 crops per class is enough. If the player is off
+you will only collect black frames.
+
+### Deploying a retrained model
+
+Rebuild and deploy the service as usual (see
+[`docs/kubernetes.md`](../docs/kubernetes.md)); `/display` keeps serving the
+previous model until the deploy finishes.
+
 ## Training
 
 ### Prerequisites
@@ -35,24 +113,24 @@ digit-classifier/
 
 ### Setup (first time only)
 
+From this directory (`digit-classifier/`):
+
 ```bash
-cd train
-./setup.sh
+cd train && ./setup.sh
 ```
 
 ### Train the model
 
+From this directory (`digit-classifier/`):
+
 ```bash
-cd inference
-yarn train
+cd inference && yarn train
 ```
 
 Or manually:
 
 ```bash
-cd train
-source .venv/bin/activate
-python3 train.py
+cd train && source .venv/bin/activate && python3 train.py
 ```
 
 This will:
@@ -77,6 +155,45 @@ To change the threshold: update `BINARIZATION_THRESHOLD` in `train.py` and retra
 ### Adding more training data
 
 Place new 26x21 PNG images in the corresponding `source-digits/<class>/` folder and re-train. Classes are discovered dynamically from subfolder names.
+
+### Bootstrapping the dataset (new capture device or player)
+
+When the capture setup changes, tracking digits over time is fragile: track
+changes make the counter jump and silently mislabel the data. Instead, collect
+raw crops and group them by glyph shape, label each group once, and rebuild the
+dataset. The geometry comes from the selected stream in `config.json`.
+
+```bash
+cd train
+source .venv/bin/activate
+
+# 1. collect unlabelled crops from the stream
+python3 bootstrap_dataset.py collect --stream player-1 --seconds 150
+
+# 2. group by glyph shape -> bootstrap-work/player-1/clusters.png
+python3 bootstrap_dataset.py cluster --stream player-1
+
+# 3. open clusters.png (one row per cluster id, top->bottom) and write
+#    bootstrap-work/player-1/labels.json, e.g. {"0": "blank", "1": "4", ...}
+
+# 4. rebuild source-digits/ (up to 60 crops per class)
+python3 bootstrap_dataset.py distribute --stream player-1 --per-class 60
+
+# 5. retrain
+python3 train.py
+```
+
+Verify the retrained model against the live feed before deploying:
+
+```bash
+python3 check_live.py --stream player-1 --url http://<host>:30002/frame --save-band /tmp/band.png
+```
+
+If the geometry changed, also regenerate the parser's end-to-end fixture:
+
+```bash
+node train/make_fixture.mjs --stream player-1 --url http://<host>:30002/frame
+```
 
 ### Re-exporting an existing checkpoint
 

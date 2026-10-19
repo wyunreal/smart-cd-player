@@ -42,6 +42,28 @@ export type PlayerDefinition = {
   irCommandsUrl?: string;
   irSendCommandUrl?: string;
   irDeviceName?: string;
+  /**
+   * Id of the stream in composite-video-parser. When omitted, player-N is used,
+   * where N is remoteIndex.
+   */
+  streamId?: string;
+};
+
+// Display state exposed by composite-video-parser
+
+export type DisplayMode = "off" | "stopped" | "playing" | "paused";
+
+export type StreamStatus = "ok" | "starting" | "stale" | "error";
+
+export type DisplayState = {
+  status: StreamStatus;
+  error?: string;
+  mode: DisplayMode;
+  disc: number | null;
+  track: number | null;
+  minutes: number | null;
+  seconds: number | null;
+  timestamp: number;
 };
 
 // Player content

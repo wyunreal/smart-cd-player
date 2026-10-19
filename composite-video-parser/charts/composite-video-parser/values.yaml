@@ -45,6 +45,19 @@ affinity: {}
 env:
   CONFIG_PATH: "/app/config.json"
 
-videoDevice:
+videoDevices:
   enabled: true
-  hostPath: /dev/video0
+  # One hostPath per V4L2 capture node. Only list nodes that exist on the
+  # host: a missing CharDevice makes the pod fail to start.
+  #
+  # Today: the first card is /dev/video0.
+  # When the second card arrives, run `v4l2-ctl --list-devices` and add its
+  # capture node (usually /dev/video2; each UVC card also creates a metadata
+  # node, normally video1/video3, which this service does not need).
+  hostPaths:
+    - /dev/video0
+  # Mount the udev symlink directories so a future by-id/by-path switch only
+  # requires changing config.json.
+  v4lDir:
+    enabled: true
+    hostPath: /dev/v4l

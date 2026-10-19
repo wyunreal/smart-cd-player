@@ -5,7 +5,7 @@ This guide explains how to deploy the Composite Video Parser to a K3s cluster us
 ## Prerequisites
 
 - Docker installed and running
-- K3s cluster with access to `/dev/video0`
+- K3s cluster with access to the V4L2 capture nodes (e.g. `/dev/video0`)
 - `kubectl` configured to point to your K3s cluster
 - `helm` installed
 
@@ -87,25 +87,38 @@ Customize the deployment by modifying `charts/composite-video-parser/values.yaml
 
 | Option                       | Default                  | Description                         |
 |------------------------------|--------------------------|-------------------------------------|
-| `replicaCount`               | `1`                      | Number of pods                      |
+| `replicaCount`               | `1`                      | Number of pods (keep at 1)          |
 | `image.repository`           | `composite-video-parser` | Docker image name                   |
 | `image.tag`                  | `""` (appVersion)        | Docker image tag                    |
 | `service.type`               | `NodePort`               | Kubernetes Service type             |
 | `service.port`               | `3100`                   | Service port                        |
 | `service.nodePort`           | `30002`                  | Static NodePort (30000-32767)       |
-| `securityContext.privileged` | `true`                   | Required for `/dev/video0` access   |
+| `securityContext.privileged` | `true`                   | Required for V4L2 device access     |
 | `env.CONFIG_PATH`            | `/app/config.json`       | Path to config file inside container|
-| `videoDevice.enabled`        | `true`                   | Mount video device from host        |
-| `videoDevice.hostPath`       | `/dev/video0`            | Host video device path              |
+| `videoDevices.enabled`       | `true`                   | Mount V4L2 devices from host        |
+| `videoDevices.hostPaths`     | `[/dev/video0]`          | Capture nodes to mount              |
+| `videoDevices.v4lDir.enabled`| `true`                   | Mount `/dev/v4l` symlink directory  |
+| `videoDevices.v4lDir.hostPath`| `/dev/v4l`              | Host path for by-id/by-path links   |
 
 ## Video Device Access
 
-The container needs access to `/dev/video0` on the host for V4L2 video capture via FFmpeg. This is achieved by:
+The container needs access to the V4L2 capture nodes on the host. This is achieved by:
 
-- Mounting `/dev/video0` as a `hostPath` volume with type `CharDevice`
-- Running the container with `privileged: true` security context
+- Mounting each capture node as a `hostPath` volume with type `CharDevice`
+- Mounting `/dev/v4l` so `by-id`/`by-path` symlinks are available inside the pod
+- Running the container with `privileged: true`
 
-Ensure the video capture device is connected to your K3s node before deploying.
+Only list nodes that exist on the host. A missing `CharDevice` makes the pod fail to start.
+
+Today the first card is `/dev/video0`. When the second card arrives:
+
+```bash
+v4l2-ctl --list-devices
+```
+
+Then add its capture node to `videoDevices.hostPaths` (usually `/dev/video2`; each UVC card also creates a metadata node, normally `video1`/`video3`, which this service does not need).
+
+Keep `replicaCount: 1`: all streams run in one pod, and two pods would compete for the same devices.
 
 ## API Endpoints
 
@@ -113,10 +126,93 @@ Once deployed, the service is available at `http://<NODE_IP>:30002`:
 
 | Endpoint             | Description                                      |
 |----------------------|--------------------------------------------------|
-| `GET /health`        | Health check (`{"status": "ok"}`)                |
-| `GET /display`       | Current disc, track, minutes, seconds as JSON    |
-| `GET /frame`         | Latest captured frame as PNG                     |
-| `GET /frame-filtered`| Binarized frame (threshold visualization) as PNG |
+| `GET /health`        | Health check and per-stream capture state        |
+| `GET /display`       | All readings, keyed by player id                 |
+| `GET /display/<id>`  | One reading, flat object                         |
+| `GET /streams`       | Stream/capture diagnostics                       |
+| `GET /frame?id=<id>` | Latest captured frame as PNG                     |
+| `GET /frame-filtered?id=<id>` | Binarized frame (threshold visualization) as PNG |
+| `POST /capture/start?id=<id>` | Start one stream (or all without `id`)  |
+| `POST /capture/stop?id=<id>`  | Stop one stream (or all without `id`)   |
+
+`GET /display` returns a map keyed by the configured player id:
+
+```json
+{
+  "player-1": {
+    "status": "ok",
+    "mode": "playing",
+    "disc": 2,
+    "track": 7,
+    "minutes": 3,
+    "seconds": 41,
+    "timestamp": 1792300800000
+  }
+}
+```
+
+`status` is one of `ok`, `starting`, `stale` or `error`. An `error` entry also includes an `error` message.
+
+## Multiple CD players / video streams
+
+Each stream has its own capture config and its own geometry. There are no global rects or inheritance:
+
+```json
+{
+  "streams": {
+    "player-1": {
+      "capture": {
+        "id": "capturadora-a",
+        "device": "/dev/video0",
+        "width": 720,
+        "height": 480,
+        "fps": 2,
+        "brightness": -75,
+        "contrast": 240
+      },
+      "geometry": {
+        "powerPixel": { "x": 200, "y": 47 },
+        "modePixel": { "x": 470, "y": 60 },
+        "rects": {
+          "disc_1": { "x": 160, "y": 50, "width": 26, "height": 21 }
+        }
+      }
+    }
+  },
+  "server": { "port": 3100, "staleAfterMs": 5000 },
+  "detection": {
+    "minDigitConfidenceMargin": 0.15,
+    "retryDelayMinMs": 30,
+    "retryDelayMaxMs": 50
+  }
+}
+```
+
+The example above is abbreviated: `rects` must contain all nine names (`disc_1..3`, `track_1..2`, `time_1..4`). See `config.json` for the full list.
+
+`capture.id` and `capture.device` are internal. The public id is the key in `streams` (`player-1`) and is what appears in `/display`.
+
+### Calibrating a stream
+
+```bash
+# Fetch the frame of one stream
+curl "http://<host>:30002/frame?id=player-2" -o /tmp/p2.png
+
+# Draw its rects and indicator pixels
+python3 digit-classifier/train/annotate_rects.py \
+  --stream player-2 --file /tmp/p2.png
+
+# Inspect the actual crops
+python3 digit-classifier/train/fetch_crops.py --stream player-2 \
+  --url "http://<host>:30002/frame?id=player-2"
+```
+
+When the geometry looks right, verify the reading:
+
+```bash
+curl "http://<host>:30002/display/player-2"
+```
+
 
 ## Verify Deployment
 
@@ -130,11 +226,14 @@ kubectl get svc
 # Health check
 curl http://<NODE_IP>:30002/health
 
-# Get current display state
+# Get current display state (all streams)
 curl http://<NODE_IP>:30002/display
 
-# View captured frame (save as PNG)
-curl http://<NODE_IP>:30002/frame -o frame.png
+# Stream diagnostics
+curl http://<NODE_IP>:30002/streams
+
+# View captured frame (save as PNG); add ?id=<stream> when there are many
+curl "http://<NODE_IP>:30002/frame?id=player-1" -o frame.png
 ```
 
 ## Uninstall

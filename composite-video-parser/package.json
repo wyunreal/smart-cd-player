@@ -1,13 +1,13 @@
 {
   "name": "composite-video-parser",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "tsc && mkdir -p dist/digit-classifier && cp -r digit-classifier/model dist/digit-classifier/model",
     "start": "node dist/src/main.js",
     "dev": "tsx src/main.ts",
-    "test": "node --test dist/test/digit-detector.test.js",
+    "test": "node --test dist/test/*.test.js",
     "test:docker": "docker build -f Dockerfile.test -t composite-video-parser-test . && docker run --rm composite-video-parser-test",
     "capture": "python3 digit-classifier/train/capture_digits.py --url \"${FRAME_URL:-http://localhost:3100/frame}\""
   },

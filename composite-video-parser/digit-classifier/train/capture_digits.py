@@ -8,7 +8,7 @@ Run while a CD is playing so the digit cycles through 0-9.
 
 Usage:
     python3 capture_digits.py --fps 2
-    python3 capture_digits.py --fps 4 --output ./captured --url http://localhost:3100/frame
+    python3 capture_digits.py --fps 4 --stream player-1 --output ./captured --url http://localhost:3100/frame
 
 Press Ctrl+C to stop.
 """
@@ -22,10 +22,16 @@ from urllib.request import urlopen
 
 from PIL import Image
 
-from frame_url import DEFAULT_FRAME_URL, resolve_frame_url
+from config_geometry import get_geometry, load_config
+from frame_url import (
+    DEFAULT_FRAME_URL,
+    resolve_frame_url,
+    resolve_stream_id,
+    with_stream,
+)
 
-# Digit region: time_4 (seconds unit) from config.json
-DEFAULT_REGION = (610, 50, 26, 21)  # x, y, width, height
+# Region used only when --region is passed explicitly; by default the time_4
+# rect comes from the selected stream's geometry.
 
 
 def capture_loop(url: str, fps: float, output_dir: Path, region: tuple[int, int, int, int], prefix: str = "frame"):
@@ -70,20 +76,33 @@ def main():
     parser.add_argument("--output", type=str, default="./captured", help="Output directory (default: ./captured)")
     parser.add_argument("--url", type=str, default=None,
                         help=f"Frame URL (default: $FRAME_URL or {DEFAULT_FRAME_URL})")
+    parser.add_argument("--stream", type=str, default=None,
+                        help="Stream id (default: $FRAME_STREAM or the first configured stream)")
     parser.add_argument("--region", type=str, default=None,
-                        help="Crop region as x,y,w,h (default: 610,50,26,21 = time_4)")
+                        help="Crop region as x,y,w,h (default: time_4 of the stream geometry)")
     parser.add_argument("--prefix", type=str, default="frame",
                         help="Filename prefix (default: frame)")
     args = parser.parse_args()
-    args.url = resolve_frame_url(args.url)
+    args.stream = resolve_stream_id(args.stream)
+    args.url = with_stream(resolve_frame_url(args.url), args.stream)
 
-    region = DEFAULT_REGION
+    config = load_config()
+    args.stream, geometry = get_geometry(config, args.stream)
+    time_4 = geometry["rects"]["time_4"]
+
+    region = (
+        time_4["x"],
+        time_4["y"],
+        time_4["width"],
+        time_4["height"],
+    )
     if args.region:
         parts = [int(v) for v in args.region.split(",")]
         if len(parts) != 4:
             parser.error("--region must be x,y,w,h")
         region = tuple(parts)
 
+    print(f"Stream: {args.stream}")
     capture_loop(args.url, args.fps, Path(args.output), region, args.prefix)
 
 

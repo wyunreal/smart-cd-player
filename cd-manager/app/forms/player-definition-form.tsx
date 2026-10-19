@@ -148,6 +148,22 @@ const PlayerDefinitionForm = ({
                 }}
               />
             </Stack>
+            <TextField
+              fullWidth
+              label="Stream ID (opcional)"
+              placeholder={`player-${index + 1}`}
+              value={definition.streamId || ""}
+              onChange={(event) => {
+                const newDefinitions = [...definitions];
+                newDefinitions[index] = {
+                  ...newDefinitions[index],
+                  streamId: event.target.value || undefined,
+                };
+                setDefinitions(newDefinitions);
+              }}
+              helperText={`ID del stream en composite-video-parser. Si se deja vacío, se usa player-${index + 1}.`}
+              sx={{ mt: 2 }}
+            />
             <Box sx={{ marginTop: 1, marginBottom: 2 }}>
               <Typography fontSize="small">{`Send command URL: ${definition.irSendCommandUrl ? `${definition.irSendCommandUrl}${definition.irDeviceName ? `?device=${definition.irDeviceName}` : ""}` : "..."}`}</Typography>
             </Box>

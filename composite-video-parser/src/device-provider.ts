@@ -9,11 +9,17 @@ import {
 
 const MAX_RESTART_ATTEMPTS = 10;
 
+export interface ProviderOptions {
+  name?: string;
+}
+
 export const createDeviceProvider = (
   config: DeviceProviderConfig,
+  options: ProviderOptions = {},
 ): FrameProvider => {
   const base = createFrameProviderBase();
   const frameSize = config.width * config.height * 3; // RGB24
+  const logPrefix = options.name ? `[${options.name}] ` : "";
 
   let process: ChildProcess | null = null;
   let buffer = Buffer.alloc(0);
@@ -32,11 +38,12 @@ export const createDeviceProvider = (
         `brightness=${brightness},contrast=${contrast},saturation=128,hue=0,backlight_compensation=0`,
       ]);
       console.log(
-        `[v4l2] set controls on ${config.device} (brightness=${brightness}, contrast=${contrast})`,
+        `${logPrefix}[v4l2] set controls on ${config.device} ` +
+          `(brightness=${brightness}, contrast=${contrast})`,
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[v4l2] failed to reset controls: ${msg}`);
+      console.warn(`${logPrefix}[v4l2] failed to reset controls: ${msg}`);
     }
   };
 
@@ -80,33 +87,40 @@ export const createDeviceProvider = (
     proc.stderr!.on("data", (data: Buffer) => {
       const msg = data.toString().trim();
       if (msg) {
-        console.error(`[ffmpeg] ${msg}`);
+        console.error(`${logPrefix}[ffmpeg] ${msg}`);
       }
     });
 
     proc.on("close", (code) => {
-      if (!stopping) {
-        restartAttempts++;
-        if (restartAttempts >= MAX_RESTART_ATTEMPTS) {
-          console.error(
-            `[ffmpeg] exited with code ${code}, giving up after ${MAX_RESTART_ATTEMPTS} failed attempts`,
-          );
-          stopping = true;
-          return;
-        }
+      if (stopping) return;
+
+      const error = `ffmpeg exited with code ${code}`;
+      base.setError(error);
+      restartAttempts++;
+
+      if (restartAttempts >= MAX_RESTART_ATTEMPTS) {
         console.error(
-          `[ffmpeg] exited with code ${code}, restarting in 2s... (attempt ${restartAttempts}/${MAX_RESTART_ATTEMPTS})`,
+          `${logPrefix}[ffmpeg] ${error}, giving up after ` +
+            `${MAX_RESTART_ATTEMPTS} failed attempts`,
         );
-        setTimeout(() => {
-          if (!stopping) {
-            spawnFfmpeg();
-          }
-        }, 2000);
+        stopping = true;
+        return;
       }
+
+      console.error(
+        `${logPrefix}[ffmpeg] ${error}, restarting in 2s... ` +
+          `(attempt ${restartAttempts}/${MAX_RESTART_ATTEMPTS})`,
+      );
+      setTimeout(() => {
+        if (!stopping) {
+          spawnFfmpeg();
+        }
+      }, 2000);
     });
 
     proc.on("error", (err) => {
-      console.error(`[ffmpeg] spawn error: ${err.message}`);
+      base.setError(err.message);
+      console.error(`${logPrefix}[ffmpeg] spawn error: ${err.message}`);
     });
   };
 
@@ -115,11 +129,13 @@ export const createDeviceProvider = (
       stopping = false;
       restartAttempts = 0;
       buffer = Buffer.alloc(0);
+      base.clearError();
       await resetDeviceControls();
       spawnFfmpeg();
     },
     stop: async () => {
       stopping = true;
+      base.clearError();
       if (process) {
         process.kill("SIGTERM");
         process = null;
@@ -132,6 +148,7 @@ export const createDeviceProvider = (
       base.emitter.off(event, listener);
     },
     getLatestFrame: base.getLatestFrame,
+    getLastError: base.getLastError,
     captureFrame: () =>
       new Promise<Buffer>((resolve, reject) => {
         const args = [
@@ -157,13 +174,18 @@ export const createDeviceProvider = (
         const chunks: Buffer[] = [];
         proc.stdout!.on("data", (chunk: Buffer) => chunks.push(chunk));
         proc.stderr!.on("data", () => {
-          // ignore
+          // ignore stderr; the exit code / spawn error is enough
         });
         proc.on("close", (code) => {
           if (code === 0 && chunks.length > 0) {
+            base.clearError();
             resolve(Buffer.concat(chunks));
           } else {
-            reject(new Error(`[device-provider] one-shot capture failed (code ${code})`));
+            reject(
+              new Error(
+                `${logPrefix}[device-provider] one-shot capture failed (code ${code})`,
+              ),
+            );
           }
         });
         proc.on("error", reject);

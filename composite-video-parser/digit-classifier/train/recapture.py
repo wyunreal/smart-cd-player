@@ -10,8 +10,8 @@ Replaces all existing training images.
 
 Usage:
     python3 recapture.py
-    python3 recapture.py --url http://<host>:30002/frame --target 50 --margin 0.6
-    FRAME_URL=http://<host>:30002/frame python3 recapture.py
+    python3 recapture.py --stream player-1 --url http://<host>:30002/frame --target 50 --margin 0.6
+    FRAME_URL=http://<host>:30002/frame FRAME_STREAM=player-1 python3 recapture.py
 """
 
 import argparse
@@ -27,21 +27,21 @@ import numpy as np
 import onnxruntime as ort
 from PIL import Image
 
-from frame_url import DEFAULT_FRAME_URL, resolve_frame_url
+from config_geometry import get_geometry, load_config, rect_list
+from frame_url import (
+    DEFAULT_FRAME_URL,
+    resolve_frame_url,
+    resolve_stream_id,
+    with_stream,
+)
 
 BASE_DIR = Path(__file__).parent.parent
-CONFIG_PATH = BASE_DIR.parent / "config.json"
 MODEL_PATH = BASE_DIR / "model" / "digit_classifier.onnx"
 METADATA_PATH = BASE_DIR / "model" / "metadata.json"
 SOURCE_DIR = BASE_DIR / "source-digits"
 
 DEFAULT_TARGET = 50
 DEFAULT_MARGIN = 0.6
-
-
-def load_config():
-    with open(CONFIG_PATH) as f:
-        return json.load(f)
 
 
 def load_model():
@@ -97,16 +97,25 @@ def main():
         default=None,
         help=f"Frame URL (default: $FRAME_URL or {DEFAULT_FRAME_URL})",
     )
+    parser.add_argument(
+        "--stream",
+        default=None,
+        help="Stream id (default: $FRAME_STREAM or the first configured stream)",
+    )
     parser.add_argument("--target", type=int, default=DEFAULT_TARGET, help="Target images per class")
     parser.add_argument("--margin", type=float, default=DEFAULT_MARGIN, help="Min confidence margin to accept")
     args = parser.parse_args()
-    args.url = resolve_frame_url(args.url)
+    args.stream = resolve_stream_id(args.stream)
+    args.url = with_stream(resolve_frame_url(args.url), args.stream)
 
     print("Loading config and model...")
     config = load_config()
-    rects = config["rects"]
+    args.stream, geometry = get_geometry(config, args.stream)
+    rects = rect_list(geometry)
     session, meta = load_model()
     labels = meta["class_labels"]
+
+    print(f"Stream: {args.stream}")
 
     print(f"Classes: {labels}")
     print(f"Rects: {[r['name'] for r in rects]}")

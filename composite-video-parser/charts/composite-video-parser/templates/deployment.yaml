@@ -57,16 +57,30 @@ spec:
               value: {{ $val | quote }}
             {{- end }}
           volumeMounts:
-            {{- if .Values.videoDevice.enabled }}
-            - name: video-device
-              mountPath: {{ .Values.videoDevice.hostPath }}
+            {{- if .Values.videoDevices.enabled }}
+            {{- range $i, $path := .Values.videoDevices.hostPaths }}
+            - name: video-device-{{ $i }}
+              mountPath: {{ $path }}
+            {{- end }}
+            {{- end }}
+            {{- if and .Values.videoDevices.enabled .Values.videoDevices.v4lDir.enabled }}
+            - name: v4l-dir
+              mountPath: {{ .Values.videoDevices.v4lDir.hostPath }}
             {{- end }}
       volumes:
-        {{- if .Values.videoDevice.enabled }}
-        - name: video-device
+        {{- if .Values.videoDevices.enabled }}
+        {{- range $i, $path := .Values.videoDevices.hostPaths }}
+        - name: video-device-{{ $i }}
           hostPath:
-            path: {{ .Values.videoDevice.hostPath }}
+            path: {{ $path }}
             type: CharDevice
+        {{- end }}
+        {{- end }}
+        {{- if and .Values.videoDevices.enabled .Values.videoDevices.v4lDir.enabled }}
+        - name: v4l-dir
+          hostPath:
+            path: {{ .Values.videoDevices.v4lDir.hostPath }}
+            type: Directory
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

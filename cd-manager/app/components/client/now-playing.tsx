@@ -11,18 +11,10 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
+import type { DisplayState } from "@/api/types";
 import TransportButtons from "./transport-buttons";
 
-export type DisplayMode = "off" | "stopped" | "playing" | "paused";
-
-export type DisplayState = {
-  mode: DisplayMode;
-  disc: number | null;
-  track: number | null;
-  minutes: number | null;
-  seconds: number | null;
-  timestamp: number;
-};
+export type { DisplayMode, DisplayState } from "@/api/types";
 
 type NowPlayingProps = {
   displayState?: DisplayState | null;

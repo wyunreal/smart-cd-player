@@ -5,11 +5,14 @@ import {
   type FrameProvider,
   createFrameProviderBase,
 } from "./frame-provider.js";
+import type { ProviderOptions } from "./device-provider.js";
 
 export const createHttpProvider = (
   config: HttpProviderConfig,
+  options: ProviderOptions = {},
 ): FrameProvider => {
   const base = createFrameProviderBase();
+  const logPrefix = options.name ? `[${options.name}] ` : "";
 
   let timer: ReturnType<typeof setInterval> | null = null;
   let fetching = false;
@@ -35,7 +38,8 @@ export const createHttpProvider = (
       base.setFrame(await fetchRawFrame());
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[http-provider] fetch error: ${msg}`);
+      base.setError(msg);
+      console.error(`${logPrefix}[http-provider] fetch error: ${msg}`);
     } finally {
       fetching = false;
     }
@@ -52,11 +56,13 @@ export const createHttpProvider = (
 
   return {
     start: async () => {
+      base.clearError();
       restartInterval();
       // Fetch first frame immediately
       void fetchFrame();
     },
     stop: async () => {
+      base.clearError();
       if (timer) {
         clearInterval(timer);
         timer = null;
@@ -69,10 +75,18 @@ export const createHttpProvider = (
       base.emitter.off(event, listener);
     },
     getLatestFrame: base.getLatestFrame,
+    getLastError: base.getLastError,
     captureFrame: async () => {
-      const frame = await fetchRawFrame();
-      restartInterval();
-      return frame;
+      try {
+        const frame = await fetchRawFrame();
+        base.clearError();
+        restartInterval();
+        return frame;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        base.setError(msg);
+        throw err;
+      }
     },
   };
 };
