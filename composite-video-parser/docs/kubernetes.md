@@ -130,6 +130,7 @@ Once deployed, the service is available at `http://<NODE_IP>:30002`:
 | `GET /display`       | All readings, keyed by player id                 |
 | `GET /streams`       | Stream/capture diagnostics                       |
 | `GET /frame?id=<id>` | Latest captured frame as PNG                     |
+| `GET /frame-annotated?id=<id>` | Raw frame with the digit rects overlaid       |
 | `GET /frame-filtered?id=<id>` | Binarized frame (threshold visualization) as PNG |
 | `POST /capture/start?id=<id>` | Start one stream (or all without `id`)  |
 | `POST /capture/stop?id=<id>`  | Stop one stream (or all without `id`)   |

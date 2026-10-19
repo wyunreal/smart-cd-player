@@ -4,6 +4,7 @@ import type {
   CaptureConfig,
   DetectionConfig,
   PointConfig,
+  RectConfig,
   StreamConfig,
 } from "./config.js";
 import { toFrameProviderConfig, toRectConfigs } from "./config.js";
@@ -26,6 +27,9 @@ export interface DigitState {
 export interface DigitStream {
   readonly id: string;
   readonly capture: CaptureConfig;
+  readonly rects: RectConfig[];
+  readonly powerPixel: PointConfig;
+  readonly modePixel: PointConfig;
   readonly width: number;
   readonly height: number;
   start(): Promise<void>;
@@ -58,10 +62,8 @@ export const createDigitStream = ({
     toFrameProviderConfig(capture),
     { name: id },
   );
-  const detector = createDigitDetector(
-    classifier,
-    toRectConfigs(geometry.rects),
-  );
+  const rects = toRectConfigs(geometry.rects);
+  const detector = createDigitDetector(classifier, rects);
 
   let state: DigitState = { digits: [], mode: "off", timestamp: 0 };
   let detecting = false;
@@ -199,6 +201,9 @@ export const createDigitStream = ({
   return {
     id,
     capture,
+    rects,
+    powerPixel: geometry.powerPixel,
+    modePixel: geometry.modePixel,
     width: capture.width,
     height: capture.height,
     start: async () => {

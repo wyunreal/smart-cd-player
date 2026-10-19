@@ -55,6 +55,7 @@ async function main(): Promise<void> {
     console.log("  GET  /display              - all stream readings");
     console.log("  GET  /streams              - stream/capture diagnostics");
     console.log("  GET  /frame?id=<id>        - latest frame as PNG");
+    console.log("  GET  /frame-annotated?id=<id> - raw frame + digit rects");
     console.log(
       `  GET  /frame-filtered?id=<id> - binarized frame (threshold ${classifier.binarizationThreshold})`,
     );

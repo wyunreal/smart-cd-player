@@ -273,6 +273,46 @@ export function createHttpServer(deps: ServerDeps): Server {
     res.end(png);
   };
 
+  /** Raw frame with the configured rects and indicator pixels drawn on top. */
+  const sendAnnotatedPng = async (
+    res: ServerResponse,
+    frame: Buffer,
+    stream: DigitStream,
+  ): Promise<void> => {
+    const { width, height, rects, powerPixel, modePixel } = stream;
+
+    const shapes = rects.map(
+      (rect) =>
+        `<rect x="${rect.x + 0.5}" y="${rect.y + 0.5}" ` +
+        `width="${rect.width - 1}" height="${rect.height - 1}" ` +
+        `fill="none" stroke="#ff3b30" stroke-width="1"/>`,
+    );
+
+    const marker = (x: number, y: number, color: string): string =>
+      `<rect x="${x - 2}" y="${y - 2}" width="4" height="4" ` +
+      `fill="none" stroke="${color}" stroke-width="1"/>`;
+
+    shapes.push(marker(powerPixel.x, powerPixel.y, "#ff00ff"));
+    shapes.push(marker(modePixel.x, modePixel.y, "#00ffff"));
+
+    const overlay = Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+        shapes.join("") +
+        `</svg>`,
+    );
+
+    const png = await sharp(frame, { raw: { width, height, channels: 3 } })
+      .composite([{ input: overlay, top: 0, left: 0 }])
+      .png()
+      .toBuffer();
+
+    res.writeHead(200, {
+      "Content-Type": "image/png",
+      "Content-Length": png.length,
+    });
+    res.end(png);
+  };
+
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://localhost:${deps.port}`);
 
@@ -397,6 +437,30 @@ export function createHttpServer(deps: ServerDeps): Server {
             return;
           }
           await sendPng(res, frame, stream.width, stream.height, false);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          sendJson(res, 500, { error: msg });
+        }
+        return;
+      }
+
+      case "/frame-annotated": {
+        try {
+          const resolved = resolveFrameStream(url);
+          if ("error" in resolved) {
+            sendJson(res, 400, resolved);
+            return;
+          }
+          const { stream } = resolved;
+          await ensureCapturing([stream]);
+          const frame =
+            (await stream.waitForFrame(FRAME_WAIT_TIMEOUT_MS)) ??
+            stream.getLastFrame();
+          if (!frame) {
+            sendJson(res, 503, { error: "No frame available yet" });
+            return;
+          }
+          await sendAnnotatedPng(res, frame, stream);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           sendJson(res, 500, { error: msg });

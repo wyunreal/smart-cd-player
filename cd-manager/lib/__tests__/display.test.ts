@@ -28,7 +28,14 @@ describe("normalizeDisplayResponse", () => {
   });
 
   it("accepts the old flat single-reading shape", () => {
-    const { status, ...legacy } = reading;
+    const legacy: Omit<DisplayState, "status"> = {
+      mode: "playing",
+      disc: 1,
+      track: 2,
+      minutes: 3,
+      seconds: 4,
+      timestamp: 123,
+    };
 
     expect(normalizeDisplayResponse(legacy)).toEqual({
       "player-1": { ...legacy, status: "ok" },

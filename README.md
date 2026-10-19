@@ -177,6 +177,7 @@ All nine rect names are required (`disc_1..3`, `track_1..2`, `time_1..4`), and
 | `GET /display` | map of stream id → `{ status, mode, disc, track, minutes, seconds, timestamp }` |
 | `GET /streams` | capture id/device, size, fps, `capturing`, `hasFrame`, `lastError` |
 | `GET /frame?id=<id>` | latest frame as PNG (`id` optional when there is a single stream) |
+| `GET /frame-annotated?id=<id>` | raw frame with the digit rects overlaid |
 | `GET /frame-filtered?id=<id>` | binarized frame (same threshold the model uses) |
 | `GET /health` | overall `status` plus per-stream `ok` / `idle` / `error` |
 | `POST /capture/start` · `POST /capture/stop` | start/stop capture (it also starts lazily) |
