@@ -40,7 +40,7 @@
       "binarizationThreshold": 170,
       "geometry": {
         "powerPixel": { "x": 200, "y": 45 },
-        "modePixel": { "x": 490, "y": 60 },
+        "modePixel": { "x": 510, "y": 60 },
         "rects": {
           "disc_1": { "x": 174, "y": 46, "width": 26, "height": 21 },
           "disc_2": { "x": 201, "y": 46, "width": 26, "height": 21 },
