@@ -28,6 +28,8 @@ export interface CaptureConfig {
   id: string;
   device?: string;
   url?: string;
+  inputFormat?: string;
+  videoFilter?: string;
   width: number;
   height: number;
   fps: number;
@@ -44,6 +46,8 @@ export interface StreamGeometry {
 export interface StreamConfig {
   capture: CaptureConfig;
   geometry: StreamGeometry;
+  classifier?: "onnx" | "template";
+  binarizationThreshold?: number;
 }
 
 export interface ServerConfig {
@@ -67,6 +71,8 @@ export interface Config {
 export interface DeviceProviderConfig {
   type: "device";
   device: string;
+  inputFormat?: string;
+  videoFilter?: string;
   width: number;
   height: number;
   fps: number;
@@ -106,6 +112,8 @@ export const toFrameProviderConfig = (
     return {
       type: "device",
       device: capture.device,
+      inputFormat: capture.inputFormat,
+      videoFilter: capture.videoFilter,
       width: capture.width,
       height: capture.height,
       fps: capture.fps,
@@ -248,6 +256,22 @@ export const validateConfig = (config: Config): void => {
       if (typeof capture.device !== "string" || !capture.device) {
         throw new Error(`[${streamId}] capture.device must be a string`);
       }
+      if (
+        capture.inputFormat !== undefined &&
+        (typeof capture.inputFormat !== "string" || !capture.inputFormat)
+      ) {
+        throw new Error(
+          `[${streamId}] capture.inputFormat must be a non-empty string`,
+        );
+      }
+      if (
+        capture.videoFilter !== undefined &&
+        (typeof capture.videoFilter !== "string" || !capture.videoFilter)
+      ) {
+        throw new Error(
+          `[${streamId}] capture.videoFilter must be a non-empty string`,
+        );
+      }
       if (devices.has(capture.device)) {
         throw new Error(
           `[${streamId}] capture.device "${capture.device}" is already used by another stream`,
@@ -279,6 +303,26 @@ export const validateConfig = (config: Config): void => {
     }
     if (capture.contrast !== undefined && !isFiniteNumber(capture.contrast)) {
       throw new Error(`[${streamId}] capture.contrast must be a number`);
+    }
+
+    if (
+      stream.classifier !== undefined &&
+      stream.classifier !== "onnx" &&
+      stream.classifier !== "template"
+    ) {
+      throw new Error(
+        `[${streamId}] classifier must be "onnx" or "template"`,
+      );
+    }
+    if (
+      stream.binarizationThreshold !== undefined &&
+      (!isFiniteNumber(stream.binarizationThreshold) ||
+        stream.binarizationThreshold <= 0 ||
+        stream.binarizationThreshold > 255)
+    ) {
+      throw new Error(
+        `[${streamId}] binarizationThreshold must be between 1 and 255`,
+      );
     }
 
     if (!geometry || typeof geometry !== "object") {

@@ -1,6 +1,6 @@
 import sharp from "sharp";
-import { DigitClassifier } from "digit-classifier";
 
+import type { StreamClassifier } from "./classifier.js";
 import type { RectConfig } from "./config.js";
 
 export interface DetectionResult {
@@ -38,7 +38,7 @@ export async function detectWithRetry(
 }
 
 export const createDigitDetector = (
-  classifier: DigitClassifier,
+  classifier: StreamClassifier,
   rects: RectConfig[],
 ): DigitDetector => ({
   detect: async (frame, width, height) => {

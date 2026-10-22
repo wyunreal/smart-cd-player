@@ -58,29 +58,41 @@ spec:
             {{- end }}
           volumeMounts:
             {{- if .Values.videoDevices.enabled }}
+            {{- if .Values.videoDevices.mountHostDev }}
+            - name: host-dev
+              mountPath: {{ .Values.videoDevices.hostDevMountPath }}
+            {{- else }}
             {{- range $i, $path := .Values.videoDevices.hostPaths }}
             - name: video-device-{{ $i }}
               mountPath: {{ $path }}
             {{- end }}
-            {{- end }}
-            {{- if and .Values.videoDevices.enabled .Values.videoDevices.v4lDir.enabled }}
+            {{- if .Values.videoDevices.v4lDir.enabled }}
             - name: v4l-dir
               mountPath: {{ .Values.videoDevices.v4lDir.hostPath }}
             {{- end }}
+            {{- end }}
+            {{- end }}
       volumes:
         {{- if .Values.videoDevices.enabled }}
+        {{- if .Values.videoDevices.mountHostDev }}
+        - name: host-dev
+          hostPath:
+            path: {{ .Values.videoDevices.hostDevSource }}
+            type: Directory
+        {{- else }}
         {{- range $i, $path := .Values.videoDevices.hostPaths }}
         - name: video-device-{{ $i }}
           hostPath:
             path: {{ $path }}
             type: CharDevice
         {{- end }}
-        {{- end }}
-        {{- if and .Values.videoDevices.enabled .Values.videoDevices.v4lDir.enabled }}
+        {{- if .Values.videoDevices.v4lDir.enabled }}
         - name: v4l-dir
           hostPath:
             path: {{ .Values.videoDevices.v4lDir.hostPath }}
             type: Directory
+        {{- end }}
+        {{- end }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

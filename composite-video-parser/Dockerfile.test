@@ -41,4 +41,4 @@ COPY --from=builder /app/digit-classifier/source-digits ./digit-classifier/sourc
 COPY --from=builder /app/config.json ./config.json
 COPY --from=builder /app/test/fixtures ./test/fixtures
 
-CMD ["node", "--test", "dist/test/config.test.js", "dist/test/digit-detector.test.js", "digit-classifier/inference/dist/test/classifier.test.js"]
+CMD ["sh", "-c", "node --test dist/test/*.test.js digit-classifier/inference/dist/test/classifier.test.js"]

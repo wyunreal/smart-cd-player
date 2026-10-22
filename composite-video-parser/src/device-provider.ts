@@ -53,12 +53,16 @@ export const createDeviceProvider = (
       "error",
       "-f",
       "v4l2",
+      ...(config.inputFormat
+        ? ["-input_format", config.inputFormat]
+        : []),
       "-i",
       config.device,
       "-s",
       `${config.width}x${config.height}`,
       "-r",
       String(config.fps),
+      ...(config.videoFilter ? ["-vf", config.videoFilter] : []),
       "-f",
       "rawvideo",
       "-pix_fmt",
@@ -156,12 +160,16 @@ export const createDeviceProvider = (
           "error",
           "-f",
           "v4l2",
+          ...(config.inputFormat
+            ? ["-input_format", config.inputFormat]
+            : []),
           "-i",
           config.device,
           "-s",
           `${config.width}x${config.height}`,
           "-frames:v",
           "1",
+          ...(config.videoFilter ? ["-vf", config.videoFilter] : []),
           "-f",
           "rawvideo",
           "-pix_fmt",

@@ -47,17 +47,19 @@ env:
 
 videoDevices:
   enabled: true
-  # One hostPath per V4L2 capture node. Only list nodes that exist on the
-  # host: a missing CharDevice makes the pod fail to start.
-  #
-  # Today: the first card is /dev/video0.
-  # When the second card arrives, run `v4l2-ctl --list-devices` and add its
-  # capture node (usually /dev/video2; each UVC card also creates a metadata
-  # node, normally video1/video3, which this service does not need).
+  # Preferred mode: mount the host /dev directory at a separate path. The
+  # /dev/v4l/by-path symlinks inside that copy point to the current videoN
+  # nodes, so a USB rescan or a videoN renumbering does not require changing
+  # the pod or the config.
+  mountHostDev: true
+  hostDevSource: /dev
+  hostDevMountPath: /host-dev
+
+  # Fallback when mountHostDev=false: explicit device nodes and the udev
+  # symlink directory. Only list nodes that exist on the host.
   hostPaths:
     - /dev/video0
-  # Mount the udev symlink directories so a future by-id/by-path switch only
-  # requires changing config.json.
+    - /dev/video2
   v4lDir:
     enabled: true
     hostPath: /dev/v4l

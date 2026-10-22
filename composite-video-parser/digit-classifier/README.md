@@ -67,6 +67,25 @@ The full config must contain all nine rect names (`disc_1..3`, `track_1..2`,
 The training scripts take `--stream <id>` and use that stream's geometry. See
 [Workflows](#workflows) for the commands.
 
+### Template/k-NN classifier
+
+The ONNX model is trained on the first player's OSD font. When another player's
+font differs, a stream can use the template classifier instead:
+
+```json
+"player-2": {
+  "classifier": "template",
+  "binarizationThreshold": 170
+}
+```
+
+It performs a k-NN match against the images in `digit-classifier/source-digits`
+(26x21 PNGs), using the stream's `binarizationThreshold` for the input crop and
+140 for the templates. `yarn build` copies `source-digits` into `dist/`, so the
+production image contains the templates. The regression fixture
+`test/fixtures/player2-playing.png` (raw live frame) reads 9/9 with this
+classifier.
+
 ## Workflows
 
 Run the commands below from `digit-classifier/train/` with the venv active

@@ -3,7 +3,7 @@
     "player-1": {
       "capture": {
         "id": "capturadora-a",
-        "device": "/dev/video0",
+        "device": "/host-dev/v4l/by-path/pci-0000:15:00.0-usb-0:1:1.0-video-index0",
         "width": 720,
         "height": 480,
         "fps": 2,
@@ -23,6 +23,34 @@
           "time_2": { "x": 531, "y": 50, "width": 26, "height": 21 },
           "time_3": { "x": 584, "y": 50, "width": 26, "height": 21 },
           "time_4": { "x": 610, "y": 50, "width": 26, "height": 21 }
+        }
+      }
+    },
+
+    "player-2": {
+      "capture": {
+        "id": "capturadora-b",
+        "device": "/host-dev/v4l/by-path/pci-0000:38:00.3-usb-0:2:1.0-video-index0",
+        "inputFormat": "mjpeg",
+        "width": 720,
+        "height": 480,
+        "fps": 2
+      },
+      "classifier": "template",
+      "binarizationThreshold": 170,
+      "geometry": {
+        "powerPixel": { "x": 200, "y": 45 },
+        "modePixel": { "x": 490, "y": 60 },
+        "rects": {
+          "disc_1": { "x": 174, "y": 46, "width": 26, "height": 21 },
+          "disc_2": { "x": 201, "y": 46, "width": 26, "height": 21 },
+          "disc_3": { "x": 228, "y": 46, "width": 26, "height": 21 },
+          "track_1": { "x": 417, "y": 46, "width": 26, "height": 21 },
+          "track_2": { "x": 444, "y": 46, "width": 26, "height": 21 },
+          "time_1": { "x": 525, "y": 46, "width": 26, "height": 21 },
+          "time_2": { "x": 552, "y": 46, "width": 26, "height": 21 },
+          "time_3": { "x": 606, "y": 46, "width": 26, "height": 21 },
+          "time_4": { "x": 633, "y": 46, "width": 26, "height": 21 }
         }
       }
     }

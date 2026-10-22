@@ -86,6 +86,35 @@ describe("config", () => {
     );
   });
 
+  it("rejects an empty inputFormat", () => {
+    const config = clone();
+    config.streams["player-1"].capture.inputFormat = "";
+
+    assert.throws(() => validateConfig(config), /inputFormat/);
+  });
+
+  it("rejects an empty videoFilter", () => {
+    const config = clone();
+    config.streams["player-1"].capture.videoFilter = "";
+
+    assert.throws(() => validateConfig(config), /videoFilter/);
+  });
+
+  it("rejects an unknown classifier", () => {
+    const config = clone();
+    (config.streams["player-1"] as { classifier?: string }).classifier =
+      "magic";
+
+    assert.throws(() => validateConfig(config), /classifier/);
+  });
+
+  it("rejects an invalid binarizationThreshold", () => {
+    const config = clone();
+    config.streams["player-1"].binarizationThreshold = 300;
+
+    assert.throws(() => validateConfig(config), /binarizationThreshold/);
+  });
+
   it("rejects a missing required rect", () => {
     const config = clone();
     delete config.streams["player-1"].geometry.rects["time_4"];

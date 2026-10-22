@@ -96,29 +96,77 @@ Customize the deployment by modifying `charts/composite-video-parser/values.yaml
 | `securityContext.privileged` | `true`                   | Required for V4L2 device access     |
 | `env.CONFIG_PATH`            | `/app/config.json`       | Path to config file inside container|
 | `videoDevices.enabled`       | `true`                   | Mount V4L2 devices from host        |
-| `videoDevices.hostPaths`     | `[/dev/video0]`          | Capture nodes to mount              |
-| `videoDevices.v4lDir.enabled`| `true`                   | Mount `/dev/v4l` symlink directory  |
-| `videoDevices.v4lDir.hostPath`| `/dev/v4l`              | Host path for by-id/by-path links   |
+| `videoDevices.mountHostDev`  | `true`                   | Mount the whole host `/dev` at `/host-dev` |
+| `videoDevices.hostDevSource` | `/dev`                   | Host directory to mount             |
+| `videoDevices.hostDevMountPath` | `/host-dev`           | Mount path inside the container     |
+| `videoDevices.hostPaths`     | `[/dev/video0, /dev/video2]` | Fallback: explicit capture nodes |
+| `videoDevices.v4lDir.enabled`| `true`                   | Fallback: mount `/dev/v4l` links    |
+| `videoDevices.v4lDir.hostPath`| `/dev/v4l`              | Fallback: host symlink directory    |
 
 ## Video Device Access
 
-The container needs access to the V4L2 capture nodes on the host. This is achieved by:
+By default the chart mounts the host `/dev` directory at `/host-dev` and runs the
+container privileged. This is deliberate:
 
-- Mounting each capture node as a `hostPath` volume with type `CharDevice`
-- Mounting `/dev/v4l` so `by-id`/`by-path` symlinks are available inside the pod
-- Running the container with `privileged: true`
+- `/dev/videoN` numbering is **not stable** across a USB rescan or reboot.
+- Both MacroSilicon MS210x cards expose the same serial (`20200909`), so
+  `/dev/v4l/by-id` cannot distinguish them; the `by-id` symlinks collide.
+- `/dev/v4l/by-path/...` follows the physical USB port and resolves to whatever
+  `/dev/videoN` the kernel assigned. The config uses those paths:
 
-Only list nodes that exist on the host. A missing `CharDevice` makes the pod fail to start.
-
-Today the first card is `/dev/video0`. When the second card arrives:
-
-```bash
-v4l2-ctl --list-devices
+```json
+"player-1": {
+  "capture": {
+    "device": "/host-dev/v4l/by-path/pci-0000:15:00.0-usb-0:1:1.0-video-index0"
+  }
+},
+"player-2": {
+  "capture": {
+    "device": "/host-dev/v4l/by-path/pci-0000:38:00.3-usb-0:2:1.0-video-index0",
+    "inputFormat": "mjpeg"
+  }
+}
 ```
 
-Then add its capture node to `videoDevices.hostPaths` (usually `/dev/video2`; each UVC card also creates a metadata node, normally `video1`/`video3`, which this service does not need).
+Because `/dev` is bind-mounted, a rescan that renumbers `videoN` updates the
+symlinks inside `/host-dev` automatically; the stream still opens the same
+physical port. This survives reboots and `udev` rescans.
 
-Keep `replicaCount: 1`: all streams run in one pod, and two pods would compete for the same devices.
+It does **not** survive physically moving a cable to a different USB port: the
+port path changes, and the mapping must be updated. With two identical serials,
+that is unavoidable unless we add a content-based pairing step later.
+
+The second card only supports YUYV up to 480x320 but MJPEG up to 720x480. Its
+stream sets `inputFormat: "mjpeg"` so it captures natively at 720x480 instead of
+being upscaled from 480x320.
+
+With a good composite signal, the raw MJPEG colors are already close to
+`player-1` (`[0,153,68]` vs `[0,126,38]` for the bar, and `[212,255,239]` vs
+`[211,245,226]` for the glyphs). **No `videoFilter` is used**: the earlier
+filters either washed the image out or turned the black background dark green.
+
+The second player's OSD font is slightly different from the one the ONNX model
+was trained on, so `player-2` uses the template/k-NN classifier built from
+`digit-classifier/source-digits`:
+
+```json
+"player-2": {
+  "capture": {
+    "inputFormat": "mjpeg"
+  },
+  "classifier": "template",
+  "binarizationThreshold": 170
+}
+```
+
+The regression fixture `test/fixtures/player2-playing.png` contains a raw live
+frame (`DISC 83 TRACK 3 0.18`) and reads 9/9 with this classifier.
+
+`source-digits` is copied into the image by `yarn build`; the deployed pod does
+not need any extra volume for it.
+
+Keep `replicaCount: 1`: all streams run in one pod, and two pods would compete
+for the same devices.
 
 ## API Endpoints
 
@@ -163,7 +211,7 @@ Each stream has its own capture config and its own geometry. There are no global
     "player-1": {
       "capture": {
         "id": "capturadora-a",
-        "device": "/dev/video0",
+        "device": "/host-dev/v4l/by-path/pci-0000:15:00.0-usb-0:1:1.0-video-index0",
         "width": 720,
         "height": 480,
         "fps": 2,

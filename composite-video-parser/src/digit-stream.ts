@@ -1,4 +1,4 @@
-import type { DigitClassifier } from "digit-classifier";
+import type { StreamClassifier } from "./classifier.js";
 
 import type {
   CaptureConfig,
@@ -45,7 +45,7 @@ export interface DigitStream {
 export interface CreateDigitStreamOptions {
   id: string;
   stream: StreamConfig;
-  classifier: DigitClassifier;
+  classifier: StreamClassifier;
   detection: DetectionConfig;
 }
 
