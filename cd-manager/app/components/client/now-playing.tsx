@@ -13,6 +13,7 @@ import { useTheme } from "@mui/material/styles";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import type { DisplayState } from "@/api/types";
+import { getTrackForDisc } from "@/lib/tracks";
 import TransportButtons from "./transport-buttons";
 
 export type { DisplayMode, DisplayState } from "@/api/types";
@@ -59,8 +60,7 @@ const NowPlaying = ({ displayState, player, streamId }: NowPlayingProps) => {
       : cd?.title || "No disk";
 
   const currentTrack = useMemo(() => {
-    if (!cd || displayState?.track == null) return null;
-    return cd.tracks?.find((t) => t.number === displayState.track) ?? null;
+    return getTrackForDisc(cd, displayState?.track);
   }, [cd, displayState?.track]);
 
   const isMockDisplay =
@@ -118,6 +118,13 @@ const NowPlaying = ({ displayState, player, streamId }: NowPlayingProps) => {
     return Math.min((elapsed / trackDurationSeconds) * 100, 100);
   }, [trackDurationSeconds, localMinutes, localSeconds]);
 
+  // Without a known duration we can still show the elapsed time from /display.
+  const durationSeconds =
+    trackDurationSeconds != null && trackDurationSeconds > 0
+      ? trackDurationSeconds
+      : null;
+  const hasElapsed = localMinutes != null || localSeconds != null;
+
   useEffect(() => {
     if (isMobile) return;
     const timer = setTimeout(() => setVisible(true), 500);
@@ -152,6 +159,10 @@ const NowPlaying = ({ displayState, player, streamId }: NowPlayingProps) => {
   }
 
   if (displayState.disc == null) return null;
+
+  // Unknown duration: animate while playing; keep a static empty track when paused.
+  const showIndeterminate =
+    durationSeconds == null && displayState.mode === "playing";
 
   return (
     <Fade in={visible} timeout={isMobile ? 0 : 500}>
@@ -189,11 +200,11 @@ const NowPlaying = ({ displayState, player, streamId }: NowPlayingProps) => {
         <Box sx={{ mt: 2 }}>
           <TransportButtons player={playerIndex} displayState={displayState} />
         </Box>
-        {progressPercent != null && trackDurationSeconds != null && (
+        {(hasElapsed || durationSeconds != null) && (
           <Box sx={{ mt: 1, mb: 2 }}>
             <LinearProgress
-              variant="determinate"
-              value={progressPercent}
+              variant={showIndeterminate ? "indeterminate" : "determinate"}
+              value={showIndeterminate ? undefined : progressPercent ?? 0}
               sx={{
                 height: 4,
                 borderRadius: 2,
@@ -201,18 +212,38 @@ const NowPlaying = ({ displayState, player, streamId }: NowPlayingProps) => {
                 "& .MuiLinearProgress-bar": {
                   borderRadius: 2,
                 },
+                // Very slow cycle for the unknown-duration animation.
+                // 20s, with the second bar delayed ~54.8% of the cycle like MUI's default.
+                "& .MuiLinearProgress-bar1Indeterminate": {
+                  animationDuration: "20s",
+                },
+                "& .MuiLinearProgress-bar2Indeterminate": {
+                  animationDuration: "20s",
+                  animationDelay: "10.96s",
+                },
               }}
             />
-            <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
-              <Typography variant="caption" color="text.secondary">
-                {formatTime(localMinutes, localSeconds)}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {formatTime(
-                  Math.floor(trackDurationSeconds / 60),
-                  trackDurationSeconds % 60,
-                )}
-              </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent:
+                  durationSeconds != null ? "space-between" : "flex-start",
+                mt: 0.5,
+              }}
+            >
+              {hasElapsed && (
+                <Typography variant="caption" color="text.secondary">
+                  {formatTime(localMinutes, localSeconds)}
+                </Typography>
+              )}
+              {durationSeconds != null && (
+                <Typography variant="caption" color="text.secondary">
+                  {formatTime(
+                    Math.floor(durationSeconds / 60),
+                    durationSeconds % 60,
+                  )}
+                </Typography>
+              )}
             </Box>
           </Box>
         )}

@@ -6,6 +6,7 @@ import {
   AudioStreamContext,
 } from "@/app/providers/audio-stream-provider";
 import { PlayerCommand } from "@/api/types";
+import { getTrackForDisc } from "@/lib/tracks";
 
 const isMediaSessionSupported =
   typeof navigator !== "undefined" && "mediaSession" in navigator;
@@ -38,8 +39,7 @@ const useMediaSession = () => {
   const cd = currentSlot?.cd ?? null;
 
   const currentTrack = useMemo(() => {
-    if (!cd || commandDisplayState?.track == null) return null;
-    return cd.tracks?.find((t) => t.number === commandDisplayState.track) ?? null;
+    return getTrackForDisc(cd, commandDisplayState?.track);
   }, [cd, commandDisplayState?.track]);
 
   const trackDurationSeconds = useMemo(
