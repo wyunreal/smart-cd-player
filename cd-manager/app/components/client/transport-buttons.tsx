@@ -3,7 +3,7 @@
 import { Box, IconButton } from "@mui/material";
 import { useCallback, useContext, useMemo, useState } from "react";
 import { DataRepositoryContext, type PlayerSlot } from "@/app/providers/data-repository";
-import { PlayerCommand } from "@/api/types";
+import { DisplayState, PlayerCommand } from "@/api/types";
 import {
   SkipPreviousIcon,
   PlayArrowIcon,
@@ -16,9 +16,26 @@ import {
 import useAudioStream from "@/app/hooks/use-audio-stream";
 import EqualizerDialog from "@/app/components/client/equalizer-dialog";
 
-const TransportButtons = () => {
-  const { selectedPlayer, irRemoteClients, displayState, playerContent } =
-    useContext(DataRepositoryContext);
+type TransportButtonsProps = {
+  /** Player the buttons control. Defaults to the command player. */
+  player?: number | null;
+  /** Display reading used for the play/pause state. Defaults to the command player's. */
+  displayState?: DisplayState | null;
+};
+
+const TransportButtons = ({
+  player,
+  displayState: displayStateProp,
+}: TransportButtonsProps) => {
+  const {
+    irRemoteClients,
+    playerContent,
+    commandPlayer,
+    commandDisplayState,
+  } = useContext(DataRepositoryContext);
+  const playerIndex = player !== undefined ? player : commandPlayer;
+  const displayState =
+    displayStateProp !== undefined ? displayStateProp : commandDisplayState;
   const { muted, toggleMute, ready: audioReady, eqEnabled } = useAudioStream();
   const [eqOpen, setEqOpen] = useState(false);
 
@@ -26,11 +43,11 @@ const TransportButtons = () => {
   const isOff = displayState?.mode === "off";
 
   const totalTracks = useMemo(() => {
-    if (selectedPlayer === null || displayState?.disc == null) return null;
-    const slots = playerContent[selectedPlayer - 1];
+    if (playerIndex === null || displayState?.disc == null) return null;
+    const slots = playerContent[playerIndex - 1];
     const slot = slots?.find((s: PlayerSlot) => s.slot === displayState.disc);
     return slot?.cd?.tracks?.length ?? null;
-  }, [selectedPlayer, playerContent, displayState?.disc]);
+  }, [playerIndex, playerContent, displayState?.disc]);
 
   const currentTrack = displayState?.track ?? null;
   const isFirstTrack = currentTrack != null && currentTrack <= 1;
@@ -38,7 +55,7 @@ const TransportButtons = () => {
     currentTrack != null && totalTracks != null && currentTrack >= totalTracks;
 
   const currentRemoteClient =
-    selectedPlayer !== null ? irRemoteClients[selectedPlayer - 1] : null;
+    playerIndex !== null ? irRemoteClients[playerIndex - 1] : null;
 
   const sendCommand = useCallback(
     async (command: PlayerCommand) => {

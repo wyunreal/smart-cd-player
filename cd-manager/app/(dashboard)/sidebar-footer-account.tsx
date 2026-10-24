@@ -56,7 +56,8 @@ const createPopoverComponent = (mini: boolean) => {
 };
 
 export default function SidebarFooterAccount({ mini }: SidebarFooterProps) {
-  const { displayState } = React.useContext(DataRepositoryContext);
+  const { nowPlayingPlayer, nowPlayingStreamId, nowPlayingDisplayState } =
+    React.useContext(DataRepositoryContext);
   const PreviewComponent = React.useMemo(
     () => createPreviewComponent(mini),
     [mini]
@@ -67,7 +68,13 @@ export default function SidebarFooterAccount({ mini }: SidebarFooterProps) {
   );
   return (
     <Stack direction="column">
-      {!mini && <NowPlaying displayState={displayState} />}
+      {!mini && (
+        <NowPlaying
+          player={nowPlayingPlayer}
+          streamId={nowPlayingStreamId}
+          displayState={nowPlayingDisplayState}
+        />
+      )}
       <Account
         slots={{
         preview: PreviewComponent,

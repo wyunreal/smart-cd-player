@@ -6,7 +6,15 @@ import {
   IrRemoteClient,
 } from "@/api/player-remote/client";
 import { Cd, CdSlot, DisplayState, PlayerDefinition } from "@/api/types";
-import { getPlayerStreamId, normalizeDisplayResponse } from "@/lib/display";
+import {
+  buildMissingStreamsError,
+  getMissingStreams,
+  getPlayerDisplayState,
+  getPlayerStreamId,
+  normalizeDisplayResponse,
+  selectDisplayError,
+  selectNowPlaying,
+} from "@/lib/display";
 import React, {
   createContext,
   ReactNode,
@@ -57,7 +65,19 @@ export type LastPlayedStateProps = {
 };
 
 export type DisplayStateProps = {
+  /** Display reading of the player selected in the main view. */
   displayState: DisplayState | null;
+  /** Player picked for the "currently playing" view. */
+  nowPlayingPlayer: number | null;
+  /** Stream id of the player picked for the "currently playing" view. */
+  nowPlayingStreamId: string | null;
+  nowPlayingDisplayState: DisplayState | null;
+  /**
+   * Player that transport/power commands target: the "currently playing" player
+   * when there is one, otherwise the player selected in the main view.
+   */
+  commandPlayer: number | null;
+  commandDisplayState: DisplayState | null;
 };
 
 type DataRepositoryContextProps = CdCollectionProps &
@@ -100,6 +120,11 @@ export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   lastPlayedSlots: [null, null, null],
   setLastPlayedSlots: () => {},
   displayState: null,
+  nowPlayingPlayer: null,
+  nowPlayingStreamId: null,
+  nowPlayingDisplayState: null,
+  commandPlayer: null,
+  commandDisplayState: null,
 });
 
 export const DataRepositoryProvider = ({
@@ -275,6 +300,7 @@ export const DataRepositoryProvider = ({
   const [displayStreams, setDisplayStreams] = useState<
     Record<string, DisplayState>
   >({});
+  const [displayLoaded, setDisplayLoaded] = useState(false);
   const mockSecondsRef = useRef(0);
 
   const isMockDisplay =
@@ -296,13 +322,9 @@ export const DataRepositoryProvider = ({
         timestamp: Date.now(),
       };
 
-      const streamIds =
-        playerDefinitions.length > 0
-          ? playerDefinitions.map(
-              (definition) =>
-                definition.streamId ?? `player-${definition.remoteIndex}`,
-            )
-          : ["player-1"];
+      const streamIds = playerDefinitions
+        .map((definition) => getPlayerStreamId(definition))
+        .filter((streamId): streamId is string => streamId !== null);
 
       const next: Record<string, DisplayState> = {};
       for (const streamId of streamIds) {
@@ -310,6 +332,7 @@ export const DataRepositoryProvider = ({
       }
 
       setDisplayStreams(next);
+      setDisplayLoaded(true);
       mockSecondsRef.current = sec + 2;
     };
 
@@ -325,9 +348,13 @@ export const DataRepositoryProvider = ({
       fetch("/api/display")
         .then((res) => (res.ok ? res.json() : null))
         .then((data: unknown) => {
-          if (data) setDisplayStreams(normalizeDisplayResponse(data));
+          setDisplayStreams(data ? normalizeDisplayResponse(data) : {});
+          setDisplayLoaded(true);
         })
-        .catch(() => setDisplayStreams({}));
+        .catch(() => {
+          setDisplayStreams({});
+          setDisplayLoaded(true);
+        });
     };
 
     fetchDisplay();
@@ -338,13 +365,39 @@ export const DataRepositoryProvider = ({
   const selectedPlayerDefinition = playerDefinitions.find(
     (definition) => definition.remoteIndex === selectedPlayer,
   );
-  const selectedStreamId = getPlayerStreamId(
-    selectedPlayerDefinition,
-    selectedPlayer,
-  );
-  const displayState = selectedStreamId
-    ? displayStreams[selectedStreamId] ?? null
+  const selectedStreamId = getPlayerStreamId(selectedPlayerDefinition);
+  const displayState = displayLoaded
+    ? getPlayerDisplayState(selectedStreamId, displayStreams, selectedPlayer)
     : null;
+
+  // "Currently playing" view: one player at a time, playing > paused > none.
+  const nowPlayingSelection = displayLoaded
+    ? selectNowPlaying(playerDefinitions, displayStreams)
+    : null;
+  const erroredSelection = displayLoaded
+    ? selectDisplayError(playerDefinitions, displayStreams)
+    : null;
+  const missingStreams = displayLoaded
+    ? getMissingStreams(playerDefinitions, displayStreams)
+    : [];
+  const nowPlayingFallback =
+    missingStreams.length > 0
+      ? {
+          displayState: buildMissingStreamsError(missingStreams),
+          player: null,
+          streamId: null,
+        }
+      : erroredSelection;
+  const nowPlayingDetail = nowPlayingSelection ?? nowPlayingFallback;
+  const nowPlayingDisplayState = nowPlayingDetail?.displayState ?? null;
+  const nowPlayingPlayer = nowPlayingDetail?.player ?? null;
+  const nowPlayingStreamId = nowPlayingDetail?.streamId ?? null;
+
+  // Transport/power buttons follow the same precedence. With no playing/paused
+  // player they fall back to the player selected in the main view.
+  const commandPlayer = nowPlayingPlayer ?? selectedPlayer;
+  const commandDisplayState =
+    nowPlayingPlayer !== null ? nowPlayingDisplayState : displayState;
 
   /**
    * Player State
@@ -390,6 +443,11 @@ export const DataRepositoryProvider = ({
         lastPlayedSlots,
         setLastPlayedSlots,
         displayState,
+        nowPlayingPlayer,
+        nowPlayingStreamId,
+        nowPlayingDisplayState,
+        commandPlayer,
+        commandDisplayState,
       }}
     >
       {children}

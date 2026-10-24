@@ -43,7 +43,12 @@ const PlayerDefinitionForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
-    onSubmit(definitions);
+    onSubmit(
+      definitions.map((definition) => ({
+        ...definition,
+        streamId: definition.streamId?.trim() || undefined,
+      })),
+    );
   };
   // Derived global values (using the first definition as source of truth)
   const globalIrCommandsUrl = definitions[0]?.irCommandsUrl || "";
@@ -150,8 +155,7 @@ const PlayerDefinitionForm = ({
             </Stack>
             <TextField
               fullWidth
-              label="Stream ID (opcional)"
-              placeholder={`player-${index + 1}`}
+              label="Stream ID"
               value={definition.streamId || ""}
               onChange={(event) => {
                 const newDefinitions = [...definitions];
@@ -161,7 +165,7 @@ const PlayerDefinitionForm = ({
                 };
                 setDefinitions(newDefinitions);
               }}
-              helperText={`ID del stream en composite-video-parser. Si se deja vacío, se usa player-${index + 1}.`}
+              helperText={`Id del stream en composite-video-parser: la clave dentro de "streams" en su config.json (p. ej. "player-1" o "salon"). Debe coincidir exactamente con la clave que devuelve GET /display. Si se deja vacío, este player no soporta estado de reproducción y no se muestra nada para él.`}
               sx={{ mt: 2 }}
             />
             <Box sx={{ marginTop: 1, marginBottom: 2 }}>

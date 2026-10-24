@@ -43,8 +43,9 @@ export type PlayerDefinition = {
   irSendCommandUrl?: string;
   irDeviceName?: string;
   /**
-   * Id of the stream in composite-video-parser. When omitted, player-N is used,
-   * where N is remoteIndex.
+   * Key of the stream in composite-video-parser's config.json (`streams.<id>`),
+   * which is also the key returned by GET /display. There is no default: when
+   * empty, the player has no display readings.
    */
   streamId?: string;
 };

@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import {
+  Alert,
   Box,
   Fade,
   LinearProgress,
@@ -18,6 +19,13 @@ export type { DisplayMode, DisplayState } from "@/api/types";
 
 type NowPlayingProps = {
   displayState?: DisplayState | null;
+  /**
+   * Player the card belongs to. Defaults to the player selected in the main
+   * view; the "currently playing" view passes the player picked by precedence.
+   */
+  player?: number | null;
+  /** Stream id configured for that player, used in error messages. */
+  streamId?: string | null;
 };
 
 const formatTime = (minutes: number | null, seconds: number | null) => {
@@ -27,18 +35,21 @@ const formatTime = (minutes: number | null, seconds: number | null) => {
   return `${m}:${s}`;
 };
 
-const NowPlaying = ({ displayState }: NowPlayingProps) => {
+const asSentence = (text: string) => (/[.!?]$/.test(text) ? text : `${text}.`);
+
+const NowPlaying = ({ displayState, player, streamId }: NowPlayingProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [visible, setVisible] = useState(isMobile);
 
   const { selectedPlayer, playerContent } = useContext(DataRepositoryContext);
+  const playerIndex = player !== undefined ? player : selectedPlayer;
 
   const currentSlot = useMemo(() => {
-    if (selectedPlayer === null || displayState?.disc === null) return null;
-    const slots = playerContent[selectedPlayer - 1];
+    if (playerIndex === null || displayState?.disc === null) return null;
+    const slots = playerContent[playerIndex - 1];
     return slots?.find((s) => s.slot === displayState?.disc) ?? null;
-  }, [selectedPlayer, playerContent, displayState?.disc]);
+  }, [playerIndex, playerContent, displayState?.disc]);
 
   const cd = currentSlot?.cd;
   const albumArt = cd?.art?.album?.uri150 || "/cd-placeholder-small.png";
@@ -113,7 +124,34 @@ const NowPlaying = ({ displayState }: NowPlayingProps) => {
     return () => clearTimeout(timer);
   }, [isMobile]);
 
-  if (!displayState || displayState.disc == null) return null;
+  if (!displayState) return null;
+
+  if (displayState.status === "error") {
+    // Errors for a single player get the player and stream id in front; the
+    // multi-stream case already lists every failing player in the message.
+    const singlePlayerError =
+      playerIndex !== null
+        ? `Player ${playerIndex}${
+            streamId ? ` (stream "${streamId}")` : ""
+          }: ${asSentence(
+            displayState.error ?? "No se pudo leer el display del player.",
+          )} Verifica el Stream ID configurado y el estado de la captura en composite-video-parser (GET /streams).`
+        : null;
+
+    return (
+      <Fade in={visible} timeout={isMobile ? 0 : 500}>
+        <Box sx={{ py: 1, px: "16px" }}>
+          <Alert severity="error" variant="outlined">
+            {singlePlayerError ??
+              displayState.error ??
+              "No se pudo leer el display del player."}
+          </Alert>
+        </Box>
+      </Fade>
+    );
+  }
+
+  if (displayState.disc == null) return null;
 
   return (
     <Fade in={visible} timeout={isMobile ? 0 : 500}>
@@ -149,7 +187,7 @@ const NowPlaying = ({ displayState }: NowPlayingProps) => {
           </Box>
         </Box>
         <Box sx={{ mt: 2 }}>
-          <TransportButtons />
+          <TransportButtons player={playerIndex} displayState={displayState} />
         </Box>
         {progressPercent != null && trackDurationSeconds != null && (
           <Box sx={{ mt: 1, mb: 2 }}>

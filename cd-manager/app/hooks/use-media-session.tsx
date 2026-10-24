@@ -19,28 +19,28 @@ const parseTrackDuration = (duration?: string): number | null => {
 
 const useMediaSession = () => {
   const {
-    selectedPlayer,
+    commandPlayer,
     playerContent,
-    displayState,
+    commandDisplayState,
     irRemoteClients,
   } = useContext(DataRepositoryContext);
   const { audioContext } = useContext(AudioStreamContext);
 
   const currentRemoteClient =
-    selectedPlayer !== null ? irRemoteClients[selectedPlayer - 1] ?? null : null;
+    commandPlayer !== null ? irRemoteClients[commandPlayer - 1] ?? null : null;
 
   const currentSlot = useMemo(() => {
-    if (selectedPlayer === null || displayState?.disc == null) return null;
-    const slots = playerContent[selectedPlayer - 1];
-    return slots?.find((s: PlayerSlot) => s.slot === displayState.disc) ?? null;
-  }, [selectedPlayer, playerContent, displayState?.disc]);
+    if (commandPlayer === null || commandDisplayState?.disc == null) return null;
+    const slots = playerContent[commandPlayer - 1];
+    return slots?.find((s: PlayerSlot) => s.slot === commandDisplayState.disc) ?? null;
+  }, [commandPlayer, playerContent, commandDisplayState?.disc]);
 
   const cd = currentSlot?.cd ?? null;
 
   const currentTrack = useMemo(() => {
-    if (!cd || displayState?.track == null) return null;
-    return cd.tracks?.find((t) => t.number === displayState.track) ?? null;
-  }, [cd, displayState?.track]);
+    if (!cd || commandDisplayState?.track == null) return null;
+    return cd.tracks?.find((t) => t.number === commandDisplayState.track) ?? null;
+  }, [cd, commandDisplayState?.track]);
 
   const trackDurationSeconds = useMemo(
     () => parseTrackDuration(currentTrack?.duration),
@@ -48,17 +48,17 @@ const useMediaSession = () => {
   );
 
   const totalTracks = useMemo(() => {
-    if (selectedPlayer === null || displayState?.disc == null) return null;
-    const slots = playerContent[selectedPlayer - 1];
-    const slot = slots?.find((s: PlayerSlot) => s.slot === displayState.disc);
+    if (commandPlayer === null || commandDisplayState?.disc == null) return null;
+    const slots = playerContent[commandPlayer - 1];
+    const slot = slots?.find((s: PlayerSlot) => s.slot === commandDisplayState.disc);
     return slot?.cd?.tracks?.length ?? null;
-  }, [selectedPlayer, playerContent, displayState?.disc]);
+  }, [commandPlayer, playerContent, commandDisplayState?.disc]);
 
-  const isFirstTrack = (displayState?.track ?? null) != null && (displayState?.track ?? 0) <= 1;
+  const isFirstTrack = (commandDisplayState?.track ?? null) != null && (commandDisplayState?.track ?? 0) <= 1;
   const isLastTrack =
-    (displayState?.track ?? null) != null &&
+    (commandDisplayState?.track ?? null) != null &&
     totalTracks != null &&
-    (displayState?.track ?? 0) >= totalTracks;
+    (commandDisplayState?.track ?? 0) >= totalTracks;
 
   // iOS Safari requires an active <audio> element for lock screen transport
   // controls to fire action handlers. We create a silent MediaStream from the
@@ -132,7 +132,7 @@ const useMediaSession = () => {
     const dest = mediaStreamDestRef.current;
     if (!audio) return;
 
-    const mode = displayState?.mode;
+    const mode = commandDisplayState?.mode;
     if (mode === "playing" || mode === "paused") {
       if (!audio.srcObject && dest) {
         audio.srcObject = dest.stream;
@@ -144,13 +144,13 @@ const useMediaSession = () => {
       audio.pause();
       audio.srcObject = null;
     }
-  }, [displayState?.mode]);
+  }, [commandDisplayState?.mode]);
 
   // Effect 1: Metadata
   useEffect(() => {
     if (!isMediaSessionSupported) return;
 
-    if (!cd || !displayState || displayState.disc == null) {
+    if (!cd || !commandDisplayState || commandDisplayState.disc == null) {
       navigator.mediaSession.metadata = null;
       return;
     }
@@ -173,9 +173,9 @@ const useMediaSession = () => {
         : cd.title;
 
     const trackTitle = currentTrack?.title
-      ? `${displayState.track}. ${currentTrack.title}`
-      : displayState.track != null
-        ? `Track ${displayState.track}`
+      ? `${commandDisplayState.track}. ${currentTrack.title}`
+      : commandDisplayState.track != null
+        ? `Track ${commandDisplayState.track}`
         : albumTitle;
 
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -184,13 +184,13 @@ const useMediaSession = () => {
       album: albumTitle,
       artwork,
     });
-  }, [cd, currentTrack, displayState]);
+  }, [cd, currentTrack, commandDisplayState]);
 
   // Effect 2: Playback state
   useEffect(() => {
     if (!isMediaSessionSupported) return;
 
-    const mode = displayState?.mode;
+    const mode = commandDisplayState?.mode;
     if (mode === "playing") {
       navigator.mediaSession.playbackState = "playing";
     } else if (mode === "paused") {
@@ -198,7 +198,7 @@ const useMediaSession = () => {
     } else {
       navigator.mediaSession.playbackState = "none";
     }
-  }, [displayState?.mode]);
+  }, [commandDisplayState?.mode]);
 
   // Effect 3: Position state
   useEffect(() => {
@@ -207,8 +207,8 @@ const useMediaSession = () => {
     if (
       trackDurationSeconds == null ||
       trackDurationSeconds <= 0 ||
-      displayState?.minutes == null ||
-      displayState?.seconds == null
+      commandDisplayState?.minutes == null ||
+      commandDisplayState?.seconds == null
     ) {
       try {
         navigator.mediaSession.setPositionState();
@@ -217,7 +217,7 @@ const useMediaSession = () => {
     }
 
     const position = Math.min(
-      (displayState.minutes ?? 0) * 60 + (displayState.seconds ?? 0),
+      (commandDisplayState.minutes ?? 0) * 60 + (commandDisplayState.seconds ?? 0),
       trackDurationSeconds,
     );
 
@@ -228,13 +228,13 @@ const useMediaSession = () => {
         position,
       });
     } catch { /* ignore invalid state errors */ }
-  }, [displayState?.minutes, displayState?.seconds, displayState?.timestamp, trackDurationSeconds]);
+  }, [commandDisplayState?.minutes, commandDisplayState?.seconds, commandDisplayState?.timestamp, trackDurationSeconds]);
 
   // Effect 4: Action handlers
   useEffect(() => {
     if (!isMediaSessionSupported) return;
 
-    const isOff = !displayState || displayState.mode === "off";
+    const isOff = !commandDisplayState || commandDisplayState.mode === "off";
     const canSend = currentRemoteClient && !isOff;
 
     const sendCommand = async (command: PlayerCommand) => {
@@ -306,7 +306,7 @@ const useMediaSession = () => {
       setHandler("seekforward", null);
       setHandler("seekbackward", null);
     };
-  }, [currentRemoteClient, displayState, isFirstTrack, isLastTrack]);
+  }, [currentRemoteClient, commandDisplayState, isFirstTrack, isLastTrack]);
 };
 
 export default useMediaSession;

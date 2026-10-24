@@ -22,7 +22,11 @@ const PlayerControlButtons = () => {
     playerContent,
     selectedPlayerSlots,
     setSelectedPlayerSlots,
-    displayState,
+    nowPlayingPlayer,
+    nowPlayingStreamId,
+    nowPlayingDisplayState,
+    commandPlayer,
+    commandDisplayState,
   } = useContext(DataRepositoryContext);
 
   const theme = useTheme();
@@ -31,7 +35,7 @@ const PlayerControlButtons = () => {
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
 
   const currentRemoteClient =
-    selectedPlayer !== null ? irRemoteClients[selectedPlayer - 1] : null;
+    commandPlayer !== null ? irRemoteClients[commandPlayer - 1] : null;
 
   const currentPlayerSlots =
     selectedPlayer !== null ? playerContent[selectedPlayer - 1] : [];
@@ -75,7 +79,10 @@ const PlayerControlButtons = () => {
       >
         <SearchOutlinedIcon />
       </IconButton>
-      <TransportButtons />
+      <TransportButtons
+        player={commandPlayer}
+        displayState={commandDisplayState}
+      />
       <IconButton
         onClick={() => sendCommand(PlayerCommand.PowerSwitch)}
         disabled={!isCommandSupported(PlayerCommand.PowerSwitch)}
@@ -106,7 +113,11 @@ const PlayerControlButtons = () => {
         headless
         adaptToContentInMobile
       >
-        <NowPlaying displayState={displayState} />
+        <NowPlaying
+          player={nowPlayingPlayer}
+          streamId={nowPlayingStreamId}
+          displayState={nowPlayingDisplayState}
+        />
       </ResponsiveDialog>
     </>
   );
