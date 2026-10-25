@@ -22,7 +22,7 @@ Add the CLIENT_ID and CLIENT_SECRET from your OAuth provider to the .env.local f
 
 ## Getting Started
 
-First, run the development server: `npm run dev`
+First, run the development server: `yarn dev`
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 

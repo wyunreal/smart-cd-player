@@ -19,8 +19,8 @@ FROM base AS deps
 # Converting apk add to apt-get for consistency if needed, but 'base' already has glibc (it's debian).
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --production=false
 
 # 3. Builder
 FROM base AS builder
@@ -33,7 +33,7 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm run build
+RUN yarn build
 
 # 4. Runner
 FROM base AS runner
