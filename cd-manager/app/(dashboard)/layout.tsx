@@ -3,6 +3,9 @@
 import * as React from "react";
 import { DashboardLayout } from "@toolpad/core/DashboardLayout";
 import { PageContainer } from "@toolpad/core/PageContainer";
+import { useActivePage } from "@toolpad/core/useActivePage";
+import { usePathname } from "next/navigation";
+import { ROUTES } from "@/app/util/routes";
 import SidebarFooterAccount, {
   ToolbarAccountOverride,
 } from "./sidebar-footer-account";
@@ -13,8 +16,22 @@ import { CdSelectionProvider } from "@/app/providers/cd-selection-context";
 import { AudioStreamProvider } from "@/app/providers/audio-stream-provider";
 import MediaSessionBridge from "@/app/components/client/media-session-bridge";
 
+const NoPageHeader = () => null;
+
 export default function Layout(props: { children: React.ReactNode }) {
   const theme = useTheme();
+  const pathname = usePathname();
+  const activePage = useActivePage();
+
+  // The root page is labelled "Now playing" in the navigation, but it's the
+  // app home, so its breadcrumb should read "Home".
+  const breadcrumbs = React.useMemo(
+    () =>
+      activePage?.breadcrumbs.map((breadcrumb) =>
+        breadcrumb.path === "/" ? { ...breadcrumb, title: "Home" } : breadcrumb,
+      ),
+    [activePage],
+  );
 
   return (
     <AudioStreamProvider>
@@ -72,7 +89,14 @@ export default function Layout(props: { children: React.ReactNode }) {
             },
           }}
         >
-            <PageContainer>{props.children}</PageContainer>
+            <PageContainer
+              breadcrumbs={breadcrumbs}
+              slots={
+                pathname === ROUTES.HOME ? { header: NoPageHeader } : undefined
+              }
+            >
+              {props.children}
+            </PageContainer>
           </DashboardLayout>
         </DataRepositoryProvider>
       </CdSelectionProvider>

@@ -1,4 +1,5 @@
 export const ROUTES = {
-  PLAYER: "/",
+  HOME: "/",
+  PLAYER: "/players",
   COLLECTION: "/collection",
 } as const;

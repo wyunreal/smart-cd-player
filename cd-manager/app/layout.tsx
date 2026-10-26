@@ -21,7 +21,12 @@ export async function generateViewport(): Promise<Viewport> {
 
 const NAVIGATION: Navigation = [
   {
-    title: "Player",
+    title: "Now playing",
+    icon: <PlayArrowOutlinedIcon />,
+  },
+  {
+    segment: "players",
+    title: "Players",
     icon: <PlayArrowOutlinedIcon />,
   },
   {
