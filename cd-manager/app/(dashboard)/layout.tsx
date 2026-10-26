@@ -90,6 +90,7 @@ export default function Layout(props: { children: React.ReactNode }) {
           }}
         >
             <PageContainer
+              maxWidth={pathname === ROUTES.HOME ? false : "lg"}
               breadcrumbs={breadcrumbs}
               slots={
                 pathname === ROUTES.HOME ? { header: NoPageHeader } : undefined

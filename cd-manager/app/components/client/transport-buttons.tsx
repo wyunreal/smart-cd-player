@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, IconButton } from "@mui/material";
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo } from "react";
 import { DataRepositoryContext, type PlayerSlot } from "@/app/providers/data-repository";
 import { DisplayState, PlayerCommand } from "@/api/types";
 import {
@@ -11,10 +11,9 @@ import {
   SkipNextIcon,
   VolumeUpIcon,
   VolumeOffIcon,
-  EqualizerIcon,
 } from "@/app/icons";
 import useAudioStream from "@/app/hooks/use-audio-stream";
-import EqualizerDialog from "@/app/components/client/equalizer-dialog";
+import EqualizerButton from "@/app/components/client/equalizer-button";
 
 type TransportButtonsProps = {
   /** Player the buttons control. Defaults to the command player. */
@@ -36,8 +35,7 @@ const TransportButtons = ({
   const playerIndex = player !== undefined ? player : commandPlayer;
   const displayState =
     displayStateProp !== undefined ? displayStateProp : commandDisplayState;
-  const { muted, toggleMute, ready: audioReady, eqEnabled } = useAudioStream();
-  const [eqOpen, setEqOpen] = useState(false);
+  const { muted, toggleMute, ready: audioReady } = useAudioStream();
 
   const isPlaying = displayState?.mode === "playing";
   const isOff = displayState?.mode === "off";
@@ -111,14 +109,7 @@ const TransportButtons = ({
       >
         {muted ? <VolumeOffIcon /> : <VolumeUpIcon />}
       </IconButton>
-      <IconButton
-        onClick={() => setEqOpen(true)}
-        disabled={!audioReady}
-        sx={eqEnabled ? { color: "primary.main" } : undefined}
-      >
-        <EqualizerIcon />
-      </IconButton>
-      <EqualizerDialog isOpen={eqOpen} onClose={() => setEqOpen(false)} />
+      <EqualizerButton />
     </Box>
   );
 };

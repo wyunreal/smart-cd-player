@@ -1,5 +1,7 @@
+import NowPlayingScreen from "@/app/components/client/now-playing-screen";
+
 const HomePage = () => {
-  return <>Now playing</>;
+  return <NowPlayingScreen />;
 };
 
 export default HomePage;
