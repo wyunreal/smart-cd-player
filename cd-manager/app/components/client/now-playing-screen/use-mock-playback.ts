@@ -115,6 +115,14 @@ export const useMockPlayback = (): NowPlayingViewProps => {
     setMuted(true);
   }, [muted, volume]);
 
+  const handleSelectTrack = useCallback((index: number) => {
+    if (index < 0 || index >= MOCK_TRACKS.length) return;
+
+    setTrackIndex(index);
+    setElapsedSeconds(0);
+    setMode("playing");
+  }, []);
+
   return {
     data: {
       album: {
@@ -133,6 +141,7 @@ export const useMockPlayback = (): NowPlayingViewProps => {
         elapsedSeconds,
         durationSeconds,
       },
+      tracks: MOCK_TRACKS.map(({ number, title }) => ({ number, title })),
       mode,
       volume,
       muted,
@@ -144,6 +153,7 @@ export const useMockPlayback = (): NowPlayingViewProps => {
       onSeek: handleSeek,
       onVolumeChange: handleVolumeChange,
       onToggleMute: handleToggleMute,
+      onSelectTrack: handleSelectTrack,
     },
     capabilities: {
       canGoPrevious: trackIndex > 0 || elapsedSeconds > 3,

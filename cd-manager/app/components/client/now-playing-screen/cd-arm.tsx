@@ -27,6 +27,8 @@ const CdArm = () => {
         inset: 0,
         zIndex: 3,
         pointerEvents: "none",
+        // No clamp arm in the stacked/vertical layout.
+        display: { xs: "none", sm: "none", lg: "block" },
       }}
     >
       {/* Flat metal arm, constant width from the top to below the centre */}

@@ -194,9 +194,7 @@ const PlaybackControls = ({
             {isPlaying ? (
               <PauseIcon sx={{ fontSize: { xs: 28, sm: 32 } }} />
             ) : (
-              <PlayArrowIcon
-                sx={{ fontSize: { xs: 32, sm: 36 }, ml: "3px" }}
-              />
+              <PlayArrowIcon sx={{ fontSize: { xs: 32, sm: 36 }, ml: "3px" }} />
             )}
           </IconButton>
 
@@ -232,7 +230,8 @@ const PlaybackControls = ({
             valueLabelDisplay="off"
             sx={{
               ...sliderSx(theme, 10),
-              width: { xs: 118, sm: 160, lg: 120, xl: 150 },
+              display: { xs: "none", sm: "none", lg: "inline-block" },
+              width: { lg: 120, xl: 150 },
               // Keep the slider space while muted so the buttons on its
               // right do not jump when toggling mute.
               visibility: isMuted ? "hidden" : "visible",

@@ -8,11 +8,8 @@ import { keyframes } from "@emotion/react";
 import CdArm from "./cd-arm";
 import CdWell from "./cd-well";
 
-/**
- * A real CD spins at roughly 200-500 rpm. 0.15s per revolution is 400 rpm,
- * which lands in the middle of the range.
- */
-const DISC_SPIN_SECONDS = 0.15;
+/** Seconds per revolution. One second keeps the motion readable and calm. */
+const DISC_SPIN_SECONDS = 1;
 
 const spin = keyframes`
   from {

@@ -1,9 +1,20 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { Box, Divider, Typography, useTheme } from "@mui/material";
+import { useState } from "react";
+import {
+  Box,
+  Divider,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemText,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { AlbumIcon } from "@/app/icons";
+import { AlbumIcon, ListIcon } from "@/app/icons";
+import ResponsiveDialog from "../dialog/responsive-dialog";
 import CdDisc from "./cd-disc";
 import PlaybackControls from "./playback-controls";
 import type {
@@ -48,28 +59,34 @@ const trackTitleSx = {
 } as const;
 
 const DISC_SIZE = {
-  xs: "min(68vw, 320px)",
-  sm: "min(70vw, 620px)",
+  // The stacked layouts use the full content width so the 10/3 wrapper crop
+  // below is exactly 30% of the disc height.
+  xs: "100%",
+  sm: "100%",
   lg: "min(30vw, 380px)",
   xl: "min(34vw, 500px)",
 } as const;
 
 /**
- * In the stacked/vertical layout only, pull the whole composition up by 30%
- * of the disc height so the top disappears under the app/title bar.
+ * In the stacked/vertical layout the disc only shows its bottom 30%: the
+ * section is pulled up so the cropping line matches the top of the content
+ * area, and the disc wrapper is only 30% of the disc height. The constants
+ * are the space above the row (page container + section padding + title row
+ * + row margin), so the clipped disc starts right under the app bar.
  */
 const VERTICAL_LIFT = {
-  xs: `calc(${DISC_SIZE.xs} * -0.3)`,
-  sm: `calc(${DISC_SIZE.sm} * -0.3)`,
+  xs: "-94px",
+  sm: "-110px",
   lg: 0,
 } as const;
 
 type AlbumPanelProps = {
   album: NowPlayingAlbumView;
   track: NowPlayingTrackView | null;
+  onOpenTracks: () => void;
 };
 
-const AlbumPanel = ({ album, track }: AlbumPanelProps) => {
+const AlbumPanel = ({ album, track, onOpenTracks }: AlbumPanelProps) => {
   const theme = useTheme();
 
   const meta = [
@@ -169,22 +186,66 @@ const AlbumPanel = ({ album, track }: AlbumPanelProps) => {
 
       <Box
         sx={{
-          gridColumn: { xs: "1 / -1", lg: "2" },
+          gridColumn: "2",
           gridRow: "3",
-          textAlign: { xs: "center", lg: "left" },
+          textAlign: "left",
           pb: { lg: 0.5 },
         }}
       >
-        <Typography component="h3" sx={trackTitleSx}>
-          {track?.title ?? "Sin reproducción"}
-        </Typography>
-        {track && (
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            minWidth: 0,
+          }}
+        >
           <Typography
-            variant="body2"
-            sx={{ mt: 0.75, color: "text.secondary" }}
+            component="h3"
+            sx={{ ...trackTitleSx, flex: 1, minWidth: 0 }}
           >
-            {track.number} / {album.totalTracks}
+            {track?.title ?? "Sin reproducción"}
           </Typography>
+          <IconButton
+            onClick={onOpenTracks}
+            aria-label="Abrir lista de tracks"
+            sx={{
+              display: { xs: "inline-flex", sm: "inline-flex", lg: "none" },
+              color: "text.secondary",
+              "&&&": { color: theme.palette.text.secondary },
+              flexShrink: 0,
+            }}
+          >
+            <ListIcon sx={{ fontSize: 22 }} />
+          </IconButton>
+        </Box>
+        {track && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              mt: 0.75,
+            }}
+          >
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              {track.number} / {album.totalTracks}
+            </Typography>
+            <IconButton
+              onClick={onOpenTracks}
+              aria-label="Abrir lista de tracks"
+              size="small"
+              sx={{
+                display: { xs: "none", sm: "none", lg: "inline-flex" },
+                color: "text.secondary",
+                "&&&": { color: theme.palette.text.secondary },
+                flexShrink: 0,
+                ml: 0.5,
+              }}
+            >
+              <ListIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Box>
         )}
       </Box>
     </Box>
@@ -198,8 +259,9 @@ const NowPlayingView = ({
 }: NowPlayingViewProps) => {
   const theme = useTheme();
   const accent = theme.palette.primary.main;
+  const [tracksOpen, setTracksOpen] = useState(false);
 
-  const { album, track, mode, volume, muted } = data;
+  const { album, track, tracks, mode, volume, muted } = data;
 
   const isSpinning = mode === "playing" || mode === "paused";
   const discImage =
@@ -268,8 +330,13 @@ const NowPlayingView = ({
             order: { xs: 0, lg: 1 },
             flexShrink: 0,
             width: DISC_SIZE,
+            maxWidth: "100%",
+            // In the stacked layout only the bottom 30% of the disc is
+            // visible; the rest overflows upwards and is clipped by the
+            // app bar area.
+            aspectRatio: { xs: "10 / 3", sm: "10 / 3" },
             display: "flex",
-            alignItems: "center",
+            alignItems: { xs: "flex-end", sm: "flex-end", lg: "center" },
             justifyContent: "center",
           }}
         >
@@ -286,7 +353,11 @@ const NowPlayingView = ({
             alignSelf: { lg: "center" },
           }}
         >
-          <AlbumPanel album={album} track={track} />
+          <AlbumPanel
+            album={album}
+            track={track}
+            onOpenTracks={() => setTracksOpen(true)}
+          />
         </Box>
       </Box>
 
@@ -300,6 +371,29 @@ const NowPlayingView = ({
           capabilities={capabilities}
         />
       </Box>
+
+      <ResponsiveDialog
+        isOpen={tracksOpen}
+        onClose={() => setTracksOpen(false)}
+        title={album.title}
+      >
+        <List disablePadding>
+          {tracks.map((item, index) => (
+            <Box key={item.number}>
+              <ListItemButton
+                selected={track?.number === item.number}
+                onClick={() => {
+                  actions.onSelectTrack(index);
+                  setTracksOpen(false);
+                }}
+              >
+                <ListItemText primary={`${item.number}. ${item.title}`} />
+              </ListItemButton>
+              {index < tracks.length - 1 && <Divider />}
+            </Box>
+          ))}
+        </List>
+      </ResponsiveDialog>
     </Box>
   );
 };

@@ -20,9 +20,16 @@ export type NowPlayingTrackView = {
   durationSeconds: number;
 };
 
+/** Minimal track entry used by the track list opened from the stacked view. */
+export type NowPlayingTrackListItem = {
+  number: number;
+  title: string;
+};
+
 export type NowPlayingViewData = {
   album: NowPlayingAlbumView;
   track: NowPlayingTrackView | null;
+  tracks: NowPlayingTrackListItem[];
   mode: DisplayMode;
   volume: number;
   muted: boolean;
@@ -43,6 +50,7 @@ export type NowPlayingActions = {
   onSeek: (seconds: number) => void;
   onVolumeChange: (volume: number) => void;
   onToggleMute: () => void;
+  onSelectTrack: (index: number) => void;
 };
 
 /**

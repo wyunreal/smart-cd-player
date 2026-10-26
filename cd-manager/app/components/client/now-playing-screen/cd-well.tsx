@@ -189,6 +189,9 @@ const CdWell = () => {
         position: "absolute",
         inset: 0,
         pointerEvents: "none",
+        // The stacked layout shows the bare spinning disc, without the
+        // recessed well of the desktop player.
+        display: { xs: "none", sm: "none", lg: "block" },
       }}
     >
       <WellSvg
