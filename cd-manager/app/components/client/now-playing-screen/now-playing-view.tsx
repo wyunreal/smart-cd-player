@@ -47,6 +47,23 @@ const trackTitleSx = {
   WebkitBoxOrient: "vertical",
 } as const;
 
+const DISC_SIZE = {
+  xs: "min(68vw, 320px)",
+  sm: "min(70vw, 620px)",
+  lg: "min(30vw, 380px)",
+  xl: "min(34vw, 500px)",
+} as const;
+
+/**
+ * In the stacked/vertical layout only, pull the whole composition up by 30%
+ * of the disc height so the top disappears under the app/title bar.
+ */
+const VERTICAL_LIFT = {
+  xs: `calc(${DISC_SIZE.xs} * -0.3)`,
+  sm: `calc(${DISC_SIZE.sm} * -0.3)`,
+  lg: 0,
+} as const;
+
 type AlbumPanelProps = {
   album: NowPlayingAlbumView;
   track: NowPlayingTrackView | null;
@@ -215,6 +232,7 @@ const NowPlayingView = ({
         px: { xs: 2.5, sm: 4, lg: 4, xl: 6 },
         py: { xs: 3, sm: 4, lg: 4, xl: 5 },
         color: "text.primary",
+        mt: VERTICAL_LIFT,
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
@@ -261,12 +279,7 @@ const NowPlayingView = ({
           sx={{
             order: { xs: 0, lg: 1 },
             flexShrink: 0,
-            width: {
-              xs: "min(68vw, 320px)",
-              sm: "min(70vw, 620px)",
-              lg: "min(30vw, 380px)",
-              xl: "min(34vw, 500px)",
-            },
+            width: DISC_SIZE,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
