@@ -175,20 +175,8 @@ const AlbumPanel = ({ album, track }: AlbumPanelProps) => {
           pb: { lg: 0.5 },
         }}
       >
-        <Typography variant="overline" sx={overlineSx}>
-          Track en reproducción
-        </Typography>
         <Typography component="h3" sx={trackTitleSx}>
           {track?.title ?? "Sin reproducción"}
-        </Typography>
-        <Typography
-          sx={{
-            mt: 0.25,
-            fontSize: { xs: 14, sm: 16 },
-            color: "text.secondary",
-          }}
-        >
-          {track?.artist ?? album.artist}
         </Typography>
         {track && (
           <Typography

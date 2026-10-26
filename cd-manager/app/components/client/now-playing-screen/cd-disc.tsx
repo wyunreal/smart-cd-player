@@ -111,102 +111,116 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
           },
         }}
       >
-        {/* Rotating face: the album art and its iridescent treatment */}
+        {/* Static clipping frame. The rotating face is a square whose
+            transformed bounding box grows while it spins, so it must be
+            clipped here to keep it from extending the page's scrollable
+            area (which flickered a horizontal scrollbar). */}
         <Box
           sx={{
             position: "absolute",
             inset: "2.2%",
             borderRadius: "50%",
             overflow: "hidden",
-            transformOrigin: "50% 50%",
-            backfaceVisibility: "hidden",
-            isolation: "isolate",
             contain: "paint",
-            animation: `${spin} ${DISC_SPIN_SECONDS}s linear infinite`,
-            animationPlayState: shouldSpin ? "running" : "paused",
-            willChange: "transform",
-            "@media (prefers-reduced-motion: reduce)": {
-              animation: "none",
-            },
+            pointerEvents: "none",
           }}
         >
-          <img
-            src={imageSrc}
-            alt=""
-            style={{
-              display: "block",
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-
-          {/* All face effects are baked into the rotating layer, so the
-              compositor rotates a single texture instead of blending several
-              static layers over a moving backdrop. */}
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              background: `conic-gradient(from 215deg at 50% 50%, transparent 0deg, ${alpha(
-                extra[1],
-                0.32,
-              )} 32deg, ${alpha(white, 0.5)} 60deg, ${alpha(
-                extra[4],
-                0.26,
-              )} 92deg, transparent 132deg, transparent 206deg, ${alpha(
-                extra[2],
-                0.28,
-              )} 246deg, ${alpha(extra[3], 0.24)} 274deg, ${alpha(
-                white,
-                0.38,
-              )} 304deg, transparent 344deg)`,
-              opacity: isDark ? 0.72 : 0.6,
-              pointerEvents: "none",
-            }}
-          />
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              background: `radial-gradient(circle at 50% 42%, ${alpha(
-                white,
-                0.32,
-              )} 0%, ${alpha(white, 0.08)} 34%, transparent 62%)`,
-              opacity: 0.55,
-              pointerEvents: "none",
-            }}
-          />
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              background: `linear-gradient(118deg, transparent 16%, ${alpha(
-                white,
-                0.16,
-              )} 38%, ${alpha(white, 0.38)} 45%, ${alpha(
-                white,
-                0.05,
-              )} 51%, transparent 58%, transparent 72%, ${alpha(
-                white,
-                0.12,
-              )} 86%, transparent 94%)`,
-              opacity: isDark ? 0.75 : 0.6,
-              pointerEvents: "none",
-            }}
-          />
+          {/* Rotating face: the album art and its iridescent treatment */}
           <Box
             sx={{
               position: "absolute",
               inset: 0,
               borderRadius: "50%",
-              boxShadow: `inset 0 0 26px ${alpha(
-                black,
-                0.35,
-              )}, inset 0 0 2px ${alpha(white, 0.35)}`,
-              pointerEvents: "none",
+              overflow: "hidden",
+              transformOrigin: "50% 50%",
+              backfaceVisibility: "hidden",
+              isolation: "isolate",
+              animation: `${spin} ${DISC_SPIN_SECONDS}s linear infinite`,
+              animationPlayState: shouldSpin ? "running" : "paused",
+              willChange: "transform",
+              "@media (prefers-reduced-motion: reduce)": {
+                animation: "none",
+              },
             }}
-          />
+          >
+            <img
+              src={imageSrc}
+              alt=""
+              style={{
+                display: "block",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
+
+            {/* All face effects are baked into the rotating layer, so the
+              compositor rotates a single texture instead of blending several
+              static layers over a moving backdrop. */}
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                background: `conic-gradient(from 215deg at 50% 50%, transparent 0deg, ${alpha(
+                  extra[1],
+                  0.32,
+                )} 32deg, ${alpha(white, 0.5)} 60deg, ${alpha(
+                  extra[4],
+                  0.26,
+                )} 92deg, transparent 132deg, transparent 206deg, ${alpha(
+                  extra[2],
+                  0.28,
+                )} 246deg, ${alpha(extra[3], 0.24)} 274deg, ${alpha(
+                  white,
+                  0.38,
+                )} 304deg, transparent 344deg)`,
+                opacity: isDark ? 0.72 : 0.6,
+                pointerEvents: "none",
+              }}
+            />
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                background: `radial-gradient(circle at 50% 42%, ${alpha(
+                  white,
+                  0.32,
+                )} 0%, ${alpha(white, 0.08)} 34%, transparent 62%)`,
+                opacity: 0.55,
+                pointerEvents: "none",
+              }}
+            />
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                background: `linear-gradient(118deg, transparent 16%, ${alpha(
+                  white,
+                  0.16,
+                )} 38%, ${alpha(white, 0.38)} 45%, ${alpha(
+                  white,
+                  0.05,
+                )} 51%, transparent 58%, transparent 72%, ${alpha(
+                  white,
+                  0.12,
+                )} 86%, transparent 94%)`,
+                opacity: isDark ? 0.75 : 0.6,
+                pointerEvents: "none",
+              }}
+            />
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: "50%",
+                boxShadow: `inset 0 0 26px ${alpha(
+                  black,
+                  0.35,
+                )}, inset 0 0 2px ${alpha(white, 0.35)}`,
+                pointerEvents: "none",
+              }}
+            />
+          </Box>
         </Box>
 
         {/* Static clamp arm and Compact Disc logo */}

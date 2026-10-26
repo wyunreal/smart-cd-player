@@ -203,10 +203,12 @@ const CdWell = () => {
         slotTop={-26}
         halfWidth={31}
       />
+      {/* Desktop: the slot is longer than the arm so its top is clipped by
+          the app bar while the disc stays vertically centred. */}
       <WellSvg
         theme={theme}
         variant="lg"
-        slotTop={-38}
+        slotTop={-100}
         halfWidth={35}
       />
     </Box>

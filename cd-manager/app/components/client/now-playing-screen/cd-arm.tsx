@@ -33,7 +33,9 @@ const CdArm = () => {
       <Box
         sx={{
           position: "absolute",
-          top: { xs: "-14%", sm: "-24%", lg: "-34%" },
+          // On desktop the arm is long enough to stay clipped under the app
+          // bar together with the well slot while the disc is centred.
+          top: { xs: "-14%", sm: "-24%", lg: "-96%" },
           bottom: "38%",
           left: "50%",
           width: "26%",
