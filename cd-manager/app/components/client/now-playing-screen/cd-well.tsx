@@ -152,7 +152,6 @@ const WellSvg = ({
             stroke={`url(#${shadowId})`}
             strokeWidth="12"
             vectorEffect="non-scaling-stroke"
-            style={{ filter: "blur(2px)" }}
             opacity="0.6"
           />
           <path
@@ -161,7 +160,6 @@ const WellSvg = ({
             stroke={`url(#${lightId})`}
             strokeWidth="6"
             vectorEffect="non-scaling-stroke"
-            style={{ filter: "blur(2px)" }}
             opacity="0.5"
           />
           <path

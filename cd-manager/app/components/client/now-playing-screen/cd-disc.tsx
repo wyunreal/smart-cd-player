@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { Box, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
@@ -16,10 +16,10 @@ const DISC_SPIN_SECONDS = 0.15;
 
 const spin = keyframes`
   from {
-    transform: translate3d(0, 0, 0) rotate(0deg);
+    transform: translate3d(0, 0, 0) rotate3d(0, 0, 1, 0deg);
   }
   to {
-    transform: translate3d(0, 0, 0) rotate(360deg);
+    transform: translate3d(0, 0, 0) rotate3d(0, 0, 1, 360deg);
   }
 `;
 
@@ -36,6 +36,22 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
   const black = theme.palette.common.black;
   const grey = theme.palette.grey;
   const extra = theme.palette.extra;
+
+  const [documentVisible, setDocumentVisible] = useState(true);
+
+  useEffect(() => {
+    const updateVisibility = () => {
+      setDocumentVisible(document.visibilityState === "visible");
+    };
+
+    updateVisibility();
+    document.addEventListener("visibilitychange", updateVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", updateVisibility);
+    };
+  }, []);
+
+  const shouldSpin = spinning && documentVisible;
 
   const discRim = isDark
     ? `linear-gradient(145deg, ${grey[900]} 0%, ${grey[600]} 38%, ${grey[900]} 66%, ${grey[700]} 100%)`
@@ -65,8 +81,10 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
           background: `radial-gradient(circle, ${alpha(
             accent,
             isDark ? 0.35 : 0.22,
-          )} 0%, transparent 68%)`,
-          filter: "blur(16px)",
+          )} 0%, ${alpha(accent, isDark ? 0.18 : 0.12)} 35%, ${alpha(
+            accent,
+            0.04,
+          )} 55%, transparent 75%)`,
           opacity: 0.8,
           pointerEvents: "none",
         }}
@@ -105,7 +123,7 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
             isolation: "isolate",
             contain: "paint",
             animation: `${spin} ${DISC_SPIN_SECONDS}s linear infinite`,
-            animationPlayState: spinning ? "running" : "paused",
+            animationPlayState: shouldSpin ? "running" : "paused",
             willChange: "transform",
             "@media (prefers-reduced-motion: reduce)": {
               animation: "none",
@@ -123,7 +141,9 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
             }}
           />
 
-          {/* Holographic diffraction, fixed to the disc face */}
+          {/* All face effects are baked into the rotating layer, so the
+              compositor rotates a single texture instead of blending several
+              static layers over a moving backdrop. */}
           <Box
             sx={{
               position: "absolute",
@@ -141,13 +161,10 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
                 white,
                 0.38,
               )} 304deg, transparent 344deg)`,
-              mixBlendMode: "screen",
               opacity: isDark ? 0.72 : 0.6,
               pointerEvents: "none",
             }}
           />
-
-          {/* Soft silver wash on the centre of the disc */}
           <Box
             sx={{
               position: "absolute",
@@ -156,48 +173,41 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
                 white,
                 0.32,
               )} 0%, ${alpha(white, 0.08)} 34%, transparent 62%)`,
-              mixBlendMode: "screen",
               opacity: 0.55,
               pointerEvents: "none",
             }}
           />
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              background: `linear-gradient(118deg, transparent 16%, ${alpha(
+                white,
+                0.16,
+              )} 38%, ${alpha(white, 0.38)} 45%, ${alpha(
+                white,
+                0.05,
+              )} 51%, transparent 58%, transparent 72%, ${alpha(
+                white,
+                0.12,
+              )} 86%, transparent 94%)`,
+              opacity: isDark ? 0.75 : 0.6,
+              pointerEvents: "none",
+            }}
+          />
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              boxShadow: `inset 0 0 26px ${alpha(
+                black,
+                0.35,
+              )}, inset 0 0 2px ${alpha(white, 0.35)}`,
+              pointerEvents: "none",
+            }}
+          />
         </Box>
-
-        {/* Static light reflection, as if the light source did not move */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: "2.2%",
-            borderRadius: "50%",
-            background: `linear-gradient(118deg, transparent 16%, ${alpha(
-              white,
-              0.16,
-            )} 38%, ${alpha(white, 0.38)} 45%, ${alpha(
-              white,
-              0.05,
-            )} 51%, transparent 58%, transparent 72%, ${alpha(
-              white,
-              0.12,
-            )} 86%, transparent 94%)`,
-            mixBlendMode: "screen",
-            opacity: isDark ? 0.75 : 0.6,
-            pointerEvents: "none",
-          }}
-        />
-
-        {/* Inner edge shadow */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: "2.2%",
-            borderRadius: "50%",
-            boxShadow: `inset 0 0 26px ${alpha(
-              black,
-              0.35,
-            )}, inset 0 0 2px ${alpha(white, 0.35)}`,
-            pointerEvents: "none",
-          }}
-        />
 
         {/* Static clamp arm and Compact Disc logo */}
         <CdArm />
