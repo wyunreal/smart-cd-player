@@ -6,6 +6,7 @@ import { Box, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
 import CdArm from "./cd-arm";
+import CdWell from "./cd-well";
 
 /**
  * A real CD spins at roughly 200-500 rpm. 0.15s per revolution is 400 rpm,
@@ -41,7 +42,7 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
     : `linear-gradient(145deg, ${grey[100]} 0%, ${grey[400]} 36%, ${grey[200]} 58%, ${grey[500]} 100%)`;
 
   const rimHighlight = alpha(white, isDark ? 0.28 : 0.9);
-  const discShadow = `${theme.shadows[8]}, 0 0 45px ${alpha(accent, 0.18)}`;
+  const discShadow = theme.shadows[8];
 
   return (
     <Box
@@ -53,17 +54,19 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
         pointerEvents: "none",
       }}
     >
+      <CdWell />
+
       {/* Ambient glow around the disc */}
       <Box
         sx={{
           position: "absolute",
-          inset: "-7%",
+          inset: 0,
           borderRadius: "50%",
           background: `radial-gradient(circle, ${alpha(
             accent,
             isDark ? 0.35 : 0.22,
           )} 0%, transparent 68%)`,
-          filter: "blur(28px)",
+          filter: "blur(16px)",
           opacity: 0.8,
           pointerEvents: "none",
         }}

@@ -41,9 +41,9 @@ const CdArm = () => {
           borderRadius: "4px",
           background: armBackground,
           border: `1px solid ${alpha(white, isDark ? 0.2 : 0.65)}`,
-          boxShadow: `0 18px 36px ${alpha(
+          boxShadow: `0 8px 18px ${alpha(
             black,
-            isDark ? 0.5 : 0.25,
+            isDark ? 0.45 : 0.2,
           )}, inset 1px 0 0 ${alpha(white, 0.55)}, inset -1px 0 0 ${alpha(
             black,
             0.55,
