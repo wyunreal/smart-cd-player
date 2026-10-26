@@ -1,22 +1,40 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Box, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
 import CdArm from "./cd-arm";
 import CdWell from "./cd-well";
 
-/** Seconds per revolution. One second keeps the motion readable and calm. */
-const DISC_SPIN_SECONDS = 1;
+/** Seconds per revolution. */
+const DISC_SPIN_SECONDS = 0.4;
+
+/**
+ * Baked rotational motion blur. A real disc smears along concentric circles
+ * during the exposure; averaging several slightly rotated copies of the face
+ * gives the same radial blur while the compositor still rotates one texture.
+ */
+const MAX_FACE_TEXTURE_SIZE = 1024;
+const MOTION_BLUR_SAMPLES = 16;
+/** One frame of exposure at 60 Hz: 360° / 60 / spin duration. */
+const MOTION_BLUR_DEGREES = 6 / DISC_SPIN_SECONDS;
+
+/**
+ * Blurred face textures are pure data derived from the artwork, so keep them
+ * in memory. Switching back to a previously seen album reuses the image
+ * instead of rasterising the blur again.
+ */
+const blurredFaceCache = new Map<string, string>();
+const MAX_BLURRED_FACE_CACHE = 12;
 
 const spin = keyframes`
   from {
-    transform: translate3d(0, 0, 0) rotate3d(0, 0, 1, 0deg);
+    transform: rotate(0deg);
   }
   to {
-    transform: translate3d(0, 0, 0) rotate3d(0, 0, 1, 360deg);
+    transform: rotate(360deg);
   }
 `;
 
@@ -35,6 +53,8 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
   const extra = theme.palette.extra;
 
   const [documentVisible, setDocumentVisible] = useState(true);
+  const [blurredSrc, setBlurredSrc] = useState<string | null>(null);
+  const faceImageRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -47,6 +67,100 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
       document.removeEventListener("visibilitychange", updateVisibility);
     };
   }, []);
+
+  // Bake a rotational (tangential) motion blur into the face texture. Drawing
+  // the art several times with a small rotation offset around the centre and
+  // averaging with "lighter" produces the same radial smear a real disc has.
+  // The result is turned back into a plain image so the compositor rotates a
+  // static texture instead of keeping a canvas layer alive every frame.
+  useEffect(() => {
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduceMotion) {
+      setBlurredSrc(null);
+      return;
+    }
+
+    const blurDegrees = MOTION_BLUR_DEGREES;
+    const samples = MOTION_BLUR_SAMPLES;
+    const step = blurDegrees / Math.max(1, samples - 1);
+
+    const displayWidth = faceImageRef.current?.clientWidth || 512;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const size = Math.max(
+      256,
+      Math.min(MAX_FACE_TEXTURE_SIZE, Math.round(displayWidth * dpr)),
+    );
+    const cacheKey = `${imageSrc}::${size}::${samples}::${blurDegrees}`;
+    const cached = blurredFaceCache.get(cacheKey);
+
+    if (cached) {
+      setBlurredSrc(cached);
+      return;
+    }
+
+    let cancelled = false;
+    const image = new window.Image();
+
+    // Show the sharp original while the blurred texture is being generated.
+    setBlurredSrc(null);
+
+    image.onload = () => {
+      if (cancelled) return;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const scale = Math.max(
+        size / image.naturalWidth,
+        size / image.naturalHeight,
+      );
+      const width = image.naturalWidth * scale;
+      const height = image.naturalHeight * scale;
+      const x = (size - width) / 2;
+      const y = (size - height) / 2;
+
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 1 / samples;
+
+      for (let i = 0; i < samples; i++) {
+        ctx.save();
+        ctx.translate(size / 2, size / 2);
+        ctx.rotate((-i * step * Math.PI) / 180);
+        ctx.drawImage(image, x - size / 2, y - size / 2, width, height);
+        ctx.restore();
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+
+      try {
+        const blurred = canvas.toDataURL("image/jpeg", 0.92);
+        blurredFaceCache.set(cacheKey, blurred);
+
+        if (blurredFaceCache.size > MAX_BLURRED_FACE_CACHE) {
+          const oldest = blurredFaceCache.keys().next().value;
+          if (oldest) blurredFaceCache.delete(oldest);
+        }
+
+        setBlurredSrc(blurred);
+      } catch {
+        // Cross-origin artwork taints the canvas; keep the sharp original.
+      }
+    };
+
+    image.src = imageSrc;
+
+    return () => {
+      cancelled = true;
+      image.onload = null;
+    };
+  }, [imageSrc]);
 
   const shouldSpin = spinning && documentVisible;
 
@@ -127,8 +241,6 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
             sx={{
               position: "absolute",
               inset: 0,
-              borderRadius: "50%",
-              overflow: "hidden",
               transformOrigin: "50% 50%",
               backfaceVisibility: "hidden",
               isolation: "isolate",
@@ -141,7 +253,8 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
             }}
           >
             <img
-              src={imageSrc}
+              ref={faceImageRef}
+              src={blurredSrc ?? imageSrc}
               alt=""
               style={{
                 display: "block",
