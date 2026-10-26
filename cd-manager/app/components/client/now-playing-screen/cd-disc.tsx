@@ -5,6 +5,7 @@ import { memo } from "react";
 import { Box, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
+import CdArm from "./cd-arm";
 
 /**
  * A real CD spins at roughly 200-500 rpm. 0.15s per revolution is 400 rpm,
@@ -41,9 +42,6 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
 
   const rimHighlight = alpha(white, isDark ? 0.28 : 0.9);
   const discShadow = `${theme.shadows[8]}, 0 0 45px ${alpha(accent, 0.18)}`;
-  const hubBackground = isDark
-    ? `radial-gradient(circle at 38% 32%, ${grey[500]} 0%, ${grey[800]} 30%, ${grey[900]} 62%, ${black} 100%)`
-    : `radial-gradient(circle at 38% 32%, ${grey[300]} 0%, ${grey[500]} 28%, ${grey[700]} 62%, ${grey[900]} 100%)`;
 
   return (
     <Box
@@ -198,66 +196,8 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
           }}
         />
 
-        {/* Centre hub */}
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            width: "19%",
-            aspectRatio: "1",
-            transform: "translate(-50%, -50%)",
-            borderRadius: "50%",
-            background: hubBackground,
-            border: `1px solid ${alpha(white, isDark ? 0.45 : 0.85)}`,
-            boxShadow: `inset 0 2px 4px ${alpha(
-              white,
-              0.28,
-            )}, inset 0 -3px 6px ${alpha(black, 0.55)}, 0 2px 10px ${alpha(
-              black,
-              0.45,
-            )}`,
-          }}
-        >
-          <Box
-            sx={{
-              position: "absolute",
-              inset: "16%",
-              borderRadius: "50%",
-              border: `1px solid ${alpha(white, 0.18)}`,
-              boxShadow: `inset 0 1px 3px ${alpha(black, 0.55)}`,
-            }}
-          />
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              width: "44%",
-              aspectRatio: "1",
-              transform: "translate(-50%, -50%)",
-              borderRadius: "50%",
-              background: `radial-gradient(circle at 40% 35%, ${grey[800]} 0%, ${black} 70%)`,
-              border: `1px solid ${alpha(white, 0.14)}`,
-              boxShadow: `inset 0 1px 4px ${alpha(
-                black,
-                0.9,
-              )}, 0 1px 2px ${alpha(white, 0.12)}`,
-            }}
-          />
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: "50%",
-              background: `linear-gradient(135deg, ${alpha(
-                white,
-                0.3,
-              )} 0%, ${alpha(white, 0.05)} 28%, transparent 48%)`,
-              pointerEvents: "none",
-            }}
-          />
-        </Box>
+        {/* Static clamp arm and Compact Disc logo */}
+        <CdArm />
       </Box>
     </Box>
   );
