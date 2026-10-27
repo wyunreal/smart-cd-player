@@ -288,6 +288,9 @@ const NowPlayingView = ({
         mx: "auto",
         px: { xs: 2.5, sm: 4, lg: 4, xl: 6 },
         py: { xs: 3, sm: 4, lg: 4, xl: 5 },
+        // In the wide layout a shifted disc must be clipped instead of adding
+        // a horizontal scrollbar.
+        overflowX: { lg: "clip", xl: "clip" },
         color: "text.primary",
         mt: VERTICAL_LIFT,
       }}
@@ -356,7 +359,7 @@ const NowPlayingView = ({
             order: { xs: 1, lg: 0 },
             flex: { xs: "0 0 auto", sm: "0 0 auto", lg: 1 },
             width: "100%",
-            minWidth: 0,
+            minWidth: { xs: 0, sm: 0, lg: 500, xl: 500 },
             maxWidth: { lg: 640, xl: 720 },
             alignSelf: { lg: "center" },
           }}
