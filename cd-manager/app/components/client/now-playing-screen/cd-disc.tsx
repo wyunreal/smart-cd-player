@@ -5,10 +5,24 @@ import { memo, useEffect, useRef, useState } from "react";
 import { Box, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
+import type { DisplayMode } from "@/api/types";
 import CdHub from "./cd-hub";
 
 /** Seconds per revolution. */
 const DISC_SPIN_SECONDS = 0.4;
+
+/** How long the disc takes to drop into the tray / rise back out of it. */
+const DISC_ENTER_MS = 560;
+const DISC_EXIT_MS = 480;
+/** Offsets that keep the disc fully out of sight above the tray. */
+const DISC_HIDDEN_TRANSFORM = "translate3d(0, -115%, 0)";
+const DISC_RESTING_TRANSFORM = "translate3d(0, 0, 0)";
+
+/**
+ * The disc is only in the tray while the player is playing or paused. The
+ * "stopped" and "off" states park it above the tray, out of view.
+ */
+type DiscPhase = "hidden" | "entering" | "present" | "leaving";
 
 /**
  * Baked rotational motion blur. A real disc smears along concentric circles
@@ -39,10 +53,11 @@ const spin = keyframes`
 
 type CdDiscProps = {
   imageSrc: string;
-  spinning: boolean;
+  /** Playback mode drives both the drop/exit cycle and the rotation. */
+  mode: DisplayMode;
 };
 
-const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
+const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const accent = theme.palette.primary.main;
@@ -51,7 +66,16 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
   const grey = theme.palette.grey;
   const extra = theme.palette.extra;
 
+  const isPresent = mode === "playing" || mode === "paused";
+
+  // The disc starts parked if the player is already stopped, or settled if it
+  // is playing: mounting must not play the drop animation on every page load.
+  const [phase, setPhase] = useState<DiscPhase>(
+    isPresent ? "present" : "hidden",
+  );
+  const wasPresentRef = useRef(isPresent);
   const [documentVisible, setDocumentVisible] = useState(true);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const [blurredSrc, setBlurredSrc] = useState<string | null>(null);
   const faceImageRef = useRef<HTMLImageElement | null>(null);
 
@@ -67,16 +91,53 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
     };
   }, []);
 
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduceMotion(query.matches);
+
+    update();
+    query.addEventListener("change", update);
+    return () => {
+      query.removeEventListener("change", update);
+    };
+  }, []);
+
+  // Playback start drops the disc in; stopping sends it back up.
+  useEffect(() => {
+    if (isPresent === wasPresentRef.current) return;
+    wasPresentRef.current = isPresent;
+    setPhase(isPresent ? "entering" : "leaving");
+  }, [isPresent]);
+
+  // Rotate only once the disc has finished dropping into place.
+  useEffect(() => {
+    if (phase === "entering") {
+      const timer = setTimeout(
+        () => setPhase("present"),
+        reduceMotion ? 0 : DISC_ENTER_MS,
+      );
+      return () => clearTimeout(timer);
+    }
+
+    if (phase === "leaving") {
+      const timer = setTimeout(
+        () => setPhase("hidden"),
+        reduceMotion ? 0 : DISC_EXIT_MS,
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [phase, reduceMotion]);
+
   // Bake a rotational (tangential) motion blur into the face texture. Drawing
   // the art several times with a small rotation offset around the centre and
   // averaging with "lighter" produces the same radial smear a real disc has.
   // The result is turned back into a plain image so the compositor rotates a
   // static texture instead of keeping a canvas layer alive every frame.
   useEffect(() => {
-    const reduceMotion = window.matchMedia(
+    const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    if (reduceMotion) {
+    if (prefersReducedMotion) {
       setBlurredSrc(null);
       return;
     }
@@ -161,13 +222,18 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
     };
   }, [imageSrc]);
 
-  const shouldSpin = spinning && documentVisible;
+  const isSettled = phase === "present";
+  // The face keeps its motion blur while paused (a paused CD stays spinning),
+  // but it must stay sharp while dropping in or rising out.
+  const isSpinning = isPresent && isSettled;
+  const shouldSpin = isSpinning && documentVisible;
 
   const discRim = isDark
     ? `linear-gradient(145deg, ${grey[900]} 0%, ${grey[600]} 38%, ${grey[900]} 66%, ${grey[700]} 100%)`
     : `linear-gradient(145deg, ${grey[100]} 0%, ${grey[400]} 36%, ${grey[200]} 58%, ${grey[500]} 100%)`;
 
   const rimHighlight = alpha(white, isDark ? 0.28 : 0.9);
+  const isInTray = phase === "entering" || phase === "present";
   const discShadow = theme.shadows[8];
 
   return (
@@ -178,6 +244,18 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
         width: "100%",
         aspectRatio: "1",
         pointerEvents: "none",
+        // Drop the disc from above the tray without rotating, and send it back
+        // up once the player stops. Opacity keeps it invisible while parked
+        // and hides the moment it crosses the header on its way out.
+        transform: isInTray ? DISC_RESTING_TRANSFORM : DISC_HIDDEN_TRANSFORM,
+        opacity: isInTray ? 1 : 0,
+        transition: isInTray
+          ? `transform ${DISC_ENTER_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 240ms ease-out`
+          : `transform ${DISC_EXIT_MS}ms cubic-bezier(0.55, 0, 0.85, 0.35), opacity 300ms ease-in 180ms`,
+        willChange: "transform, opacity",
+        "@media (prefers-reduced-motion: reduce)": {
+          transition: "none",
+        },
       }}
     >
       {/* Ambient glow around the disc */}
@@ -251,7 +329,7 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
           >
             <img
               ref={faceImageRef}
-              src={spinning ? (blurredSrc ?? imageSrc) : imageSrc}
+              src={isSpinning ? (blurredSrc ?? imageSrc) : imageSrc}
               alt=""
               style={{
                 display: "block",

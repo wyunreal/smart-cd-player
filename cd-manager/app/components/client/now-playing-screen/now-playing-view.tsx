@@ -271,7 +271,6 @@ const NowPlayingView = ({
 
   const { album, track, tracks, mode, volume, muted } = data;
 
-  const isSpinning = mode === "playing" || mode === "paused";
   const discImage =
     album.discArt || album.coverArt || "/cd-placeholder-big.png";
 
@@ -413,7 +412,7 @@ const NowPlayingView = ({
             justifyContent: "center",
           }}
         >
-          <CdDisc imageSrc={discImage} spinning={isSpinning} />
+          <CdDisc imageSrc={discImage} mode={mode} />
         </Box>
 
         <Box
