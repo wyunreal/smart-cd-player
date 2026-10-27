@@ -1,15 +1,17 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Box, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
 import type { DisplayMode } from "@/api/types";
 import CdHub from "./cd-hub";
 
-/** Seconds per revolution. */
+/** Seconds per revolution at full speed. */
 const DISC_SPIN_SECONDS = 0.4;
+/** Time the disc takes to reach full speed from rest, or to come to rest. */
+const SPIN_RAMP_MS = 2000;
 
 /** How long the disc takes to drop into the tray / rise back out of it. */
 const DISC_ENTER_MS = 560;
@@ -23,6 +25,13 @@ const DISC_RESTING_TRANSFORM = "translate3d(0, 0, 0)";
  * "stopped" and "off" states park it above the tray, out of view.
  */
 type DiscPhase = "hidden" | "entering" | "present" | "leaving";
+
+/**
+ * Which face textures are mounted. Both exist only while crossfading; once
+ * the fade ends the other one is unmounted so the rotating layer only paints
+ * a single texture at full speed or at rest.
+ */
+type FaceTexture = "sharp" | "crossfade" | "blurred";
 
 /**
  * Baked rotational motion blur. A real disc smears along concentric circles
@@ -77,7 +86,87 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
   const [documentVisible, setDocumentVisible] = useState(true);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [blurredSrc, setBlurredSrc] = useState<string | null>(null);
-  const faceImageRef = useRef<HTMLImageElement | null>(null);
+  const [faceTexture, setFaceTexture] = useState<FaceTexture>(
+    isPresent ? "blurred" : "sharp",
+  );
+  const blurredFaceRef = useRef<HTMLImageElement | null>(null);
+  const faceRef = useRef<HTMLDivElement | null>(null);
+  /** Current playback rate of the CSS rotation (0 = rest, 1 = full speed). */
+  const spinRateRef = useRef(isPresent ? 1 : 0);
+  const spinRampFrameRef = useRef<number | null>(null);
+
+  const setSpinRate = useCallback((rate: number) => {
+    spinRateRef.current = rate;
+    const animation = faceRef.current?.getAnimations()[0];
+    if (animation) animation.playbackRate = rate;
+    // Crossfade the sharp face into the motion-blurred one as the disc gains
+    // speed (and back out as it slows down).
+    if (blurredFaceRef.current) {
+      blurredFaceRef.current.style.opacity = String(rate);
+    }
+    // Keep only the layer that is actually visible when fully spun up/down.
+    setFaceTexture(rate <= 0 ? "sharp" : rate >= 1 ? "blurred" : "crossfade");
+  }, []);
+
+  /**
+   * Ease the CSS rotation between 0 and full speed. Playback rate changes are
+   * handled by the compositor, so the spinning stays on its own layer while
+   * only a number is updated from the main thread during the ramp.
+   */
+  const rampSpin = useCallback(
+    (target: number, onDone?: () => void) => {
+      if (spinRampFrameRef.current !== null) {
+        cancelAnimationFrame(spinRampFrameRef.current);
+        spinRampFrameRef.current = null;
+      }
+
+      const animation = faceRef.current?.getAnimations()[0];
+      const startRate = animation?.playbackRate ?? spinRateRef.current;
+      const duration = reduceMotion ? 0 : SPIN_RAMP_MS;
+
+      if (duration === 0 || startRate === target) {
+        setSpinRate(target);
+        onDone?.();
+        return;
+      }
+
+      // Keep both faces mounted while the fade runs; they are swapped for a
+      // single layer once the ramp lands.
+      setFaceTexture("crossfade");
+
+      const start = performance.now();
+      const step = (now: number) => {
+        const progress = Math.min(1, (now - start) / duration);
+        const rate = startRate + (target - startRate) * progress;
+
+        spinRateRef.current = rate;
+        if (animation) animation.playbackRate = rate;
+        if (blurredFaceRef.current) {
+          blurredFaceRef.current.style.opacity = String(rate);
+        }
+
+        if (progress < 1) {
+          spinRampFrameRef.current = requestAnimationFrame(step);
+        } else {
+          spinRampFrameRef.current = null;
+          setSpinRate(target);
+          onDone?.();
+        }
+      };
+
+      spinRampFrameRef.current = requestAnimationFrame(step);
+    },
+    [reduceMotion, setSpinRate],
+  );
+
+  // Never leave a ramp loop running after unmount.
+  useEffect(() => {
+    return () => {
+      if (spinRampFrameRef.current !== null) {
+        cancelAnimationFrame(spinRampFrameRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const updateVisibility = () => {
@@ -102,14 +191,36 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
     };
   }, []);
 
-  // Playback start drops the disc in; stopping sends it back up.
+  // Playback start drops the disc in; stopping lets it slow down in place and
+  // only then sends it back up.
   useEffect(() => {
     if (isPresent === wasPresentRef.current) return;
     wasPresentRef.current = isPresent;
-    setPhase(isPresent ? "entering" : "leaving");
-  }, [isPresent]);
 
-  // Rotate only once the disc has finished dropping into place.
+    if (isPresent) {
+      // Already in the tray (e.g. play during the slow-down): just spin up.
+      if (phase === "present") return;
+
+      setSpinRate(0);
+      setPhase("entering");
+      return;
+    }
+
+    if (phase === "present") {
+      rampSpin(0, () => setPhase("leaving"));
+      return;
+    }
+
+    setPhase("leaving");
+  }, [isPresent, phase, rampSpin, setSpinRate]);
+
+  // Spin up only once the disc has finished dropping into place.
+  useEffect(() => {
+    if (phase !== "present" || !isPresent) return;
+    rampSpin(1);
+  }, [isPresent, phase, rampSpin]);
+
+  // The disc leaves the tray once it has completely stopped.
   useEffect(() => {
     if (phase === "entering") {
       const timer = setTimeout(
@@ -146,7 +257,7 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
     const samples = MOTION_BLUR_SAMPLES;
     const step = blurDegrees / Math.max(1, samples - 1);
 
-    const displayWidth = faceImageRef.current?.clientWidth || 512;
+    const displayWidth = faceRef.current?.clientWidth || 512;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const size = Math.max(
       256,
@@ -222,11 +333,8 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
     };
   }, [imageSrc]);
 
-  const isSettled = phase === "present";
-  // The face keeps its motion blur while paused (a paused CD stays spinning),
-  // but it must stay sharp while dropping in or rising out.
-  const isSpinning = isPresent && isSettled;
-  const shouldSpin = isSpinning && documentVisible;
+  // The face starts sharp; the blurred copy fades in with the spin speed.
+  const spinAnimationRunning = documentVisible && phase !== "hidden";
 
   const discRim = isDark
     ? `linear-gradient(145deg, ${grey[900]} 0%, ${grey[600]} 38%, ${grey[900]} 66%, ${grey[700]} 100%)`
@@ -313,6 +421,7 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
         >
           {/* Rotating face: the album art and its iridescent treatment */}
           <Box
+            ref={faceRef}
             sx={{
               position: "absolute",
               inset: 0,
@@ -320,24 +429,46 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
               backfaceVisibility: "hidden",
               isolation: "isolate",
               animation: `${spin} ${DISC_SPIN_SECONDS}s linear infinite`,
-              animationPlayState: shouldSpin ? "running" : "paused",
+              animationPlayState: spinAnimationRunning ? "running" : "paused",
               willChange: "transform",
               "@media (prefers-reduced-motion: reduce)": {
                 animation: "none",
               },
             }}
           >
-            <img
-              ref={faceImageRef}
-              src={isSpinning ? (blurredSrc ?? imageSrc) : imageSrc}
-              alt=""
-              style={{
-                display: "block",
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
+            {/* Sharp face, with the motion-blurred copy crossfading on top as
+                the disc spins up. Once the fade finishes only one layer is
+                mounted, so the rotating face paints a single texture. */}
+            {faceTexture !== "blurred" && (
+              <img
+                src={imageSrc}
+                alt=""
+                style={{
+                  display: "block",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            )}
+            {faceTexture !== "sharp" && (
+              <img
+                ref={(node) => {
+                  blurredFaceRef.current = node;
+                  if (node) node.style.opacity = String(spinRateRef.current);
+                }}
+                src={blurredSrc ?? imageSrc}
+                alt=""
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "block",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            )}
 
             {/* All face effects are baked into the rotating layer, so the
               compositor rotates a single texture instead of blending several
