@@ -377,6 +377,7 @@ const NowPlayingView = ({
           muted={muted}
           actions={actions}
           capabilities={capabilities}
+          onSearch={() => setTracksOpen(true)}
         />
       </Box>
 

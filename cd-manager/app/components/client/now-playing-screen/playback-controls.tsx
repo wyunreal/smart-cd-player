@@ -6,6 +6,8 @@ import type { DisplayMode } from "@/api/types";
 import {
   PauseIcon,
   PlayArrowIcon,
+  PowerSettingsNewIcon,
+  SearchOutlinedIcon,
   SkipNextIcon,
   SkipPreviousIcon,
   VolumeOffIcon,
@@ -25,6 +27,7 @@ type PlaybackControlsProps = {
   muted: boolean;
   actions: NowPlayingActions;
   capabilities: NowPlayingCapabilities;
+  onSearch: () => void;
 };
 
 const formatTime = (totalSeconds: number) => {
@@ -81,6 +84,18 @@ const iconColorSx = (theme: Theme, color: string) => ({
   "&&&.Mui-disabled": { color: theme.palette.action.disabled },
 });
 
+const utilityButtonSx = {
+  width: { xs: 28, sm: 36, lg: 40 },
+  height: { xs: 28, sm: 36, lg: 40 },
+  padding: { xs: 0.5, sm: 0.75, lg: 1 },
+} as const;
+
+const transportButtonSx = {
+  width: { xs: 32, sm: 40, lg: 40 },
+  height: { xs: 32, sm: 40, lg: 40 },
+  padding: { xs: 0.5, sm: 0.75, lg: 1 },
+} as const;
+
 const PlaybackControls = ({
   track,
   mode,
@@ -88,11 +103,13 @@ const PlaybackControls = ({
   muted,
   actions,
   capabilities,
+  onSearch,
 }: PlaybackControlsProps) => {
   const theme = useTheme();
   const accent = theme.palette.primary.main;
 
   const isPlaying = mode === "playing";
+  const isPowered = mode !== "off";
   const isMuted = muted;
   const elapsedSeconds = track?.elapsedSeconds ?? 0;
   const durationSeconds = track?.durationSeconds ?? 0;
@@ -142,39 +159,74 @@ const PlaybackControls = ({
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "1fr auto 1fr" },
+          gridTemplateColumns: "1fr auto 1fr",
           alignItems: "center",
-          gap: { xs: 2, sm: 2.5 },
+          columnGap: { xs: 0.5, sm: 1.5 },
           mt: { xs: 2, sm: 2.5 },
         }}
       >
-        <Box sx={{ display: { xs: "none", lg: "block" } }} />
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: { xs: 0.25, sm: 0.75, lg: 1 },
+            minWidth: 0,
+          }}
+        >
+          <IconButton
+            onClick={actions.onTogglePower}
+            aria-label={isPowered ? "Apagar" : "Encender"}
+            sx={{
+              ...iconColorSx(
+                theme,
+                isPowered ? accent : theme.palette.text.secondary,
+              ),
+              ...utilityButtonSx,
+            }}
+          >
+            <PowerSettingsNewIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+
+          <IconButton
+            onClick={onSearch}
+            aria-label="Buscar"
+            sx={{
+              ...iconColorSx(theme, theme.palette.text.secondary),
+              ...utilityButtonSx,
+            }}
+          >
+            <SearchOutlinedIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+
+          <IconButton
+            onClick={actions.onPrevious}
+            disabled={!capabilities.canGoPrevious}
+            aria-label="Track anterior"
+            sx={{
+              ...iconColorSx(theme, theme.palette.text.primary),
+              ...transportButtonSx,
+            }}
+          >
+            <SkipPreviousIcon sx={{ fontSize: { xs: 22, sm: 26, lg: 30 } }} />
+          </IconButton>
+        </Box>
 
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: { xs: 0.5, sm: 1.5 },
           }}
         >
-          <IconButton
-            onClick={actions.onPrevious}
-            disabled={!capabilities.canGoPrevious}
-            aria-label="Track anterior"
-            sx={iconColorSx(theme, theme.palette.text.primary)}
-          >
-            <SkipPreviousIcon sx={{ fontSize: { xs: 26, sm: 30 } }} />
-          </IconButton>
-
           <IconButton
             onClick={actions.onTogglePlay}
             aria-label={isPlaying ? "Pausar" : "Reproducir"}
             sx={{
               ...iconColorSx(theme, accent),
               position: "relative",
-              width: { xs: 58, sm: 66 },
-              height: { xs: 58, sm: 66 },
+              width: { xs: 54, sm: 66 },
+              height: { xs: 54, sm: 66 },
               border: `1.5px solid ${accent}`,
               backgroundColor: "transparent",
               boxShadow: `0 0 18px ${alpha(accent, 0.45)}`,
@@ -197,26 +249,62 @@ const PlaybackControls = ({
               <PlayArrowIcon sx={{ fontSize: { xs: 32, sm: 36 }, ml: "3px" }} />
             )}
           </IconButton>
-
-          <IconButton
-            onClick={actions.onNext}
-            disabled={!capabilities.canGoNext}
-            aria-label="Track siguiente"
-            sx={iconColorSx(theme, theme.palette.text.primary)}
-          >
-            <SkipNextIcon sx={{ fontSize: { xs: 26, sm: 30 } }} />
-          </IconButton>
         </Box>
 
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            justifyContent: { xs: "center", lg: "flex-end" },
-            gap: 1,
-            minWidth: { lg: 210 },
+            justifyContent: "flex-start",
+            gap: { xs: 0.25, sm: 0.75, lg: 1 },
+            minWidth: 0,
           }}
         >
+          <IconButton
+            onClick={actions.onNext}
+            disabled={!capabilities.canGoNext}
+            aria-label="Track siguiente"
+            sx={{
+              ...iconColorSx(theme, theme.palette.text.primary),
+              ...transportButtonSx,
+            }}
+          >
+            <SkipNextIcon sx={{ fontSize: { xs: 22, sm: 26, lg: 30 } }} />
+          </IconButton>
+
+          <IconButton
+            onClick={actions.onToggleMute}
+            disabled={!capabilities.canMute || !capabilities.canControlVolume}
+            aria-label={isMuted ? "Activar sonido" : "Silenciar"}
+            sx={{
+              ...iconColorSx(theme, theme.palette.text.secondary),
+              ...utilityButtonSx,
+            }}
+          >
+            {isMuted ? (
+              <VolumeOffIcon sx={{ fontSize: 20 }} />
+            ) : (
+              <VolumeUpIcon sx={{ fontSize: 20 }} />
+            )}
+          </IconButton>
+
+          <Box
+            sx={{
+              display: "flex",
+              "& .MuiIconButton-root": {
+                width: { xs: 28, sm: 36, lg: 40 },
+                height: { xs: 28, sm: 36, lg: 40 },
+                padding: { xs: 0.5, sm: 0.75, lg: 1 },
+              },
+            }}
+          >
+            <EqualizerButton
+              iconFontSize={20}
+              color={theme.palette.text.secondary}
+              activeColor={accent}
+            />
+          </Box>
+
           <Slider
             min={0}
             max={100}
@@ -236,25 +324,6 @@ const PlaybackControls = ({
               // right do not jump when toggling mute.
               visibility: isMuted ? "hidden" : "visible",
             }}
-          />
-
-          <IconButton
-            onClick={actions.onToggleMute}
-            disabled={!capabilities.canMute || !capabilities.canControlVolume}
-            aria-label={isMuted ? "Activar sonido" : "Silenciar"}
-            sx={iconColorSx(theme, theme.palette.text.secondary)}
-          >
-            {isMuted ? (
-              <VolumeOffIcon sx={{ fontSize: 20 }} />
-            ) : (
-              <VolumeUpIcon sx={{ fontSize: 20 }} />
-            )}
-          </IconButton>
-
-          <EqualizerButton
-            iconFontSize={20}
-            color={theme.palette.text.secondary}
-            activeColor={accent}
           />
         </Box>
       </Box>

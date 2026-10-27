@@ -123,6 +123,10 @@ export const useMockPlayback = (): NowPlayingViewProps => {
     setMode("playing");
   }, []);
 
+  const handleTogglePower = useCallback(() => {
+    setMode((current) => (current === "off" ? "playing" : "off"));
+  }, []);
+
   return {
     data: {
       album: {
@@ -154,6 +158,7 @@ export const useMockPlayback = (): NowPlayingViewProps => {
       onVolumeChange: handleVolumeChange,
       onToggleMute: handleToggleMute,
       onSelectTrack: handleSelectTrack,
+      onTogglePower: handleTogglePower,
     },
     capabilities: {
       canGoPrevious: trackIndex > 0 || elapsedSeconds > 3,

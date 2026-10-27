@@ -51,6 +51,7 @@ export type NowPlayingActions = {
   onVolumeChange: (volume: number) => void;
   onToggleMute: () => void;
   onSelectTrack: (index: number) => void;
+  onTogglePower: () => void;
 };
 
 /**
