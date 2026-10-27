@@ -251,7 +251,7 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
           >
             <img
               ref={faceImageRef}
-              src={blurredSrc ?? imageSrc}
+              src={spinning ? (blurredSrc ?? imageSrc) : imageSrc}
               alt=""
               style={{
                 display: "block",
