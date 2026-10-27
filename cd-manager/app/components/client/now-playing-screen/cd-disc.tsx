@@ -5,8 +5,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { Box, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
-import CdArm from "./cd-arm";
-import CdWell from "./cd-well";
+import CdHub from "./cd-hub";
 
 /** Seconds per revolution. */
 const DISC_SPIN_SECONDS = 0.4;
@@ -181,8 +180,6 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
         pointerEvents: "none",
       }}
     >
-      <CdWell />
-
       {/* Ambient glow around the disc */}
       <Box
         sx={{
@@ -333,8 +330,8 @@ const CdDisc = ({ imageSrc, spinning }: CdDiscProps) => {
           </Box>
         </Box>
 
-        {/* Static clamp arm and Compact Disc logo */}
-        <CdArm />
+        {/* Static spindle cap */}
+        <CdHub />
       </Box>
     </Box>
   );
