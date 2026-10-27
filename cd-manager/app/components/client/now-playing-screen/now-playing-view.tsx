@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Box,
   Divider,
@@ -78,6 +78,9 @@ const VERTICAL_LIFT = {
   sm: "-86px",
   lg: 0,
 } as const;
+
+/** How far the cut-line highlight sticks out above and below the disc. */
+const CUT_LINE_OVERHANG = 24;
 
 type AlbumPanelProps = {
   album: NowPlayingAlbumView;
@@ -259,6 +262,12 @@ const NowPlayingView = ({
   const theme = useTheme();
   const accent = theme.palette.primary.main;
   const [tracksOpen, setTracksOpen] = useState(false);
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+  const discWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [cutLine, setCutLine] = useState<{
+    top: number;
+    height: number;
+  } | null>(null);
 
   const { album, track, tracks, mode, volume, muted } = data;
 
@@ -266,8 +275,60 @@ const NowPlayingView = ({
   const discImage =
     album.discArt || album.coverArt || "/cd-placeholder-big.png";
 
+  // Wide layouts can clip the disc on the right to keep the album column at
+  // 500px. Mark the cut with a thin vertical highlight only when it happens.
+  useEffect(() => {
+    const section = sectionRef.current;
+    const disc = discWrapperRef.current;
+    if (!section || !disc) return;
+
+    const measure = () => {
+      if (!window.matchMedia("(min-width: 1200px)").matches) {
+        setCutLine(null);
+        return;
+      }
+
+      const sectionRect = section.getBoundingClientRect();
+      const discRect = disc.getBoundingClientRect();
+      const radius = Math.min(discRect.width, discRect.height) / 2;
+      const centerX = discRect.left + discRect.width / 2;
+      const centerY = discRect.top + discRect.height / 2;
+      const dx = sectionRect.right - centerX;
+
+      if (dx <= 0 || dx >= radius) {
+        setCutLine(null);
+        return;
+      }
+
+      const halfChord = Math.sqrt(Math.max(0, radius * radius - dx * dx));
+      const chordHeight = halfChord * 2;
+      if (chordHeight < 2) {
+        setCutLine(null);
+        return;
+      }
+
+      setCutLine({
+        top: centerY - halfChord - CUT_LINE_OVERHANG - sectionRect.top,
+        height: chordHeight + CUT_LINE_OVERHANG * 2,
+      });
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(section);
+    observer.observe(disc);
+    window.addEventListener("resize", measure);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
   return (
     <Box
+      ref={sectionRef}
       component="section"
       aria-label="Now Playing"
       sx={{
@@ -340,6 +401,7 @@ const NowPlayingView = ({
         }}
       >
         <Box
+          ref={discWrapperRef}
           sx={{
             order: { xs: 0, lg: 1 },
             flexShrink: { xs: 1, sm: 1, lg: 0 },
@@ -406,6 +468,28 @@ const NowPlayingView = ({
           ))}
         </List>
       </ResponsiveDialog>
+
+      {cutLine && (
+        <Box
+          aria-hidden="true"
+          sx={{
+            position: "absolute",
+            right: 0,
+            top: `${cutLine.top}px`,
+            width: "1px",
+            height: `${cutLine.height}px`,
+            zIndex: 4,
+            pointerEvents: "none",
+            background: `linear-gradient(180deg, transparent 0%, ${alpha(
+              accent,
+              0.25,
+            )} 2%, ${accent} 6%, ${accent} 94%, ${alpha(
+              accent,
+              0.25,
+            )} 98%, transparent 100%)`,
+          }}
+        />
+      )}
     </Box>
   );
 };
