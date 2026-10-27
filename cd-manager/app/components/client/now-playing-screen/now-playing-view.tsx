@@ -59,8 +59,8 @@ const trackTitleSx = {
 } as const;
 
 const DISC_SIZE = {
-  // The stacked layouts use the full content width so the 10/3 wrapper crop
-  // below is exactly 30% of the disc height.
+  // The stacked layouts use the full content width; the vertical layout lets
+  // that width define the full disc size and crops it when height is tight.
   xs: "100%",
   sm: "100%",
   lg: "min(30vw, 380px)",
@@ -68,15 +68,14 @@ const DISC_SIZE = {
 } as const;
 
 /**
- * In the stacked/vertical layout the disc only shows its bottom 30%: the
- * section is pulled up so the cropping line matches the top of the content
- * area, and the disc wrapper is only 30% of the disc height. The constants
- * are the space above the row (page container + section padding + title row
- * + row margin), so the clipped disc starts right under the app bar.
+ * In the stacked layouts the whole column is pinned to the bottom of the
+ * viewport. The row starts 24px below the content top, so a full disc sits at
+ * that distance from the app bar; if there is not enough height, the disc
+ * wrapper shrinks and the disc loses visibility at the top.
  */
 const VERTICAL_LIFT = {
-  xs: "-94px",
-  sm: "-110px",
+  xs: "-70px",
+  sm: "-86px",
   lg: 0,
 } as const;
 
@@ -275,7 +274,15 @@ const NowPlayingView = ({
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        flex: 1,
+        flex: { xs: "0 0 auto", sm: "0 0 auto", lg: 1 },
+        // Pin the stacked column to the bottom of the viewport. The disc is
+        // the only flexible element, so when height is missing it is the part
+        // that gets cropped upwards.
+        height: {
+          xs: "calc(100dvh - 18px)",
+          sm: "calc(100dvh - 10px)",
+          lg: "auto",
+        },
         width: "100%",
         maxWidth: 1440,
         mx: "auto",
@@ -319,7 +326,11 @@ const NowPlayingView = ({
           display: "flex",
           flexDirection: { xs: "column", lg: "row" },
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: {
+            xs: "flex-start",
+            sm: "flex-start",
+            lg: "space-between",
+          },
           gap: { xs: 3, sm: 4, lg: 4, xl: 6 },
           mt: { xs: 3, sm: 4, lg: 2 },
           minHeight: 0,
@@ -328,13 +339,10 @@ const NowPlayingView = ({
         <Box
           sx={{
             order: { xs: 0, lg: 1 },
-            flexShrink: 0,
+            flexShrink: { xs: 1, sm: 1, lg: 0 },
             width: DISC_SIZE,
             maxWidth: "100%",
-            // In the stacked layout only the bottom 30% of the disc is
-            // visible; the rest overflows upwards and is clipped by the
-            // app bar area.
-            aspectRatio: { xs: "10 / 3", sm: "10 / 3" },
+            minHeight: 0,
             display: "flex",
             alignItems: { xs: "flex-end", sm: "flex-end", lg: "center" },
             justifyContent: "center",
@@ -346,7 +354,7 @@ const NowPlayingView = ({
         <Box
           sx={{
             order: { xs: 1, lg: 0 },
-            flex: 1,
+            flex: { xs: "0 0 auto", sm: "0 0 auto", lg: 1 },
             width: "100%",
             minWidth: 0,
             maxWidth: { lg: 640, xl: 720 },
