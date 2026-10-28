@@ -30,7 +30,11 @@ export type PlayerDefinitionsProps = {
   selectedPlayer: number | null;
   setSelectedPlayer: (player: number) => void;
   refreshPlayerDefinitions: () => void;
-  irRemoteClients: IrRemoteClient[];
+  /**
+   * Indexed by `remoteIndex - 1`. Players without an active IR client keep a
+   * null slot so the array never shifts when a player is disabled.
+   */
+  irRemoteClients: (IrRemoteClient | null)[];
 };
 
 export type CdCollectionProps = {
@@ -65,6 +69,8 @@ export type LastPlayedStateProps = {
 };
 
 export type DisplayStateProps = {
+  /** True once the first /display response has been processed. */
+  displayLoaded: boolean;
   /** Display reading of the player selected in the main view. */
   displayState: DisplayState | null;
   /** Player picked for the "currently playing" view. */
@@ -119,6 +125,7 @@ export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   setSelectedPlayerSlots: () => {},
   lastPlayedSlots: [null, null, null],
   setLastPlayedSlots: () => {},
+  displayLoaded: false,
   displayState: null,
   nowPlayingPlayer: null,
   nowPlayingStreamId: null,
@@ -189,11 +196,13 @@ export const DataRepositoryProvider = ({
   /**
    * IR Remote Clients
    */
-  const [irRemoteClients, setIrRemoteClients] = useState<IrRemoteClient[]>([]);
+  const [irRemoteClients, setIrRemoteClients] = useState<
+    (IrRemoteClient | null)[]
+  >([]);
   const [, setIrClientsVersion] = useState(0); // Add versions to force updates
 
   useEffect(() => {
-    const clients: IrRemoteClient[] = [];
+    const clients: (IrRemoteClient | null)[] = [];
     const initPromises: Promise<void>[] = [];
 
     playerDefinitions.forEach((def) => {
@@ -216,8 +225,15 @@ export const DataRepositoryProvider = ({
           ),
         );
       initPromises.push(initPromise);
-      clients.push(client);
+      // Keep the remote index as the slot; otherwise disabling one player
+      // shifts every later client and commands go to the wrong device.
+      clients[def.remoteIndex - 1] = client;
     });
+
+    for (let index = 0; index < clients.length; index++) {
+      if (!clients[index]) clients[index] = null;
+    }
+
     setIrRemoteClients(clients);
 
     // Also force update when all done, just in case
@@ -442,6 +458,7 @@ export const DataRepositoryProvider = ({
         setSelectedPlayerSlots,
         lastPlayedSlots,
         setLastPlayedSlots,
+        displayLoaded,
         displayState,
         nowPlayingPlayer,
         nowPlayingStreamId,

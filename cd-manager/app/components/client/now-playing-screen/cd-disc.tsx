@@ -86,6 +86,11 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
   const [documentVisible, setDocumentVisible] = useState(true);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [blurredSrc, setBlurredSrc] = useState<string | null>(null);
+  /**
+   * Artwork currently printed on the disc. When the player changes discs we
+   * keep the outgoing face until it has finished slowing down and leaving.
+   */
+  const [faceSrc, setFaceSrc] = useState(imageSrc);
   const [faceTexture, setFaceTexture] = useState<FaceTexture>(
     isPresent ? "blurred" : "sharp",
   );
@@ -347,6 +352,7 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
   return (
     <Box
       aria-hidden="true"
+      data-cd-disc=""
       sx={{
         position: "relative",
         width: "100%",

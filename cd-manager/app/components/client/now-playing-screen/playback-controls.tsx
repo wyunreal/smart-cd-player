@@ -1,6 +1,13 @@
 "use client";
 
-import { Box, IconButton, Slider, Typography, useTheme } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  LinearProgress,
+  Slider,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { alpha, type Theme } from "@mui/material/styles";
 import type { DisplayMode } from "@/api/types";
 import {
@@ -111,12 +118,22 @@ const PlaybackControls = ({
   const isPlaying = mode === "playing";
   const isPowered = mode !== "off";
   const isMuted = muted;
-  const elapsedSeconds = track?.elapsedSeconds ?? 0;
-  const durationSeconds = track?.durationSeconds ?? 0;
-  const hasDuration = durationSeconds > 0;
-  const progressValue = hasDuration
-    ? Math.min(elapsedSeconds, durationSeconds)
-    : 0;
+  const elapsedSeconds = track?.elapsedSeconds ?? null;
+  const durationSeconds = track?.durationSeconds ?? null;
+  const hasDuration = durationSeconds != null && durationSeconds > 0;
+  const maxProgress =
+    durationSeconds != null && durationSeconds > 0 ? durationSeconds : 1;
+  const progressValue =
+    durationSeconds != null && durationSeconds > 0 && elapsedSeconds != null
+      ? Math.min(elapsedSeconds, durationSeconds)
+      : 0;
+  const elapsedLabel =
+    elapsedSeconds != null ? formatTime(elapsedSeconds) : null;
+  const durationLabel =
+    durationSeconds != null && durationSeconds > 0
+      ? formatTime(durationSeconds)
+      : null;
+  const showIndeterminate = !hasDuration && isPlaying;
 
   const handleSeek = (_event: Event, value: number | number[]) => {
     actions.onSeek(Array.isArray(value) ? value[0] : value);
@@ -125,35 +142,69 @@ const PlaybackControls = ({
   return (
     <Box>
       <Box>
-        <Slider
-          min={0}
-          max={hasDuration ? durationSeconds : 1}
-          value={progressValue}
-          onChange={handleSeek}
-          disabled={!capabilities.canSeek || !hasDuration}
-          aria-label="Progreso del track"
-          getAriaValueText={() =>
-            hasDuration
-              ? `${formatTime(progressValue)} de ${formatTime(durationSeconds)}`
-              : "Duración desconocida"
-          }
-          valueLabelDisplay="off"
-          sx={sliderSx(theme)}
-        />
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            mt: 0.5,
-          }}
-        >
-          <Typography variant="caption" color="text.secondary">
-            {hasDuration ? formatTime(progressValue) : "--:--"}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {hasDuration ? formatTime(durationSeconds) : "--:--"}
-          </Typography>
-        </Box>
+        {hasDuration ? (
+          <Slider
+            min={0}
+            max={maxProgress}
+            value={progressValue}
+            onChange={handleSeek}
+            disabled={!capabilities.canSeek}
+            aria-label="Progreso del track"
+            getAriaValueText={() =>
+              `${formatTime(progressValue)} de ${durationLabel ?? "--:--"}`
+            }
+            valueLabelDisplay="off"
+            sx={sliderSx(theme)}
+          />
+        ) : (
+          <Box sx={{ py: 1.5 }}>
+            <LinearProgress
+              variant={showIndeterminate ? "indeterminate" : "determinate"}
+              value={showIndeterminate ? undefined : 0}
+              aria-label="Progreso del track"
+              sx={{
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: theme.palette.divider,
+                "& .MuiLinearProgress-bar": {
+                  borderRadius: 2,
+                  backgroundColor: accent,
+                },
+                "& .MuiLinearProgress-bar1Indeterminate": {
+                  animationDuration: "20s",
+                },
+                "& .MuiLinearProgress-bar2Indeterminate": {
+                  animationDuration: "20s",
+                  animationDelay: "10.96s",
+                },
+              }}
+            />
+          </Box>
+        )}
+        {(elapsedLabel || durationLabel) && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: durationLabel ? "space-between" : "flex-start",
+              mt: 0.5,
+            }}
+          >
+            {elapsedLabel && (
+              <Typography variant="caption" color="text.secondary">
+                {elapsedLabel}
+              </Typography>
+            )}
+            {durationLabel && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ ml: elapsedLabel ? 0 : "auto" }}
+              >
+                {durationLabel}
+              </Typography>
+            )}
+          </Box>
+        )}
       </Box>
 
       <Box
@@ -176,6 +227,7 @@ const PlaybackControls = ({
         >
           <IconButton
             onClick={actions.onTogglePower}
+            disabled={!capabilities.canTogglePower}
             aria-label={isPowered ? "Apagar" : "Encender"}
             sx={{
               ...iconColorSx(
@@ -221,6 +273,7 @@ const PlaybackControls = ({
         >
           <IconButton
             onClick={actions.onTogglePlay}
+            disabled={!capabilities.canTogglePlay}
             aria-label={isPlaying ? "Pausar" : "Reproducir"}
             sx={{
               ...iconColorSx(theme, accent),
@@ -232,6 +285,10 @@ const PlaybackControls = ({
               boxShadow: `0 0 18px ${alpha(accent, 0.45)}`,
               "&:hover": {
                 backgroundColor: alpha(accent, 0.1),
+              },
+              "&.Mui-disabled": {
+                borderColor: alpha(accent, 0.4),
+                boxShadow: "none",
               },
               "&::before": {
                 content: '""',
@@ -274,7 +331,7 @@ const PlaybackControls = ({
 
           <IconButton
             onClick={actions.onToggleMute}
-            disabled={!capabilities.canMute || !capabilities.canControlVolume}
+            disabled={!capabilities.canMute}
             aria-label={isMuted ? "Activar sonido" : "Silenciar"}
             sx={{
               ...iconColorSx(theme, theme.palette.text.secondary),

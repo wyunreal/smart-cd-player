@@ -16,8 +16,10 @@ export type NowPlayingTrackView = {
   number: number;
   title: string;
   artist: string;
-  elapsedSeconds: number;
-  durationSeconds: number;
+  /** Elapsed time reported by the player, or null when unknown. */
+  elapsedSeconds: number | null;
+  /** Track duration from the metadata, or null when unknown. */
+  durationSeconds: number | null;
 };
 
 /** Minimal track entry used by the track list opened from the stacked view. */
@@ -36,6 +38,8 @@ export type NowPlayingViewData = {
 };
 
 export type NowPlayingCapabilities = {
+  canTogglePlay: boolean;
+  canTogglePower: boolean;
   canGoPrevious: boolean;
   canGoNext: boolean;
   canSeek: boolean;
@@ -55,8 +59,8 @@ export type NowPlayingActions = {
 };
 
 /**
- * Everything the view needs. It is intentionally free of any data source so
- * the mock container can be replaced by a connected one later.
+ * Everything the view needs. It is intentionally free of any data source; the
+ * connected container maps the repository, display and audio state onto it.
  */
 export type NowPlayingViewProps = {
   data: NowPlayingViewData;

@@ -16,10 +16,8 @@ export type IrRemoteClient = {
     isCommandSupported: (command: PlayerCommand) => boolean;
     canExecuteSequence: (sequence: IrCommandSequenceItem[]) => boolean;
 };
-
 export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClient => {
-    let availableCommands: Set<number> = new Set();
-    let initialized = false;
+    const availableCommands: Set<number> = new Set();
 
     const handleNetworkError = (error: unknown, context: string) => {
         let message = `IR Remote Client: Network error while ${context}.`;
@@ -33,7 +31,23 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
     };
 
     const getDeviceName = (): string | null => {
-        return definition.irDeviceName || null;
+        const configured = definition.irDeviceName?.trim();
+        if (configured) {
+            return configured;
+        }
+
+        // Older configurations put the device in the send URL
+        // (`.../remote?device=Sony`); keep accepting that shape.
+        if (!definition.irSendCommandUrl) {
+            return null;
+        }
+
+        try {
+            const url = new URL(definition.irSendCommandUrl, "http://localhost");
+            return url.searchParams.get("device")?.trim() || null;
+        } catch {
+            return null;
+        }
     };
 
     const getProxyUrl = (targetUrl: string): string => {
@@ -81,9 +95,6 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
                         }
                     }
                 });
-                
-                // Initialized successfully
-                initialized = true;
             } else {
                 console.warn("IR Remote Client: Invalid response format", data);
             }
@@ -104,9 +115,9 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
 
             const url = new URL(definition.irSendCommandUrl);
             if (deviceName) {
-                url.searchParams.append("device", deviceName);
+                url.searchParams.set("device", deviceName);
             }
-            url.searchParams.append("command", commandId.toString());
+            url.searchParams.set("command", commandId.toString());
 
             try {
                 // Use Proxy
@@ -151,4 +162,31 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
         isCommandSupported,
         canExecuteSequence,
     };
+};
+
+/**
+ * Broadcast the power toggle to every player with an IR client.
+ *
+ * The remotes only expose a single PowerSwitch (toggle) command, so when the
+ * players are off this turns them all on, and when they are on it turns them
+ * all off.
+ */
+export const sendPowerToAllPlayers = async (
+    clients: (IrRemoteClient | null)[],
+): Promise<void> => {
+    await Promise.all(
+        clients.map(async (client) => {
+            if (!client?.isCommandSupported(PlayerCommand.PowerSwitch)) {
+                return;
+            }
+
+            try {
+                await client.sendOrder([
+                    { command: PlayerCommand.PowerSwitch, delayAfterMs: 0 },
+                ]);
+            } catch (error) {
+                console.error("Failed to send power command", error);
+            }
+        }),
+    );
 };

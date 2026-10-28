@@ -1,3 +1,3 @@
 "use client";
 
-export { default } from "./now-playing-mock";
+export { default } from "./now-playing-connected";

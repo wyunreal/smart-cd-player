@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import { useCallback, useContext, useState } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
 import { PlayerCommand } from "@/api/types";
+import { sendPowerToAllPlayers } from "@/api/player-remote/client";
 import {
   PowerSettingsNewIcon,
   SearchOutlinedIcon,
@@ -25,8 +26,7 @@ const PlayerControlButtons = () => {
     nowPlayingPlayer,
     nowPlayingStreamId,
     nowPlayingDisplayState,
-    commandPlayer,
-    commandDisplayState,
+    displayState,
   } = useContext(DataRepositoryContext);
 
   const theme = useTheme();
@@ -34,30 +34,19 @@ const PlayerControlButtons = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
 
-  const currentRemoteClient =
-    commandPlayer !== null ? irRemoteClients[commandPlayer - 1] : null;
-
+  // The players page controls the player currently selected in the page, not
+  // whichever player happens to be playing elsewhere.
   const currentPlayerSlots =
     selectedPlayer !== null ? playerContent[selectedPlayer - 1] : [];
 
-  const sendCommand = useCallback(
-    async (command: PlayerCommand) => {
-      if (!currentRemoteClient) return;
-      try {
-        await currentRemoteClient.sendOrder([{ command, delayAfterMs: 0 }]);
-      } catch (e) {
-        console.error("Failed to send command", e);
-      }
-    },
-    [currentRemoteClient],
+  // Power is a master switch: it is sent to every player that has an IR
+  // client supporting the toggle, not only the selected one.
+  const canTogglePower = irRemoteClients.some(
+    (client) => client?.isCommandSupported(PlayerCommand.PowerSwitch) ?? false,
   );
-
-  const isCommandSupported = useCallback(
-    (command: PlayerCommand) => {
-      return currentRemoteClient?.isCommandSupported(command) ?? false;
-    },
-    [currentRemoteClient],
-  );
+  const handleTogglePower = useCallback(() => {
+    void sendPowerToAllPlayers(irRemoteClients);
+  }, [irRemoteClients]);
 
   const handleSlotSelect = useCallback(
     (slotIndex: number) => {
@@ -80,12 +69,12 @@ const PlayerControlButtons = () => {
         <SearchOutlinedIcon />
       </IconButton>
       <TransportButtons
-        player={commandPlayer}
-        displayState={commandDisplayState}
+        player={selectedPlayer}
+        displayState={displayState}
       />
       <IconButton
-        onClick={() => sendCommand(PlayerCommand.PowerSwitch)}
-        disabled={!isCommandSupported(PlayerCommand.PowerSwitch)}
+        onClick={handleTogglePower}
+        disabled={!canTogglePower}
       >
         <PowerSettingsNewIcon />
       </IconButton>

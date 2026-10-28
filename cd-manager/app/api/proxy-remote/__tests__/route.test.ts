@@ -8,6 +8,10 @@ import { NextRequest } from "next/server";
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
+jest.mock("node:dns/promises", () => ({
+  lookup: jest.fn().mockResolvedValue({ address: "192.168.1.50", family: 4 }),
+}));
+
 const ALLOWED_ORIGIN = "http://192.168.1.100:4000";
 
 const createRequest = (url: string): NextRequest => {
@@ -54,9 +58,56 @@ describe("proxy-remote route", () => {
     const res = await GET(req);
 
     expect(res.status).toBe(200);
-    expect(mockFetch).toHaveBeenCalledWith(targetUrl);
+    expect(mockFetch).toHaveBeenCalledWith(
+      targetUrl,
+      expect.objectContaining({ signal: expect.anything() }),
+    );
     const body = await res.json();
     expect(body.status).toBe("success");
+  });
+
+  it("proxies .local hostnames", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
+      text: async () => JSON.stringify({ commands: ["Sony0"] }),
+    });
+
+    const targetUrl = "http://smartcdplayer.local/commands";
+    const req = createRequest(
+      `/api/proxy-remote?url=${encodeURIComponent(targetUrl)}`,
+    );
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.commands).toEqual(["Sony0"]);
+  });
+
+  it("retries a failing .local request against its IPv4 address", async () => {
+    mockFetch
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ "content-type": "application/json" }),
+        text: async () => JSON.stringify({ commands: [] }),
+      });
+
+    const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+    const targetUrl = "http://smartcdplayer.local/commands";
+    const req = createRequest(
+      `/api/proxy-remote?url=${encodeURIComponent(targetUrl)}`,
+    );
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      "http://192.168.1.50/commands",
+      expect.objectContaining({ signal: expect.anything() }),
+    );
+
+    consoleSpy.mockRestore();
   });
 
   // --- NEW: SSRF protection tests ---

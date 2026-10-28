@@ -1,5 +1,9 @@
 import type { Cd, Track } from "@/api/types";
-import { getTrackForDisc } from "../tracks";
+import {
+  getTrackForDisc,
+  getTracksForDisc,
+  parseTrackDuration,
+} from "../tracks";
 
 const makeCd = (tracks: Track[], overrides: Partial<Cd> = {}): Cd => ({
   id: 1,
@@ -65,5 +69,50 @@ describe("getTrackForDisc", () => {
     const cd = makeCd([track(1), track(2)]);
 
     expect(getTrackForDisc(cd, 9)).toBeNull();
+  });
+});
+
+describe("getTracksForDisc", () => {
+  it("returns an empty list without cd or tracks", () => {
+    expect(getTracksForDisc(null)).toEqual([]);
+    expect(getTracksForDisc(makeCd([]))).toEqual([]);
+  });
+
+  it("keeps only the tracks of the current disc", () => {
+    const cd = makeCd(
+      [track(1, 1), track(2, 1), track(3, 2), track(4, 2)],
+      { diskNumber: 2, diskAmount: 2 },
+    );
+
+    expect(getTracksForDisc(cd).map(({ title }) => title)).toEqual([
+      "Track 3",
+      "Track 4",
+    ]);
+  });
+
+  it("falls back to all tracks when none carry a disc number", () => {
+    const cd = makeCd(
+      [
+        { number: 21, title: "First" },
+        { number: 22, title: "Second" },
+      ] as Track[],
+      { diskNumber: 2 },
+    );
+
+    expect(getTracksForDisc(cd)).toHaveLength(2);
+  });
+});
+
+describe("parseTrackDuration", () => {
+  it("parses minutes and seconds", () => {
+    expect(parseTrackDuration("4:44")).toBe(284);
+    expect(parseTrackDuration("0:05")).toBe(5);
+  });
+
+  it("returns null for missing or malformed values", () => {
+    expect(parseTrackDuration(undefined)).toBeNull();
+    expect(parseTrackDuration("")).toBeNull();
+    expect(parseTrackDuration("4:44:01")).toBeNull();
+    expect(parseTrackDuration("ab:cd")).toBeNull();
   });
 });

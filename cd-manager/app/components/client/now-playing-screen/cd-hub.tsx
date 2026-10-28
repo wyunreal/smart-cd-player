@@ -39,13 +39,14 @@ const visibleCircleRatio = (
 
 const CdHub = () => {
   const hubRef = useRef<HTMLDivElement | null>(null);
-  const [logoVisible, setLogoVisible] = useState(true);
+  const [logoVisible, setLogoVisible] = useState(false);
 
   // In the stacked layout the disc can be cropped by the top of the content
   // area. Keep the mark while at least 70% of the circular hub is visible.
   useEffect(() => {
     const hub = hubRef.current;
     const root = hub?.closest("main");
+    const disc = hub?.closest<HTMLElement>("[data-cd-disc]");
     if (!hub || !root) return;
 
     const update = () => {
@@ -60,18 +61,55 @@ const CdHub = () => {
       );
     };
 
+    let cancelled = false;
+    const safeUpdate = () => {
+      if (!cancelled) update();
+    };
+
+    // The disc slides in/out with a transform, which does not resize the hub
+    // nor trigger a window resize. Re-measure once the movement settles.
+    const handleTransitionEnd = (event: TransitionEvent) => {
+      if (event.target === disc) safeUpdate();
+    };
+
+    // Layout also settles after fonts and the first paint.
+    const frame = requestAnimationFrame(safeUpdate);
+    document.fonts?.ready.then(safeUpdate).catch(() => {});
+
     update();
 
-    const observer = new ResizeObserver(update);
+    const observer = new ResizeObserver(safeUpdate);
     observer.observe(hub);
     observer.observe(root);
-    root.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
+
+    // Reduced motion removes the transition, so no transitionend fires when
+    // the disc jumps into place. Emotion changes the class when its phase
+    // changes, so watch that as well.
+    let discObserver: MutationObserver | null = null;
+    if (disc) {
+      discObserver = new MutationObserver(safeUpdate);
+      discObserver.observe(disc, {
+        attributes: true,
+        attributeFilter: ["class", "style"],
+      });
+    }
+
+    disc?.addEventListener("transitionend", handleTransitionEnd);
+    disc?.addEventListener("transitioncancel", handleTransitionEnd);
+    root.addEventListener("scroll", safeUpdate, { passive: true });
+    window.addEventListener("resize", safeUpdate);
+    window.addEventListener("load", safeUpdate);
 
     return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
       observer.disconnect();
-      root.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
+      discObserver?.disconnect();
+      disc?.removeEventListener("transitionend", handleTransitionEnd);
+      disc?.removeEventListener("transitioncancel", handleTransitionEnd);
+      root.removeEventListener("scroll", safeUpdate);
+      window.removeEventListener("resize", safeUpdate);
+      window.removeEventListener("load", safeUpdate);
     };
   }, []);
 
@@ -105,11 +143,16 @@ const CdHub = () => {
       >
         <Box
           sx={{
-            display: logoVisible ? "block" : "none",
             width: "50%",
             lineHeight: 0,
+            opacity: logoVisible ? 1 : 0,
+            transition: "opacity 380ms ease-in-out",
+            willChange: "opacity",
             filter:
               "brightness(0) drop-shadow(0 0 1.5px rgba(255,255,255,0.6)) drop-shadow(0 0 4px rgba(255,255,255,0.22))",
+            "@media (prefers-reduced-motion: reduce)": {
+              transition: "none",
+            },
           }}
         >
           <CompactDiskAudioLogo />

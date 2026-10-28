@@ -1,5 +1,6 @@
 
-import { createIrRemoteClient } from "../client";
+import { createIrRemoteClient, sendPowerToAllPlayers } from "../client";
+import type { IrRemoteClient } from "../client";
 import { PlayerCommand, PlayerDefinition } from "../../types";
 
 // Mock fetch
@@ -61,6 +62,29 @@ describe("IrRemoteClient", () => {
         consoleSpy.mockRestore();
     });
 
+    it("derives the device name from the send URL when irDeviceName is missing", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                status: "success",
+                commands: [
+                    `DeviceA${PlayerCommand.PowerSwitch}`,
+                    `DeviceA${PlayerCommand.Play}`,
+                ],
+            }),
+        });
+
+        const client = createIrRemoteClient({
+            ...mockDefinition,
+            irDeviceName: undefined,
+            irSendCommandUrl: "http://localhost:4000/remote?device=DeviceA",
+        });
+        await client.init();
+
+        expect(client.isCommandSupported(PlayerCommand.PowerSwitch)).toBe(true);
+        expect(client.isCommandSupported(PlayerCommand.Play)).toBe(true);
+    });
+
     it("should not warn if missing configuration but player is inactive", async () => {
         const inactiveDefinition = { ...mockDefinition, active: false, irDeviceName: undefined };
         const client = createIrRemoteClient(inactiveDefinition);
@@ -116,6 +140,29 @@ describe("IrRemoteClient", () => {
         const secondCall = mockFetch.mock.calls[1][0];
         expect(secondCall).toContain("/api/proxy-remote");
         expect(secondCall).toContain(encodeURIComponent(`command=${PlayerCommand.Stop}`));
+    });
+
+    it("emits the power command (id 0) and keeps a single device param", async () => {
+        mockFetch.mockResolvedValue({ ok: true });
+
+        const client = createIrRemoteClient({
+            ...mockDefinition,
+            irDeviceName: undefined,
+            irSendCommandUrl: "http://localhost:4000/remote?device=MyDevice",
+        });
+
+        await client.sendOrder([
+            { command: PlayerCommand.PowerSwitch, delayAfterMs: 0 },
+        ]);
+
+        const proxyUrl = new URL(
+            mockFetch.mock.calls[0][0],
+            "http://localhost",
+        );
+        const targetUrl = new URL(proxyUrl.searchParams.get("url")!);
+
+        expect(targetUrl.searchParams.getAll("device")).toEqual(["MyDevice"]);
+        expect(targetUrl.searchParams.get("command")).toBe("0");
     });
 
     it("should initialize with empty commands on fetch error", async () => {
@@ -209,5 +256,49 @@ describe("IrRemoteClient", () => {
         const expectedUrl = `/api/proxy-remote?url=${encodeURIComponent("/api/commands")}`;
         expect(mockFetch).toHaveBeenCalledWith(expectedUrl);
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(true);
+    });
+});
+
+describe("sendPowerToAllPlayers", () => {
+    const makeClient = (
+        supportsPower: boolean,
+        sendOrder = jest.fn().mockResolvedValue(true),
+    ): IrRemoteClient => ({
+        init: jest.fn().mockResolvedValue(undefined),
+        sendOrder,
+        isCommandSupported: (command) =>
+            supportsPower && command === PlayerCommand.PowerSwitch,
+        canExecuteSequence: () => true,
+    });
+
+    it("sends the power toggle to every player that supports it", async () => {
+        const first = makeClient(true);
+        const unsupported = makeClient(false);
+        const last = makeClient(true);
+
+        await sendPowerToAllPlayers([first, null, unsupported, last]);
+
+        const expected = [
+            { command: PlayerCommand.PowerSwitch, delayAfterMs: 0 },
+        ];
+        expect(first.sendOrder).toHaveBeenCalledWith(expected);
+        expect(unsupported.sendOrder).not.toHaveBeenCalled();
+        expect(last.sendOrder).toHaveBeenCalledWith(expected);
+    });
+
+    it("keeps going when one player fails", async () => {
+        const failing = makeClient(
+            true,
+            jest.fn().mockRejectedValue(new Error("offline")),
+        );
+        const working = makeClient(true);
+        const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+
+        await expect(
+            sendPowerToAllPlayers([failing, working]),
+        ).resolves.toBeUndefined();
+
+        expect(working.sendOrder).toHaveBeenCalledTimes(1);
+        consoleSpy.mockRestore();
     });
 });

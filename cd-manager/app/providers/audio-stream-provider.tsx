@@ -20,6 +20,9 @@ export type AudioStreamContextType = {
   ready: boolean;
   muted: boolean;
   toggleMute: () => void;
+  /** Local playback volume, 0-100. */
+  volume: number;
+  setVolume: (volume: number) => void;
   analyserLeft: AnalyserNode | null;
   analyserRight: AnalyserNode | null;
   audioContext: AudioContext | null;
@@ -55,6 +58,8 @@ export const AudioStreamContext = createContext<AudioStreamContextType>({
   ready: false,
   muted: true,
   toggleMute: () => {},
+  volume: 100,
+  setVolume: () => {},
   analyserLeft: null,
   analyserRight: null,
   audioContext: null,
@@ -83,6 +88,7 @@ type PrebufferItem = {
 export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
   const [ready, setReady] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [volume, setVolumeState] = useState(100);
   const [analyserLeft, setAnalyserLeft] = useState<AnalyserNode | null>(null);
   const [analyserRight, setAnalyserRight] = useState<AnalyserNode | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
@@ -90,6 +96,8 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
   const [eqGains, setEqGainsState] = useState<number[]>(defaultEqGains);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const mutedRef = useRef(true);
+  const volumeRef = useRef(100);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserLeftRef = useRef<AnalyserNode | null>(null);
   const analyserRightRef = useRef<AnalyserNode | null>(null);
@@ -365,10 +373,7 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
     const gain = playbackGainRef.current;
     if (!ctx || !gain) return;
 
-    if (gain.gain.value > 0) {
-      gain.gain.value = 0;
-      setMuted(true);
-    } else {
+    if (mutedRef.current) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const nav = navigator as any;
       if (nav.audioSession) {
@@ -391,15 +396,37 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
       newEqInput.connect(eqFiltersRef.current[0]);
       eqInputRef.current = newEqInput;
 
-      gain.gain.value = 1;
+      // Restore a sensible level if the slider was left at zero.
+      const restoredVolume = volumeRef.current > 0 ? volumeRef.current : 100;
+      if (restoredVolume !== volumeRef.current) {
+        volumeRef.current = restoredVolume;
+        setVolumeState(restoredVolume);
+      }
+
+      gain.gain.value = restoredVolume / 100;
+      mutedRef.current = false;
+      setMuted(false);
 
       // Reset playback timing so audio starts from the live stream position
       nextPlaybackTimeRef.current = ctx.currentTime;
       prebufferingRef.current = true;
       prebufferRef.current = [];
       prebufferDurationRef.current = 0;
+    } else {
+      gain.gain.value = 0;
+      mutedRef.current = true;
+      setMuted(true);
+    }
+  }, []);
 
-      setMuted(false);
+  const setVolume = useCallback((nextVolume: number) => {
+    const value = Math.max(0, Math.min(100, Math.round(nextVolume)));
+    volumeRef.current = value;
+    setVolumeState(value);
+
+    const gain = playbackGainRef.current;
+    if (gain && !mutedRef.current) {
+      gain.gain.value = value / 100;
     }
   }, []);
 
@@ -437,7 +464,7 @@ export const AudioStreamProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AudioStreamContext.Provider
       value={{
-        ready, muted, toggleMute, analyserLeft, analyserRight, audioContext,
+        ready, muted, toggleMute, volume, setVolume, analyserLeft, analyserRight, audioContext,
         eqEnabled, setEqEnabled, eqGains, setEqGain, resetEq,
       }}
     >
