@@ -67,10 +67,11 @@ The full config must contain all nine rect names (`disc_1..3`, `track_1..2`,
 The training scripts take `--stream <id>` and use that stream's geometry. See
 [Workflows](#workflows) for the commands.
 
-### Template/k-NN classifier
+### Template/k-NN classifier (optional)
 
-The ONNX model is trained on the first player's OSD font. When another player's
-font differs, a stream can use the template classifier instead:
+The default ONNX model is trained on both players' current OSD samples. A stream
+can still opt into the template classifier when its font is not represented in
+the ONNX training set:
 
 ```json
 "player-2": {
@@ -83,8 +84,9 @@ It performs a k-NN match against the images in `digit-classifier/source-digits`
 (26x21 PNGs), using the stream's `binarizationThreshold` for the input crop and
 140 for the templates. `yarn build` copies `source-digits` into `dist/`, so the
 production image contains the templates. The regression fixture
-`test/fixtures/player2-playing.png` (raw live frame) reads 9/9 with this
-classifier.
+`test/fixtures/player2-template.png` (composited at the player-2 geometry) reads
+9/9 with this classifier. `test/fixtures/player2-playing.png` remains a raw live
+frame for calibration.
 
 ## Workflows
 

@@ -16,7 +16,7 @@ const projectRoot = path.resolve(__dirname, "../..");
 const CONFIG_PATH = path.resolve(projectRoot, "config.json");
 const FRAME_PATH = path.resolve(
   projectRoot,
-  "test/fixtures/player2-playing.png",
+  "test/fixtures/player2-template.png",
 );
 const SOURCE_DIGITS_DIR = path.resolve(
   projectRoot,
@@ -54,17 +54,17 @@ describe("TemplateClassifier (player-2)", () => {
     const results = await detector.detect(rawFrame, frameWidth, frameHeight);
     const byName = new Map(results.map((result) => [result.name, result.digit]));
 
-    // Frame shows: DISC 83  TRACK 3  0.18
+    // Fixture shows: DISC 129  TRACK 12  1.05
     const expected: Record<string, number | null> = {
-      disc_1: null,
-      disc_2: 8,
-      disc_3: 3,
-      track_1: null,
-      track_2: 3,
+      disc_1: 1,
+      disc_2: 2,
+      disc_3: 9,
+      track_1: 1,
+      track_2: 2,
       time_1: null,
-      time_2: 0,
-      time_3: 1,
-      time_4: 8,
+      time_2: 1,
+      time_3: 0,
+      time_4: 5,
     };
 
     for (const [name, digit] of Object.entries(expected)) {

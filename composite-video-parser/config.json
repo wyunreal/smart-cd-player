@@ -37,22 +37,21 @@
         "height": 480,
         "fps": 2
       },
-      "classifier": "template",
-      "binarizationThreshold": 170,
+      "classifier": "onnx",
       "modeThreshold": 150,
       "geometry": {
         "powerPixel": { "x": 200, "y": 45 },
         "modePixel": { "x": 490, "y": 60 },
         "rects": {
-          "disc_1": { "x": 174, "y": 46, "width": 26, "height": 21 },
-          "disc_2": { "x": 201, "y": 46, "width": 26, "height": 21 },
-          "disc_3": { "x": 228, "y": 46, "width": 26, "height": 21 },
+          "disc_1": { "x": 168, "y": 46, "width": 26, "height": 21 },
+          "disc_2": { "x": 194, "y": 46, "width": 26, "height": 21 },
+          "disc_3": { "x": 223, "y": 46, "width": 26, "height": 21 },
           "track_1": { "x": 417, "y": 46, "width": 26, "height": 21 },
-          "track_2": { "x": 444, "y": 46, "width": 26, "height": 21 },
-          "time_1": { "x": 525, "y": 46, "width": 26, "height": 21 },
-          "time_2": { "x": 552, "y": 46, "width": 26, "height": 21 },
-          "time_3": { "x": 606, "y": 46, "width": 26, "height": 21 },
-          "time_4": { "x": 633, "y": 46, "width": 26, "height": 21 }
+          "track_2": { "x": 448, "y": 46, "width": 26, "height": 21 },
+          "time_1": { "x": 538, "y": 46, "width": 26, "height": 21 },
+          "time_2": { "x": 562, "y": 46, "width": 26, "height": 21 },
+          "time_3": { "x": 620, "y": 46, "width": 26, "height": 21 },
+          "time_4": { "x": 648, "y": 46, "width": 26, "height": 21 }
         }
       }
     }

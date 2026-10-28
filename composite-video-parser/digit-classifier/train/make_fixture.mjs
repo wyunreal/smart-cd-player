@@ -16,7 +16,7 @@
  *   FRAME_STREAM=player-1 FRAME_URL=http://<host>:30002/frame \
  *     node digit-classifier/train/make_fixture.mjs
  */
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -67,9 +67,12 @@ for (const [name, digit] of PLAN) {
   const label = digit === null ? "blank" : String(digit);
   const rect = rects[name];
   if (!rect) throw new Error(`stream "${streamId}" has no rect "${name}"`);
-  const sample = path.join(
-    projectRoot, "digit-classifier", "source-digits", label, `${label}_0000.png`,
+  const labelDir = path.join(
+    projectRoot, "digit-classifier", "source-digits", label,
   );
+  const samples = (await readdir(labelDir)).filter((f) => f.endsWith(".png")).sort();
+  if (samples.length === 0) throw new Error(`no samples for class "${label}"`);
+  const sample = path.join(labelDir, samples[0]);
   composites.push({ input: sample, left: rect.x, top: rect.y });
 }
 

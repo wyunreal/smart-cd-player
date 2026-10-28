@@ -153,14 +153,14 @@ was trained on, so `player-2` uses the template/k-NN classifier built from
 "player-2": {
   "capture": {
     "inputFormat": "mjpeg"
-  },
-  "classifier": "template",
-  "binarizationThreshold": 170
+  }
 }
 ```
 
-The regression fixture `test/fixtures/player2-playing.png` contains a raw live
-frame (`DISC 83 TRACK 3 0.18`) and reads 9/9 with this classifier.
+Player-2 uses the shared ONNX model by default. The optional template classifier
+can still be selected per stream; `test/fixtures/player2-template.png` is the
+composited regression fixture used by its test. `test/fixtures/player2-playing.png`
+is a raw live frame kept for calibration.
 
 `source-digits` is copied into the image by `yarn build`; the deployed pod does
 not need any extra volume for it.
