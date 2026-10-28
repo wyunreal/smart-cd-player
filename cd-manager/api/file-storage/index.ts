@@ -5,6 +5,7 @@ import {
   sanitizeFilename,
   isPathWithinDir,
 } from "@/lib/security";
+import { isProcessedFileName } from "../image-processing/naming";
 
 const defaultImagesPath = path.join(process.cwd(), "..", "data", "images");
 export const FILES_DIR = process.env.IMAGES_DIR || defaultImagesPath;
@@ -102,4 +103,20 @@ export const saveImage = async (
   fs.writeFileSync(filePath, buffer);
 
   return filePath;
+};
+
+/**
+ * Saves a generated image. Only names produced by the processing pipeline
+ * (`processed-v<version>-*.webp`) are accepted, so this helper can never
+ * overwrite a raw original.
+ */
+export const saveProcessedImage = async (
+  imageBuffer: Buffer | ArrayBuffer,
+  fileName: string,
+): Promise<string> => {
+  if (!isProcessedFileName(fileName)) {
+    throw new Error(`Refusing to save non-processed image: ${fileName}`);
+  }
+
+  return saveImage(imageBuffer, fileName);
 };

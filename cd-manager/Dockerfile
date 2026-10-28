@@ -35,7 +35,18 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN yarn build
 
-# 4. Runner
+# 4. Image processing CLI for one-off jobs (see scripts/process-cluster-images.sh).
+# It keeps the full dependency tree (including tsx/sharp) and only the files
+# needed by the CLI, so it can run against the data PVC without the Next build.
+# This stage must stay before the runner: the runner is the default build target.
+FROM deps AS tools
+WORKDIR /app
+COPY tsconfig.json ./
+COPY api ./api
+COPY scripts ./scripts
+ENTRYPOINT ["node_modules/.bin/tsx", "scripts/process-images.ts"]
+
+# 5. Runner
 FROM base AS runner
 WORKDIR /app
 

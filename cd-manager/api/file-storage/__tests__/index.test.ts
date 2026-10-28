@@ -24,12 +24,14 @@ afterAll(() => {
 
 let downloadImage: typeof import("../index").downloadImage;
 let saveImage: typeof import("../index").saveImage;
+let saveProcessedImage: typeof import("../index").saveProcessedImage;
 
 beforeAll(async () => {
   jest.resetModules();
   const mod = await import("../index");
   downloadImage = mod.downloadImage;
   saveImage = mod.saveImage;
+  saveProcessedImage = mod.saveProcessedImage;
 });
 
 describe("file-storage", () => {
@@ -161,6 +163,25 @@ describe("file-storage", () => {
       expect(path.dirname(result)).toBe(testDir);
       // The saved file should exist
       expect(fs.existsSync(result)).toBe(true);
+    });
+  });
+
+  describe("saveProcessedImage", () => {
+    it("saves files with a processed filename", async () => {
+      const result = await saveProcessedImage(
+        Buffer.from([0x01, 0x02]),
+        "processed-v1-12-cd.jpg.webp",
+      );
+
+      expect(result).toContain("processed-v1-12-cd.jpg.webp");
+      expect(fs.existsSync(result)).toBe(true);
+      expect(fs.readFileSync(result)).toEqual(Buffer.from([0x01, 0x02]));
+    });
+
+    it("refuses to overwrite a raw filename", async () => {
+      await expect(
+        saveProcessedImage(Buffer.from([0x01]), "12-cd.jpg"),
+      ).rejects.toThrow("non-processed");
     });
   });
 

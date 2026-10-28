@@ -9,9 +9,16 @@ import type { DisplayMode } from "@/api/types";
 import CdHub from "./cd-hub";
 
 /** Seconds per revolution at full speed. */
-const DISC_SPIN_SECONDS = 0.4;
+const DISC_SPIN_SECONDS = 0.2;
 /** Time the disc takes to reach full speed from rest, or to come to rest. */
 const SPIN_RAMP_MS = 2000;
+
+/**
+ * Extra zoom applied to the rotating artwork. The circular frame clips this
+ * many pixels from the image's outer edge, removing the thin margin left by
+ * the processing crop without moving the disc centre.
+ */
+const DISC_IMAGE_EDGE_CROP_PX = 16;
 
 /** How long the disc takes to drop into the tray / rise back out of it. */
 const DISC_ENTER_MS = 560;
@@ -281,7 +288,8 @@ const CdDisc = ({ imageSrc, mode, onPhaseChange }: CdDiscProps) => {
     const samples = MOTION_BLUR_SAMPLES;
     const step = blurDegrees / Math.max(1, samples - 1);
 
-    const displayWidth = faceRef.current?.clientWidth || 512;
+    const displayWidth =
+      (faceRef.current?.clientWidth || 512) + DISC_IMAGE_EDGE_CROP_PX * 2;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const size = Math.max(
       256,
@@ -464,36 +472,44 @@ const CdDisc = ({ imageSrc, mode, onPhaseChange }: CdDiscProps) => {
             {/* Sharp face, with the motion-blurred copy crossfading on top as
                 the disc spins up. Once the fade finishes only one layer is
                 mounted, so the rotating face paints a single texture. */}
-            {faceTexture !== "blurred" && (
-              <img
-                src={faceSrc}
-                alt=""
-                style={{
-                  display: "block",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            )}
-            {faceTexture !== "sharp" && (
-              <img
-                ref={(node) => {
-                  blurredFaceRef.current = node;
-                  if (node) node.style.opacity = String(spinRateRef.current);
-                }}
-                src={blurredSrc ?? faceSrc}
-                alt=""
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "block",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            )}
+            <Box
+              sx={{
+                position: "absolute",
+                inset: `-${DISC_IMAGE_EDGE_CROP_PX}px`,
+                pointerEvents: "none",
+              }}
+            >
+              {faceTexture !== "blurred" && (
+                <img
+                  src={faceSrc}
+                  alt=""
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              )}
+              {faceTexture !== "sharp" && (
+                <img
+                  ref={(node) => {
+                    blurredFaceRef.current = node;
+                    if (node) node.style.opacity = String(spinRateRef.current);
+                  }}
+                  src={blurredSrc ?? faceSrc}
+                  alt=""
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              )}
+            </Box>
 
             {/* All face effects are baked into the rotating layer, so the
               compositor rotates a single texture instead of blending several

@@ -1,9 +1,16 @@
 "use server";
 
+import fs from "fs";
 import { readJsonFromFile, writeJsonToFile } from "./json-storage";
 import { Art, Cd, CdInputData } from "./types";
-import { downloadImage } from "./file-storage";
+import { downloadImage, FILES_DIR, saveProcessedImage } from "./file-storage";
 import { getNextCdId, saveNextCdId } from "./db-metadata";
+import { resolveProcessedArt } from "./image-processing/resolve";
+import { normalizeArt } from "./image-processing/normalize";
+import {
+  processedFileName,
+  processedThumbFileName,
+} from "./image-processing/naming";
 
 const DATA_DIR = process.env.DATA_DIR || "../data/db";
 const FILE_PATH = `${DATA_DIR}/cd-collection.json`;
@@ -23,12 +30,41 @@ const readFile = async (): Promise<Cd[]> => {
   return data || [];
 };
 
+/**
+ * Returns the artwork pointing at the processed variants when they exist.
+ * The collection file always keeps the raw URIs, so removing the processed
+ * files (or setting USE_PROCESSED_IMAGES=false) restores the raw behaviour
+ * without touching the database.
+ */
+const withProcessedArtwork = (cd: Cd): Cd => {
+  if (!cd.art) return cd;
+
+  return {
+    ...cd,
+    art: {
+      ...cd.art,
+      album: cd.art.album
+        ? resolveProcessedArt(cd.art.album, { imagesDir: FILES_DIR })
+        : cd.art.album,
+      artist: cd.art.artist
+        ? resolveProcessedArt(cd.art.artist, { imagesDir: FILES_DIR })
+        : cd.art.artist,
+      cd: cd.art.cd
+        ? resolveProcessedArt(cd.art.cd, { imagesDir: FILES_DIR })
+        : cd.art.cd,
+    },
+  };
+};
+
 export const getCdCollection: () => Promise<Cd[]> = async () => {
-  return await readFile();
+  const data = await readFile();
+  return data.map(withProcessedArtwork);
 };
 
 export const addCd = async (cds: Cd[]): Promise<number[]> => {
-  const data = await getCdCollection();
+  // Writers must always start from the raw database, never from the resolved
+  // view, otherwise the processed URIs would be persisted permanently.
+  const data = await readFile();
   const existingIds = new Set(data.map((cd) => cd.id));
   const maxId = data.length > 0 ? Math.max(...data.map((cd) => cd.id)) : 0;
   let nextId = await getNextCdId(maxId);
@@ -56,7 +92,31 @@ export const addCd = async (cds: Cd[]): Promise<number[]> => {
           const filename = `${newId}-${type}.${ext}`;
           const filename150 = `${newId}-${type}-150.${ext}`;
 
-          downloadPromises.push(downloadImage(`${art.uri}`, filename));
+          // Keep the raw file untouched and generate the two processed
+          // variants next to it. If processing fails, the app falls back to
+          // the raw image, so the CD can still be added.
+          downloadPromises.push(
+            downloadImage(`${art.uri}`, filename).then(async (rawPath) => {
+              try {
+                const input = await fs.promises.readFile(rawPath);
+                const processed = await normalizeArt(input, type);
+
+                await saveProcessedImage(
+                  processed.large.buffer,
+                  processedFileName(filename),
+                );
+                await saveProcessedImage(
+                  processed.thumb.buffer,
+                  processedThumbFileName(filename),
+                );
+              } catch (error) {
+                console.warn(
+                  `Failed to process ${filename}; falling back to the raw image`,
+                  error,
+                );
+              }
+            }),
+          );
 
           if (art.uri150) {
             downloadPromises.push(downloadImage(`${art.uri150}`, filename150));
@@ -78,7 +138,7 @@ export const addCd = async (cds: Cd[]): Promise<number[]> => {
 };
 
 export const editCd = async (cdData: CdInputData, cdId: number) => {
-  const cds = await getCdCollection();
+  const cds = await readFile();
   const index = cds.findIndex((cd) => cd.id === cdId);
   if (index === -1) {
     throw new Error(`CD with id ${cdId} not found`);
@@ -98,7 +158,7 @@ export const editCd = async (cdData: CdInputData, cdId: number) => {
 
 
 export const deleteCd = async (cdId: number) => {
-  const data = await getCdCollection();
+  const data = await readFile();
   const index = data.findIndex((cd) => cd.id === cdId);
   if (index === -1) {
     throw new Error(`CD with id ${cdId} not found`);

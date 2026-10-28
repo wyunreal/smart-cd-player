@@ -1,12 +1,13 @@
 {
   "name": "smart-cd",
-  "version": "1.0.149",
+  "version": "1.0.153",
   "scripts": {
     "dev": "next dev",
     "start": "next start",
     "build": "next build",
     "lint": "next lint",
-    "test": "jest"
+    "test": "jest",
+    "images:process": "tsx scripts/process-images.ts"
   },
   "dependencies": {
     "@emotion/cache": "^11",
@@ -26,7 +27,8 @@
     "next-auth": "^5.0.0-beta.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-transition-group": "^4.4.5"
+    "react-transition-group": "^4.4.5",
+    "sharp": "^0.34.3"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -39,6 +41,7 @@
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
     "ts-jest": "^29.4.6",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
