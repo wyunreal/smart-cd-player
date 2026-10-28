@@ -98,7 +98,7 @@ describe("getPlayerDisplayState", () => {
     expect(state?.status).toBe("error");
     expect(state?.error).toContain("Player 2");
     expect(state?.error).toContain('"salon"');
-    expect(state?.error).toContain("Verifica");
+    expect(state?.error).toContain("Check");
   });
 });
 

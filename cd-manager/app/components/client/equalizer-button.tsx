@@ -31,7 +31,7 @@ const EqualizerButton = ({
       <IconButton
         onClick={() => setDialogOpen(true)}
         disabled={!ready}
-        aria-label="Ecualizador"
+        aria-label="Equalizer"
         sx={
           resolvedColor
             ? {

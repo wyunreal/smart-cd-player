@@ -30,7 +30,7 @@ import type {
 } from "./types";
 
 const PLACEHOLDER_ALBUM: NowPlayingViewData["album"] = {
-  title: "Sin disco",
+  title: "No disc",
   artist: "",
   year: null,
   genre: null,
@@ -46,7 +46,7 @@ const buildErrorMessage = (
 ) => {
   if (!displayState || displayState.status !== "error") return null;
 
-  const error = displayState.error ?? "No se pudo leer el display del player.";
+  const error = displayState.error ?? "Could not read the player display.";
   const sentence = /[.!?]$/.test(error) ? error : `${error}.`;
   const playerLabel =
     player !== null
@@ -54,7 +54,7 @@ const buildErrorMessage = (
       : "";
   const hint = /composite-video-parser/i.test(error)
     ? ""
-    : " Verifica el Stream ID configurado y el estado de la captura en composite-video-parser (GET /streams).";
+    : " Check the configured stream ID and the capture status in composite-video-parser (GET /streams).";
 
   return `${playerLabel}${sentence}${hint}`;
 };

@@ -141,8 +141,8 @@ const NowPlaying = ({ displayState, player, streamId }: NowPlayingProps) => {
         ? `Player ${playerIndex}${
             streamId ? ` (stream "${streamId}")` : ""
           }: ${asSentence(
-            displayState.error ?? "No se pudo leer el display del player.",
-          )} Verifica el Stream ID configurado y el estado de la captura en composite-video-parser (GET /streams).`
+            displayState.error ?? "Could not read the player display.",
+          )} Check the configured stream ID and the capture status in composite-video-parser (GET /streams).`
         : null;
 
     return (
@@ -151,7 +151,7 @@ const NowPlaying = ({ displayState, player, streamId }: NowPlayingProps) => {
           <Alert severity="error" variant="outlined">
             {singlePlayerError ??
               displayState.error ??
-              "No se pudo leer el display del player."}
+              "Could not read the player display."}
           </Alert>
         </Box>
       </Fade>

@@ -50,6 +50,7 @@ const sliderSx = (theme: Theme, thumbSize = 14) => {
   const accentGlow = alpha(accent, 0.45);
 
   return {
+    display: "block",
     height: 4,
     padding: "12px 0",
     "& .MuiSlider-rail": {
@@ -149,9 +150,9 @@ const PlaybackControls = ({
             value={progressValue}
             onChange={handleSeek}
             disabled={!capabilities.canSeek}
-            aria-label="Progreso del track"
+            aria-label="Track progress"
             getAriaValueText={() =>
-              `${formatTime(progressValue)} de ${durationLabel ?? "--:--"}`
+              `${formatTime(progressValue)} of ${durationLabel ?? "--:--"}`
             }
             valueLabelDisplay="off"
             sx={sliderSx(theme)}
@@ -161,7 +162,7 @@ const PlaybackControls = ({
             <LinearProgress
               variant={showIndeterminate ? "indeterminate" : "determinate"}
               value={showIndeterminate ? undefined : 0}
-              aria-label="Progreso del track"
+              aria-label="Track progress"
               sx={{
                 height: 4,
                 borderRadius: 2,
@@ -181,30 +182,30 @@ const PlaybackControls = ({
             />
           </Box>
         )}
-        {(elapsedLabel || durationLabel) && (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: durationLabel ? "space-between" : "flex-start",
-              mt: 0.5,
-            }}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            mt: 0.5,
+          }}
+        >
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            aria-hidden={!elapsedLabel}
+            sx={{ visibility: elapsedLabel ? "visible" : "hidden" }}
           >
-            {elapsedLabel && (
-              <Typography variant="caption" color="text.secondary">
-                {elapsedLabel}
-              </Typography>
-            )}
-            {durationLabel && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ ml: elapsedLabel ? 0 : "auto" }}
-              >
-                {durationLabel}
-              </Typography>
-            )}
-          </Box>
-        )}
+            {elapsedLabel ?? "\u00a0"}
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            aria-hidden={!durationLabel}
+            sx={{ visibility: durationLabel ? "visible" : "hidden" }}
+          >
+            {durationLabel ?? "\u00a0"}
+          </Typography>
+        </Box>
       </Box>
 
       <Box
@@ -228,7 +229,7 @@ const PlaybackControls = ({
           <IconButton
             onClick={actions.onTogglePower}
             disabled={!capabilities.canTogglePower}
-            aria-label={isPowered ? "Apagar" : "Encender"}
+            aria-label={isPowered ? "Power off" : "Power on"}
             sx={{
               ...iconColorSx(
                 theme,
@@ -242,7 +243,7 @@ const PlaybackControls = ({
 
           <IconButton
             onClick={onSearch}
-            aria-label="Buscar"
+            aria-label="Search"
             sx={{
               ...iconColorSx(theme, theme.palette.text.secondary),
               ...utilityButtonSx,
@@ -254,7 +255,7 @@ const PlaybackControls = ({
           <IconButton
             onClick={actions.onPrevious}
             disabled={!capabilities.canGoPrevious}
-            aria-label="Track anterior"
+            aria-label="Previous track"
             sx={{
               ...iconColorSx(theme, theme.palette.text.primary),
               ...transportButtonSx,
@@ -274,7 +275,7 @@ const PlaybackControls = ({
           <IconButton
             onClick={actions.onTogglePlay}
             disabled={!capabilities.canTogglePlay}
-            aria-label={isPlaying ? "Pausar" : "Reproducir"}
+            aria-label={isPlaying ? "Pause" : "Play"}
             sx={{
               ...iconColorSx(theme, accent),
               position: "relative",
@@ -320,7 +321,7 @@ const PlaybackControls = ({
           <IconButton
             onClick={actions.onNext}
             disabled={!capabilities.canGoNext}
-            aria-label="Track siguiente"
+            aria-label="Next track"
             sx={{
               ...iconColorSx(theme, theme.palette.text.primary),
               ...transportButtonSx,
@@ -332,7 +333,7 @@ const PlaybackControls = ({
           <IconButton
             onClick={actions.onToggleMute}
             disabled={!capabilities.canMute}
-            aria-label={isMuted ? "Activar sonido" : "Silenciar"}
+            aria-label={isMuted ? "Unmute" : "Mute"}
             sx={{
               ...iconColorSx(theme, theme.palette.text.secondary),
               ...utilityButtonSx,
@@ -370,7 +371,7 @@ const PlaybackControls = ({
               actions.onVolumeChange(Array.isArray(value) ? value[0] : value)
             }
             disabled={!capabilities.canControlVolume || isMuted}
-            aria-label="Volumen"
+            aria-label="Volume"
             getAriaValueText={(value) => `${value}%`}
             valueLabelDisplay="off"
             sx={{

@@ -36,7 +36,7 @@ const EqualizerDialog = ({ isOpen, onClose }: EqualizerDialogProps) => {
 
   return (
     <ResponsiveDialog
-      title="Ecualizador"
+      title="Equalizer"
       isOpen={isOpen}
       onClose={onClose}
       adaptToContentInMobile
@@ -56,7 +56,7 @@ const EqualizerDialog = ({ isOpen, onClose }: EqualizerDialogProps) => {
             size="small"
           />
           <Typography variant="body2" color="text.secondary">
-            {eqEnabled ? "Activado" : "Desactivado"}
+            {eqEnabled ? "On" : "Off"}
           </Typography>
         </Box>
         <IconButton onClick={resetEq} size="small" title="Reset">

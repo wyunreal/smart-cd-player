@@ -244,12 +244,25 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
     }
   }, [phase, reduceMotion]);
 
+  // Keep the outgoing disc's artwork while it spins down and slides out. Once
+  // it is hidden (and therefore invisible), switch to the next disc's face.
+  const isStopping = !isPresent && phase !== "hidden";
+
+  useEffect(() => {
+    if (isStopping) return;
+    setFaceSrc(imageSrc);
+  }, [imageSrc, isStopping]);
+
   // Bake a rotational (tangential) motion blur into the face texture. Drawing
   // the art several times with a small rotation offset around the centre and
   // averaging with "lighter" produces the same radial smear a real disc has.
   // The result is turned back into a plain image so the compositor rotates a
   // static texture instead of keeping a canvas layer alive every frame.
   useEffect(() => {
+    // Keep both the sharp face and its blurred texture untouched while the
+    // outgoing disc is still slowing down or leaving the tray.
+    if (isStopping) return;
+
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -268,7 +281,7 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
       256,
       Math.min(MAX_FACE_TEXTURE_SIZE, Math.round(displayWidth * dpr)),
     );
-    const cacheKey = `${imageSrc}::${size}::${samples}::${blurDegrees}`;
+    const cacheKey = `${faceSrc}::${size}::${samples}::${blurDegrees}`;
     const cached = blurredFaceCache.get(cacheKey);
 
     if (cached) {
@@ -330,13 +343,13 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
       }
     };
 
-    image.src = imageSrc;
+    image.src = faceSrc;
 
     return () => {
       cancelled = true;
       image.onload = null;
     };
-  }, [imageSrc]);
+  }, [faceSrc, isStopping]);
 
   // The face starts sharp; the blurred copy fades in with the spin speed.
   const spinAnimationRunning = documentVisible && phase !== "hidden";
@@ -447,7 +460,7 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
                 mounted, so the rotating face paints a single texture. */}
             {faceTexture !== "blurred" && (
               <img
-                src={imageSrc}
+                src={faceSrc}
                 alt=""
                 style={{
                   display: "block",
@@ -463,7 +476,7 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
                   blurredFaceRef.current = node;
                   if (node) node.style.opacity = String(spinRateRef.current);
                 }}
-                src={blurredSrc ?? imageSrc}
+                src={blurredSrc ?? faceSrc}
                 alt=""
                 style={{
                   position: "absolute",

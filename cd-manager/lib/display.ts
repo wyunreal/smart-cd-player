@@ -64,12 +64,12 @@ export type MissingStream = {
 
 const describeMissingStream = ({ player, streamId }: MissingStream): string =>
   player === null
-    ? `el stream "${streamId}"`
+    ? `the stream "${streamId}"`
     : `Player ${player} (stream "${streamId}")`;
 
 const missingStreamsMessage = (missing: MissingStream[]): string => {
   const list = missing.map(describeMissingStream).join(", ");
-  return `No se recibe estado en /display para ${list}. Verifica que el Stream ID esté asignado al player correcto y que exista dentro de "streams" en composite-video-parser/config.json, con su captura activa (GET /streams).`;
+  return `No display state received for ${list}. Check that the stream ID is assigned to the correct player and exists under "streams" in composite-video-parser/config.json, with its capture active (GET /streams).`;
 };
 
 /**

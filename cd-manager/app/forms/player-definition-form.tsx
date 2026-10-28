@@ -165,7 +165,7 @@ const PlayerDefinitionForm = ({
                 };
                 setDefinitions(newDefinitions);
               }}
-              helperText={`Id del stream en composite-video-parser: la clave dentro de "streams" en su config.json (p. ej. "player-1" o "salon"). Debe coincidir exactamente con la clave que devuelve GET /display. Si se deja vacío, este player no soporta estado de reproducción y no se muestra nada para él.`}
+              helperText={`Stream ID in composite-video-parser: the key under "streams" in its config.json (e.g. "player-1" or "living-room"). It must match exactly the key returned by GET /display. If left empty, this player has no playback state support and nothing is shown for it.`}
               sx={{ mt: 2 }}
             />
             <Box sx={{ marginTop: 1, marginBottom: 2 }}>

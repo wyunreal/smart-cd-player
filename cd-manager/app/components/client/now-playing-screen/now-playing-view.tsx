@@ -48,7 +48,8 @@ const albumTitleSx = {
 
 const trackTitleSx = {
   mt: 0.5,
-  fontSize: { xs: 20, sm: 24, lg: 24, xl: 28 },
+  // Same size as the artist name in the album panel.
+  fontSize: { xs: 16, sm: 18, lg: 20, xl: 22 },
   fontWeight: 500,
   lineHeight: 1.2,
   overflow: "hidden",
@@ -131,7 +132,7 @@ const AlbumPanel = ({ album, track, onOpenTracks }: AlbumPanelProps) => {
       >
         <img
           src={album.coverArt || "/cd-placeholder-big.png"}
-          alt={`Portada de ${album.title} de ${album.artist}`}
+          alt={`Cover of ${album.title} by ${album.artist}`}
           style={{
             display: "block",
             width: "100%",
@@ -149,32 +150,34 @@ const AlbumPanel = ({ album, track, onOpenTracks }: AlbumPanelProps) => {
         }}
       >
         <Typography variant="overline" sx={overlineSx}>
-          Álbum
+          Album
         </Typography>
         <Typography component="h2" sx={albumTitleSx}>
           {album.title}
         </Typography>
         <Typography
+          aria-hidden={!album.artist}
           sx={{
             mt: 0.25,
             fontSize: { xs: 16, sm: 18, lg: 20, xl: 22 },
             color: "text.secondary",
+            visibility: album.artist ? "visible" : "hidden",
           }}
         >
-          {album.artist}
+          {album.artist || "\u00a0"}
         </Typography>
-        {meta.length > 0 && (
-          <Typography
-            variant="body2"
-            sx={{
-              mt: 1,
-              color: "text.secondary",
-              fontSize: { xs: 12, sm: 13, xl: 14 },
-            }}
-          >
-            {meta.join(" · ")}
-          </Typography>
-        )}
+        <Typography
+          variant="body2"
+          aria-hidden={meta.length === 0}
+          sx={{
+            mt: 1,
+            color: "text.secondary",
+            fontSize: { xs: 12, sm: 13, xl: 14 },
+            visibility: meta.length > 0 ? "visible" : "hidden",
+          }}
+        >
+          {meta.length > 0 ? meta.join(" · ") : "\u00a0"}
+        </Typography>
       </Box>
 
       <Divider
@@ -197,58 +200,88 @@ const AlbumPanel = ({ album, track, onOpenTracks }: AlbumPanelProps) => {
         <Box
           sx={{
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             gap: 1,
             minWidth: 0,
           }}
         >
           <Typography
             component="h3"
-            sx={{ ...trackTitleSx, flex: 1, minWidth: 0 }}
-          >
-            {track?.title ?? "Sin reproducción"}
-          </Typography>
-          <IconButton
-            onClick={onOpenTracks}
-            aria-label="Abrir lista de tracks"
             sx={{
-              display: { xs: "inline-flex", sm: "inline-flex", lg: "none" },
-              color: "text.secondary",
-              "&&&": { color: theme.palette.text.secondary },
-              flexShrink: 0,
+              ...trackTitleSx,
+              flex: 1,
+              minWidth: 0,
+              // Keep two lines reserved so a one-line placeholder or a short
+              // track title cannot change the height of the stacked layout.
+              minHeight: "2.4em",
             }}
           >
-            <ListIcon sx={{ fontSize: 22 }} />
-          </IconButton>
-        </Box>
-        {track && (
+            {track?.title ?? "Nothing playing"}
+          </Typography>
+          {/* Keep the list icon on the first line, not centred against the
+              whole two-line title block. */}
           <Box
             sx={{
+              alignSelf: "flex-start",
               display: "flex",
               alignItems: "center",
-              gap: 0.5,
-              mt: 0.75,
+              height: "1.2em",
+              mt: 0.5,
+              flexShrink: 0,
+              fontSize: { xs: 16, sm: 18, lg: 20, xl: 22 },
             }}
           >
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {track.number} / {album.totalTracks}
-            </Typography>
             <IconButton
               onClick={onOpenTracks}
-              aria-label="Abrir lista de tracks"
+              aria-label="Open track list"
               size="small"
               sx={{
-                display: { xs: "none", sm: "none", lg: "inline-flex" },
+                display: { xs: "inline-flex", sm: "inline-flex", lg: "none" },
                 color: "text.secondary",
                 "&&&": { color: theme.palette.text.secondary },
                 flexShrink: 0,
-                ml: 0.5,
+                p: 0.5,
               }}
             >
-              <ListIcon sx={{ fontSize: 20 }} />
+              <ListIcon sx={{ fontSize: 22 }} />
             </IconButton>
           </Box>
-        )}
+        </Box>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+            mt: 0.75,
+          }}
+        >
+          <Typography
+            variant="body2"
+            aria-hidden={!track}
+            sx={{
+              color: "text.secondary",
+              visibility: track ? "visible" : "hidden",
+            }}
+          >
+            {track ? `${track.number} / ${album.totalTracks}` : "\u00a0"}
+          </Typography>
+          <IconButton
+            onClick={onOpenTracks}
+            aria-label="Open track list"
+            size="small"
+            disabled={!track}
+            sx={{
+              display: { xs: "none", sm: "none", lg: "inline-flex" },
+              color: "text.secondary",
+              "&&&": { color: theme.palette.text.secondary },
+              flexShrink: 0,
+              ml: 0.5,
+              visibility: track ? "visible" : "hidden",
+            }}
+          >
+            <ListIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        </Box>
       </Box>
     </Box>
   );
