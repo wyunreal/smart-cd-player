@@ -51,6 +51,47 @@ export interface CreateDigitStreamOptions {
 
 const PAUSE_DETECT_MS = 2000;
 
+/**
+ * The Sony changers show a full-screen green MegaStorage splash while they
+ * boot. The digit rectangles overlap that splash, so OCR produces random
+ * discs/tracks. Sample the frame and ignore it while green dominates.
+ */
+const SPLASH_SAMPLE_STEP = 8;
+const SPLASH_GREEN_RATIO = 0.25;
+const SPLASH_GREEN_MIN = 40;
+const SPLASH_GREEN_DOMINANCE = 1.25;
+
+export const isBootSplashFrame = (
+  frame: Buffer,
+  width: number,
+  height: number,
+): boolean => {
+  if (frame.length < width * height * 3) return false;
+
+  let green = 0;
+  let sampled = 0;
+
+  for (let y = 0; y < height; y += SPLASH_SAMPLE_STEP) {
+    for (let x = 0; x < width; x += SPLASH_SAMPLE_STEP) {
+      const offset = (y * width + x) * 3;
+      const r = frame[offset];
+      const g = frame[offset + 1];
+      const b = frame[offset + 2];
+
+      sampled += 1;
+      if (
+        g >= SPLASH_GREEN_MIN &&
+        g >= r * SPLASH_GREEN_DOMINANCE &&
+        g >= b * SPLASH_GREEN_DOMINANCE
+      ) {
+        green += 1;
+      }
+    }
+  }
+
+  return sampled > 0 && green / sampled >= SPLASH_GREEN_RATIO;
+};
+
 export const createDigitStream = ({
   id,
   stream,
@@ -147,6 +188,16 @@ export const createDigitStream = ({
       lastSecondsChangeTime = 0;
       lastError = null;
       setState({ digits: [], mode: "off", timestamp: Date.now() });
+      return;
+    }
+
+    // The changers show a full-screen green MegaStorage splash while booting.
+    // Its graphics overlap the digit boxes, so do not run OCR on it.
+    if (isBootSplashFrame(frame, capture.width, capture.height)) {
+      lastSeconds = null;
+      lastSecondsChangeTime = 0;
+      lastError = null;
+      setState({ digits: [], mode: "stopped", timestamp: Date.now() });
       return;
     }
 
