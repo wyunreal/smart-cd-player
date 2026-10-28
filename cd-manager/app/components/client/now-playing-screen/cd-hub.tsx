@@ -21,6 +21,12 @@ const HUB_LIFT_SCALE = 1.2;
 const HUB_LIFT_MS = 680;
 const HUB_CONTACT_MS = 600;
 
+/** Maximum rotation of the metal texture, and how often pointer moves update it. */
+const HUB_TILT_MAX_DEG = 7;
+const HUB_TILT_INTERVAL_MS = 80;
+/** Smoothing applied to the pointer-driven rotation. */
+const HUB_TILT_MS = 140;
+
 const HUB_RESTING_SHADOW =
   "0 9px 18px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.35), inset 0 -1px 2px rgba(0,0,0,0.35)";
 const HUB_LIFTED_SHADOW =
@@ -59,6 +65,7 @@ const visibleCircleRatio = (
 
 const CdHub = ({ lifted = false }: CdHubProps) => {
   const hubRef = useRef<HTMLDivElement | null>(null);
+  const logoRef = useRef<HTMLDivElement | null>(null);
   const [logoVisible, setLogoVisible] = useState(false);
 
   // In the stacked layout the disc can be cropped by the top of the content
@@ -109,6 +116,51 @@ const CdHub = ({ lifted = false }: CdHubProps) => {
     };
   }, []);
 
+  // Tie the brushed-metal highlight to the pointer. Updates are throttled and
+  // written straight to the DOM (no React render), so moving the mouse costs at
+  // most one angle change every HUB_TILT_INTERVAL_MS.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let timer: number | null = null;
+    let pendingAngle: number | null = null;
+
+    const flush = () => {
+      timer = null;
+      if (pendingAngle === null) return;
+
+      const angle = pendingAngle;
+      pendingAngle = null;
+
+      if (hubRef.current) hubRef.current.style.rotate = `${angle}deg`;
+      // Counter-rotate the mark so only the metal texture turns.
+      if (logoRef.current) logoRef.current.style.rotate = `${-angle}deg`;
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse") return;
+
+      const progress = Math.min(
+        1,
+        Math.max(0, event.clientX / Math.max(1, window.innerWidth)),
+      );
+      pendingAngle = (progress - 0.5) * 2 * HUB_TILT_MAX_DEG;
+
+      if (timer === null) {
+        timer = window.setTimeout(flush, HUB_TILT_INTERVAL_MS);
+      }
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: true,
+    });
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, []);
+
   return (
     <Box
       sx={{
@@ -131,16 +183,17 @@ const CdHub = ({ lifted = false }: CdHubProps) => {
           backgroundSize: "cover",
           backgroundPosition: "center",
           // Scaling from the centre makes the cap look like it comes off the
-          // screen surface instead of sliding across it.
+          // screen surface instead of sliding across it. The separate `rotate`
+          // (set from the pointer listener) moves only the texture highlight.
           transform: lifted ? `scale(${HUB_LIFT_SCALE})` : "scale(1)",
           transformOrigin: "50% 50%",
           boxShadow: lifted ? HUB_LIFTED_SHADOW : HUB_RESTING_SHADOW,
           // The lifted cap sits closer to the viewer, so it catches more light.
           filter: lifted ? "brightness(1.05)" : "brightness(1)",
           transition: lifted
-            ? `transform ${HUB_LIFT_MS}ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow ${HUB_LIFT_MS}ms ease, filter ${HUB_LIFT_MS}ms ease`
-            : `transform ${HUB_CONTACT_MS}ms cubic-bezier(0.2, 1.35, 0.32, 1), box-shadow ${HUB_CONTACT_MS}ms ease, filter ${HUB_CONTACT_MS}ms ease`,
-          willChange: "transform, box-shadow, filter",
+            ? `transform ${HUB_LIFT_MS}ms cubic-bezier(0.22, 0.61, 0.36, 1), rotate ${HUB_TILT_MS}ms ease-out, box-shadow ${HUB_LIFT_MS}ms ease, filter ${HUB_LIFT_MS}ms ease`
+            : `transform ${HUB_CONTACT_MS}ms cubic-bezier(0.2, 1.35, 0.32, 1), rotate ${HUB_TILT_MS}ms ease-out, box-shadow ${HUB_CONTACT_MS}ms ease, filter ${HUB_CONTACT_MS}ms ease`,
+          willChange: "transform, rotate, box-shadow, filter",
           "@media (prefers-reduced-motion: reduce)": {
             transition: "none",
           },
@@ -150,12 +203,13 @@ const CdHub = ({ lifted = false }: CdHubProps) => {
         }}
       >
         <Box
+          ref={logoRef}
           sx={{
             width: "50%",
             lineHeight: 0,
             opacity: logoVisible ? 1 : 0,
-            transition: "opacity 380ms ease-in-out",
-            willChange: "opacity",
+            transition: `rotate ${HUB_TILT_MS}ms ease-out, opacity 380ms ease-in-out`,
+            willChange: "rotate, opacity",
             filter:
               "brightness(0) drop-shadow(0 0 1.5px rgba(255,255,255,0.6)) drop-shadow(0 0 4px rgba(255,255,255,0.22))",
             "@media (prefers-reduced-motion: reduce)": {
