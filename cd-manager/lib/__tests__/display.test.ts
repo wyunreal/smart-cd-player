@@ -1,5 +1,8 @@
 import type { DisplayState, PlayerDefinition } from "@/api/types";
 import {
+  createDisplayDebounceState,
+  debounceDisplayStreams,
+  DISPLAY_ERROR_THRESHOLD,
   getMissingStreams,
   getPlayerDisplayState,
   getPlayerStreamId,
@@ -248,5 +251,130 @@ describe("getMissingStreams", () => {
         { "player-1": reading },
       ),
     ).toEqual([{ player: 2, streamId: "salon" }]);
+  });
+});
+
+describe("debounceDisplayStreams", () => {
+  const streamId = "player-1";
+  const errorReading: DisplayState = {
+    ...reading,
+    status: "error",
+    mode: "off",
+    disc: null,
+    track: null,
+    minutes: null,
+    seconds: null,
+    error: "boom",
+  };
+
+  it("keeps the last successful reading while errors are transient", () => {
+    let state = createDisplayDebounceState();
+    let result = debounceDisplayStreams(
+      { [streamId]: reading },
+      [streamId],
+      state,
+      1000,
+    );
+    state = result.state;
+
+    for (let i = 1; i < DISPLAY_ERROR_THRESHOLD; i += 1) {
+      result = debounceDisplayStreams(
+        { [streamId]: errorReading },
+        [streamId],
+        state,
+        1000 + i,
+      );
+      state = result.state;
+      expect(result.streams[streamId]).toEqual(reading);
+    }
+
+    result = debounceDisplayStreams(
+      { [streamId]: errorReading },
+      [streamId],
+      state,
+      2000,
+    );
+    expect(result.streams[streamId]).toEqual(errorReading);
+  });
+
+  it("resets the error streak on the next successful reading", () => {
+    let state = createDisplayDebounceState();
+    let result = debounceDisplayStreams(
+      { [streamId]: reading },
+      [streamId],
+      state,
+      1000,
+    );
+    state = result.state;
+
+    for (let i = 1; i < DISPLAY_ERROR_THRESHOLD; i += 1) {
+      result = debounceDisplayStreams(
+        { [streamId]: errorReading },
+        [streamId],
+        state,
+        1000 + i,
+      );
+      state = result.state;
+    }
+
+    const recovered = { ...reading, timestamp: 2000 };
+    result = debounceDisplayStreams(
+      { [streamId]: recovered },
+      [streamId],
+      state,
+      2000,
+    );
+    expect(result.streams[streamId]).toEqual(recovered);
+    expect(result.state.errorStreaks[streamId]).toBe(0);
+  });
+
+  it("reports an empty starting reading before the first success", () => {
+    let state = createDisplayDebounceState();
+    for (let i = 1; i < DISPLAY_ERROR_THRESHOLD; i += 1) {
+      const result = debounceDisplayStreams(
+        { [streamId]: errorReading },
+        [streamId],
+        state,
+        3000 + i,
+      );
+      state = result.state;
+      expect(result.streams[streamId]).toEqual({
+        status: "starting",
+        mode: "off",
+        disc: null,
+        track: null,
+        minutes: null,
+        seconds: null,
+        timestamp: 3000 + i,
+      });
+    }
+
+    const result = debounceDisplayStreams(
+      { [streamId]: errorReading },
+      [streamId],
+      state,
+      4000,
+    );
+    expect(result.streams[streamId]).toEqual(errorReading);
+  });
+
+  it("keeps the last success for a missing stream until the threshold", () => {
+    let state = createDisplayDebounceState();
+    let result = debounceDisplayStreams(
+      { [streamId]: reading },
+      [streamId],
+      state,
+      1000,
+    );
+    state = result.state;
+
+    for (let i = 1; i < DISPLAY_ERROR_THRESHOLD; i += 1) {
+      result = debounceDisplayStreams({}, [streamId], state, 1000 + i);
+      state = result.state;
+      expect(result.streams[streamId]).toEqual(reading);
+    }
+
+    result = debounceDisplayStreams({}, [streamId], state, 2000);
+    expect(result.streams[streamId]).toBeUndefined();
   });
 });

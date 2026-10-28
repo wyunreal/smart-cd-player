@@ -8,18 +8,22 @@ import {
 import { Cd, CdSlot, DisplayState, PlayerDefinition } from "@/api/types";
 import {
   buildMissingStreamsError,
+  createDisplayDebounceState,
+  debounceDisplayStreams,
   getMissingStreams,
   getPlayerDisplayState,
   getPlayerStreamId,
   normalizeDisplayResponse,
   selectDisplayError,
   selectNowPlaying,
+  type DisplayDebounceState,
 } from "@/lib/display";
 import React, {
   createContext,
   ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -318,10 +322,34 @@ export const DataRepositoryProvider = ({
   >({});
   const [displayLoaded, setDisplayLoaded] = useState(false);
   const mockSecondsRef = useRef(0);
+  const displayDebounceRef = useRef<DisplayDebounceState>(
+    createDisplayDebounceState(),
+  );
 
   const isMockDisplay =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("mockDisplay");
+
+  const configuredStreamIds = useMemo(
+    () =>
+      (playerDefinitions ?? [])
+        .map((definition) => getPlayerStreamId(definition))
+        .filter((streamId): streamId is string => streamId !== null),
+    [playerDefinitions],
+  );
+
+  const applyDisplayStreams = useCallback(
+    (next: Record<string, DisplayState>) => {
+      const result = debounceDisplayStreams(
+        next,
+        configuredStreamIds,
+        displayDebounceRef.current,
+      );
+      displayDebounceRef.current = result.state;
+      setDisplayStreams(result.streams);
+    },
+    [configuredStreamIds],
+  );
 
   useEffect(() => {
     if (!isMockDisplay) return;
@@ -338,16 +366,12 @@ export const DataRepositoryProvider = ({
         timestamp: Date.now(),
       };
 
-      const streamIds = playerDefinitions
-        .map((definition) => getPlayerStreamId(definition))
-        .filter((streamId): streamId is string => streamId !== null);
-
       const next: Record<string, DisplayState> = {};
-      for (const streamId of streamIds) {
+      for (const streamId of configuredStreamIds) {
         next[streamId] = reading;
       }
 
-      setDisplayStreams(next);
+      applyDisplayStreams(next);
       setDisplayLoaded(true);
       mockSecondsRef.current = sec + 2;
     };
@@ -355,7 +379,7 @@ export const DataRepositoryProvider = ({
     mockTick();
     const timer = setInterval(mockTick, 2000);
     return () => clearInterval(timer);
-  }, [isMockDisplay, playerDefinitions]);
+  }, [isMockDisplay, configuredStreamIds, applyDisplayStreams]);
 
   useEffect(() => {
     if (isMockDisplay) return;
@@ -364,11 +388,11 @@ export const DataRepositoryProvider = ({
       fetch("/api/display")
         .then((res) => (res.ok ? res.json() : null))
         .then((data: unknown) => {
-          setDisplayStreams(data ? normalizeDisplayResponse(data) : {});
+          applyDisplayStreams(data ? normalizeDisplayResponse(data) : {});
           setDisplayLoaded(true);
         })
         .catch(() => {
-          setDisplayStreams({});
+          applyDisplayStreams({});
           setDisplayLoaded(true);
         });
     };
@@ -376,7 +400,7 @@ export const DataRepositoryProvider = ({
     fetchDisplay();
     const timer = setInterval(fetchDisplay, 1000);
     return () => clearInterval(timer);
-  }, [isMockDisplay]);
+  }, [isMockDisplay, applyDisplayStreams]);
 
   const selectedPlayerDefinition = playerDefinitions.find(
     (definition) => definition.remoteIndex === selectedPlayer,

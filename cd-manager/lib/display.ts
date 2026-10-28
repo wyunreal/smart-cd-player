@@ -181,3 +181,80 @@ export const selectDisplayError = (
 
   return errored[0] ?? null;
 };
+
+/** Number of consecutive failing /display readings before an error surfaces. */
+export const DISPLAY_ERROR_THRESHOLD = 10;
+
+export type DisplayDebounceState = {
+  /** Last successful reading per stream, used while errors are transient. */
+  lastGood: Record<string, DisplayState>;
+  /** Consecutive failed readings per stream. */
+  errorStreaks: Record<string, number>;
+};
+
+export const createDisplayDebounceState = (): DisplayDebounceState => ({
+  lastGood: {},
+  errorStreaks: {},
+});
+
+/**
+ * Keep the last successful reading while /display fails transiently. A real
+ * error (or a stream that disappears) only surfaces after
+ * DISPLAY_ERROR_THRESHOLD consecutive failures for that stream.
+ */
+export const debounceDisplayStreams = (
+  next: Record<string, DisplayState>,
+  streamIds: string[],
+  previous: DisplayDebounceState,
+  now: number = Date.now(),
+): {
+  streams: Record<string, DisplayState>;
+  state: DisplayDebounceState;
+} => {
+  const lastGood = { ...previous.lastGood };
+  const errorStreaks = { ...previous.errorStreaks };
+  const streams: Record<string, DisplayState> = {};
+
+  const ids = new Set([
+    ...streamIds,
+    ...Object.keys(next),
+    ...Object.keys(lastGood),
+  ]);
+
+  for (const id of ids) {
+    const reading = next[id];
+
+    if (reading && reading.status !== "error") {
+      errorStreaks[id] = 0;
+      lastGood[id] = reading;
+      streams[id] = reading;
+      continue;
+    }
+
+    const streak = (errorStreaks[id] ?? 0) + 1;
+    errorStreaks[id] = streak;
+
+    if (streak < DISPLAY_ERROR_THRESHOLD) {
+      // Report the data from the last successful call. Only when there has
+      // never been a successful reading fall back to an empty starting state.
+      streams[id] = lastGood[id] ?? {
+        status: "starting",
+        mode: "off",
+        disc: null,
+        track: null,
+        minutes: null,
+        seconds: null,
+        timestamp: now,
+      };
+      continue;
+    }
+
+    if (reading) {
+      streams[id] = reading;
+    }
+    // A stream missing from the response stays omitted after the threshold,
+    // so getMissingStreams can report it.
+  }
+
+  return { streams, state: { lastGood, errorStreaks } };
+};
