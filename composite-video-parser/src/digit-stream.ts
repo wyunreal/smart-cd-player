@@ -52,6 +52,31 @@ export interface CreateDigitStreamOptions {
 const PAUSE_DETECT_MS = 2000;
 
 /**
+ * Default minimum RGB component for the mode pixel to count as the stopped
+ * screen. Each stream can override it with `modeThreshold`.
+ */
+export const DEFAULT_MODE_STOPPED_MIN_RGB = 150;
+
+export const isModePixelStopped = (
+  frame: Buffer,
+  width: number,
+  x: number,
+  y: number,
+  threshold: number,
+): boolean => {
+  const offset = (y * width + x) * 3;
+  if (offset + 2 >= frame.length) return false;
+
+  const minRgb = Math.min(
+    frame[offset],
+    frame[offset + 1],
+    frame[offset + 2],
+  );
+
+  return minRgb >= threshold;
+};
+
+/**
  * The Sony changers show a full-screen green MegaStorage splash while they
  * boot. The digit rectangles overlap that splash, so OCR produces random
  * discs/tracks. Sample the frame and ignore it while green dominates.
@@ -99,6 +124,8 @@ export const createDigitStream = ({
   detection,
 }: CreateDigitStreamOptions): DigitStream => {
   const { capture, geometry } = stream;
+  const modeThreshold =
+    stream.modeThreshold ?? DEFAULT_MODE_STOPPED_MIN_RGB;
   const frameProvider: FrameProvider = createFrameProvider(
     toFrameProviderConfig(capture),
     { name: id },
@@ -133,13 +160,7 @@ export const createDigitStream = ({
 
   const isPixelStopped = (frame: Buffer): boolean => {
     const { x, y } = geometry.modePixel;
-    const offset = (y * capture.width + x) * 3;
-    const minRgb = Math.min(
-      frame[offset],
-      frame[offset + 1],
-      frame[offset + 2],
-    );
-    return minRgb > classifier.binarizationThreshold;
+    return isModePixelStopped(frame, capture.width, x, y, modeThreshold);
   };
 
   const getSeconds = (digits: DetectionResult[]): number | null => {

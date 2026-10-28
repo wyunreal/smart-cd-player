@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { isBootSplashFrame } from "../src/digit-stream.js";
+import { isBootSplashFrame, isModePixelStopped } from "../src/digit-stream.js";
 
 const WIDTH = 100;
 const HEIGHT = 100;
@@ -52,5 +52,28 @@ describe("isBootSplashFrame", () => {
       isBootSplashFrame(Buffer.alloc(3), WIDTH, HEIGHT),
       false,
     );
+  });
+});
+
+
+describe("isModePixelStopped", () => {
+  const pixel = (r: number, g: number, b: number) =>
+    Buffer.from([r, g, b]);
+
+  it("uses the per-stream threshold for the stopped grey bar", () => {
+    const grey = pixel(170, 170, 170);
+
+    assert.equal(isModePixelStopped(grey, 1, 0, 0, 150), true);
+    assert.equal(isModePixelStopped(grey, 1, 0, 0, 175), false);
+  });
+
+  it("does not treat the green playing bar as stopped", () => {
+    const green = pixel(0, 155, 57);
+
+    assert.equal(isModePixelStopped(green, 1, 0, 0, 150), false);
+  });
+
+  it("does not read past a short frame", () => {
+    assert.equal(isModePixelStopped(Buffer.alloc(1), 1, 0, 0, 150), false);
   });
 });

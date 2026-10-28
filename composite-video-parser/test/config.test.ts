@@ -115,6 +115,13 @@ describe("config", () => {
     assert.throws(() => validateConfig(config), /binarizationThreshold/);
   });
 
+  it("rejects an invalid modeThreshold", () => {
+    const config = clone();
+    config.streams["player-1"].modeThreshold = 300;
+
+    assert.throws(() => validateConfig(config), /modeThreshold/);
+  });
+
   it("rejects a missing required rect", () => {
     const config = clone();
     delete config.streams["player-1"].geometry.rects["time_4"];

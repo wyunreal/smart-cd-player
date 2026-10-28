@@ -48,6 +48,11 @@ export interface StreamConfig {
   geometry: StreamGeometry;
   classifier?: "onnx" | "template";
   binarizationThreshold?: number;
+  /**
+   * Minimum RGB component for the mode pixel to count as the stopped screen.
+   * Separate from the OCR threshold because each capture has its own levels.
+   */
+  modeThreshold?: number;
 }
 
 export interface ServerConfig {
@@ -322,6 +327,16 @@ export const validateConfig = (config: Config): void => {
     ) {
       throw new Error(
         `[${streamId}] binarizationThreshold must be between 1 and 255`,
+      );
+    }
+    if (
+      stream.modeThreshold !== undefined &&
+      (!isFiniteNumber(stream.modeThreshold) ||
+        stream.modeThreshold <= 0 ||
+        stream.modeThreshold > 255)
+    ) {
+      throw new Error(
+        `[${streamId}] modeThreshold must be between 1 and 255`,
       );
     }
 

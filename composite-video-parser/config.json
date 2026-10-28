@@ -10,6 +10,7 @@
         "brightness": -75,
         "contrast": 240
       },
+      "modeThreshold": 140,
       "geometry": {
         "powerPixel": { "x": 200, "y": 47 },
         "modePixel": { "x": 470, "y": 60 },
@@ -38,6 +39,7 @@
       },
       "classifier": "template",
       "binarizationThreshold": 170,
+      "modeThreshold": 150,
       "geometry": {
         "powerPixel": { "x": 200, "y": 45 },
         "modePixel": { "x": 490, "y": 60 },
