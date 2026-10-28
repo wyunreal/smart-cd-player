@@ -117,10 +117,10 @@ spec:
                   name: {{ .Values.secrets.existingSecret | default (include "cd-manager.fullname" .) }}
                   key: ALLOWED_IMAGE_ORIGINS
           volumeMounts:
-            - name: avahi-daemon-socket
-              mountPath: /var/run/avahi-daemon/socket
-            - name: dbus-socket
-              mountPath: /var/run/dbus/system_bus_socket
+            - name: avahi-run
+              mountPath: /run/avahi-daemon
+            - name: dbus-run
+              mountPath: /run/dbus
             {{- if .Values.persistence.enabled }}
             - name: data
               mountPath: {{ .Values.env.DATA_DIR }}
@@ -144,12 +144,14 @@ spec:
               mountPath: {{ .Values.filebrowser.settings.root }}
         {{- end }}
       volumes:
-        - name: avahi-daemon-socket
+        - name: avahi-run
           hostPath:
-            path: /var/run/avahi-daemon/socket
-        - name: dbus-socket
+            path: /run/avahi-daemon
+            type: Directory
+        - name: dbus-run
           hostPath:
-            path: /var/run/dbus/system_bus_socket
+            path: /run/dbus
+            type: Directory
         {{- if .Values.persistence.enabled }}
         - name: data
           persistentVolumeClaim:

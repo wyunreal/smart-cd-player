@@ -29,6 +29,13 @@ WORKDIR /app
 
 USER root
 RUN apk add --no-cache ffmpeg
+
+# v4l-utils is not packaged by Chainguard/Wolfi. v4l2-ctl is prebuilt and
+# stored in vendor/v4l2-ctl; copy it locally, no package manager involved.
+COPY vendor/v4l2-ctl/bin/v4l2-ctl /usr/local/bin/v4l2-ctl
+COPY vendor/v4l2-ctl/lib/ /usr/local/lib/v4l/
+ENV LD_LIBRARY_PATH=/usr/local/lib/v4l
+RUN v4l2-ctl --version
 USER node
 
 ENV NODE_ENV=production

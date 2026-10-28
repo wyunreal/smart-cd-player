@@ -42,6 +42,15 @@ export const createDeviceProvider = (
           `(brightness=${brightness}, contrast=${contrast})`,
       );
     } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        // v4l2-ctl is not available in the runtime image; capture with the
+        // device defaults instead of failing/opening another device.
+        console.warn(
+          `${logPrefix}[v4l2] v4l2-ctl not available; using capture defaults`,
+        );
+        return;
+      }
+
       const msg = err instanceof Error ? err.message : String(err);
       console.warn(`${logPrefix}[v4l2] failed to reset controls: ${msg}`);
     }

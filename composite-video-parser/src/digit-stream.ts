@@ -10,7 +10,6 @@ import type {
 import { toFrameProviderConfig, toRectConfigs } from "./config.js";
 import {
   createDigitDetector,
-  detectWithRetry,
   type DetectionResult,
 } from "./digit-detector.js";
 import { createFrameProvider } from "./frame-provider-factory.js";
@@ -194,10 +193,6 @@ export const createDigitStream = ({
       : "playing";
   };
 
-  const randomRetryDelay = (): number =>
-    detection.retryDelayMinMs +
-    Math.random() * (detection.retryDelayMaxMs - detection.retryDelayMinMs);
-
   const setState = (next: DigitState): void => {
     state = next;
     resolveFreshListeners();
@@ -231,18 +226,19 @@ export const createDigitStream = ({
     }
 
     try {
-      const digits = await detectWithRetry(
-        frame,
-        detector,
-        () => frameProvider.captureFrame(),
-        capture.width,
-        capture.height,
-        detection.minDigitConfidenceMargin,
-        () =>
-          new Promise<void>((resolve) =>
-            setTimeout(resolve, randomRetryDelay()),
-          ),
+      const digits = await detector.detect(frame, capture.width, capture.height);
+      const allConfident = digits.every(
+        (digit) =>
+          digit.confidence >= detection.minDigitConfidenceMargin,
       );
+
+      if (!allConfident) {
+        // Keep the last valid reading. The next frame from the continuous
+        // stream is the useful retry; re-running the same pixels would return
+        // the same result and must not open another capture of the device.
+        lastError = null;
+        return;
+      }
 
       const mode = detectMode(digits);
       lastError = null;

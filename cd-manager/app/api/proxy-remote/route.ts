@@ -57,6 +57,7 @@ const fetchRemote = async (targetUrl: string): Promise<Response> => {
   try {
     return await fetch(targetUrl, {
       signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS),
+      cache: "no-store",
     });
   } catch (error) {
     const target = new URL(targetUrl);
@@ -81,6 +82,7 @@ const fetchRemote = async (targetUrl: string): Promise<Response> => {
 
     return fetch(resolved.toString(), {
       signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS),
+      cache: "no-store",
     });
   }
 };
@@ -120,6 +122,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": contentType || "application/json",
+        "Cache-Control": "no-store",
       },
     });
   } catch (error) {

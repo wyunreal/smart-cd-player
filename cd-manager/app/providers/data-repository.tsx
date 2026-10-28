@@ -207,7 +207,8 @@ export const DataRepositoryProvider = ({
 
   useEffect(() => {
     const clients: (IrRemoteClient | null)[] = [];
-    const initPromises: Promise<void>[] = [];
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
 
     playerDefinitions.forEach((def) => {
       // Skip initialization if player is not active or missing URL
@@ -215,23 +216,9 @@ export const DataRepositoryProvider = ({
         return;
       }
 
-      const client = createIrRemoteClient(def);
-      const initPromise = client
-        .init()
-        .then(() => {
-          // Force update when a client initializes
-          setIrClientsVersion((v) => v + 1);
-        })
-        .catch((err) =>
-          console.warn(
-            `IR Remote Client init failed for player ${def.remoteIndex}:`,
-            err,
-          ),
-        );
-      initPromises.push(initPromise);
       // Keep the remote index as the slot; otherwise disabling one player
       // shifts every later client and commands go to the wrong device.
-      clients[def.remoteIndex - 1] = client;
+      clients[def.remoteIndex - 1] = createIrRemoteClient(def);
     });
 
     for (let index = 0; index < clients.length; index++) {
@@ -240,10 +227,36 @@ export const DataRepositoryProvider = ({
 
     setIrRemoteClients(clients);
 
-    // Also force update when all done, just in case
-    Promise.allSettled(initPromises).then(() =>
-      setIrClientsVersion((v) => v + 1),
-    );
+    const initAll = async () => {
+      if (cancelled) return;
+
+      const activeClients = clients.filter(
+        (client): client is IrRemoteClient => client !== null,
+      );
+      const results = await Promise.all(
+        activeClients.map((client) => client.init()),
+      );
+
+      if (cancelled) return;
+
+      // Force update after every attempt so the UI reflects new commands.
+      setIrClientsVersion((v) => v + 1);
+
+      // After a redeploy the first request can race with mDNS/D-Bus startup;
+      // keep retrying instead of requiring a hard refresh.
+      if (results.some((success) => !success)) {
+        retryTimer = setTimeout(() => {
+          void initAll();
+        }, 10000);
+      }
+    };
+
+    void initAll();
+
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [playerDefinitions]);
 
   /**
@@ -385,7 +398,7 @@ export const DataRepositoryProvider = ({
     if (isMockDisplay) return;
 
     const fetchDisplay = () => {
-      fetch("/api/display")
+      fetch("/api/display", { cache: "no-store" })
         .then((res) => (res.ok ? res.json() : null))
         .then((data: unknown) => {
           applyDisplayStreams(data ? normalizeDisplayResponse(data) : {});

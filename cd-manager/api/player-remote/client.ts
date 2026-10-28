@@ -11,7 +11,8 @@ export type IrCommandSequenceItem = {
 };
 
 export type IrRemoteClient = {
-    init: () => Promise<void>;
+    /** Returns true when the command list was fetched successfully. */
+    init: () => Promise<boolean>;
     sendOrder: (sequence: IrCommandSequenceItem[]) => Promise<boolean>;
     isCommandSupported: (command: PlayerCommand) => boolean;
     canExecuteSequence: (sequence: IrCommandSequenceItem[]) => boolean;
@@ -55,10 +56,10 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
         return `/api/proxy-remote?${params.toString()}`;
     };
 
-    const init = async (): Promise<void> => {
+    const init = async (): Promise<boolean> => {
         if (!definition.irCommandsUrl) {
             console.warn("IR Remote Client: No irCommandsUrl configured.");
-            return;
+            return false;
         }
 
         // Attempt to extract device name from send URL
@@ -67,12 +68,14 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
             if (definition.active) {
                 console.warn("IR Remote Client: Could not determine device name from irSendCommandUrl.");
             }
-            return;
+            return false;
         }
 
         try {
             // Use Proxy
-            const response = await fetch(getProxyUrl(definition.irCommandsUrl));
+            const response = await fetch(getProxyUrl(definition.irCommandsUrl), {
+                cache: "no-store",
+            });
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch commands: ${response.status} ${response.statusText}`);
@@ -95,11 +98,14 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
                         }
                     }
                 });
-            } else {
-                console.warn("IR Remote Client: Invalid response format", data);
+                return true;
             }
+
+            console.warn("IR Remote Client: Invalid response format", data);
+            return false;
         } catch (error) {
              handleNetworkError(error, "fetching commands");
+             return false;
         }
     };
 
@@ -123,6 +129,7 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
                 // Use Proxy
                 const response = await fetch(getProxyUrl(url.toString()), {
                     method: "GET",
+                    cache: "no-store",
                 });
 
                 if (!response.ok) {

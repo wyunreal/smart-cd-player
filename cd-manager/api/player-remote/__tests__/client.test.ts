@@ -42,7 +42,9 @@ describe("IrRemoteClient", () => {
         await client.init();
 
         const expectedUrl = `/api/proxy-remote?url=${encodeURIComponent(COMMANDS_URL)}`;
-        expect(mockFetch).toHaveBeenCalledWith(expectedUrl);
+        expect(mockFetch).toHaveBeenCalledWith(expectedUrl, {
+            cache: "no-store",
+        });
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(true);
         expect(client.isCommandSupported(PlayerCommand.Pause)).toBe(true);
         expect(client.isCommandSupported(PlayerCommand.Stop)).toBe(false); // OtherDevice
@@ -111,7 +113,9 @@ describe("IrRemoteClient", () => {
         await client.init();
 
         const expectedUrl = `/api/proxy-remote?url=${encodeURIComponent(COMMANDS_URL)}`;
-        expect(mockFetch).toHaveBeenCalledWith(expectedUrl);
+        expect(mockFetch).toHaveBeenCalledWith(expectedUrl, {
+            cache: "no-store",
+        });
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(false);
     });
 
@@ -254,7 +258,9 @@ describe("IrRemoteClient", () => {
         await client.init();
 
         const expectedUrl = `/api/proxy-remote?url=${encodeURIComponent("/api/commands")}`;
-        expect(mockFetch).toHaveBeenCalledWith(expectedUrl);
+        expect(mockFetch).toHaveBeenCalledWith(expectedUrl, {
+            cache: "no-store",
+        });
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(true);
     });
 });
@@ -264,7 +270,7 @@ describe("sendPowerToAllPlayers", () => {
         supportsPower: boolean,
         sendOrder = jest.fn().mockResolvedValue(true),
     ): IrRemoteClient => ({
-        init: jest.fn().mockResolvedValue(undefined),
+        init: jest.fn().mockResolvedValue(true),
         sendOrder,
         isCommandSupported: (command) =>
             supportsPower && command === PlayerCommand.PowerSwitch,
