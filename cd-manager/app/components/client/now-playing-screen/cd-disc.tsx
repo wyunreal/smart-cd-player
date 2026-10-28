@@ -23,6 +23,11 @@ const DISC_IMAGE_EDGE_CROP_PX = 16;
 /** How long the disc takes to drop into the tray / rise back out of it. */
 const DISC_ENTER_MS = 560;
 const DISC_EXIT_MS = 480;
+/**
+ * Short head start for the spindle cap: the disc only starts travelling once
+ * the cap has begun lifting off, so the release reads before the disc moves.
+ */
+const DISC_TRAVEL_DELAY_MS = 140;
 /** Offsets that keep the disc fully out of sight above the tray. */
 const DISC_HIDDEN_TRANSFORM = "translate3d(0, -115%, 0)";
 const DISC_RESTING_TRANSFORM = "translate3d(0, 0, 0)";
@@ -243,7 +248,7 @@ const CdDisc = ({ imageSrc, mode, onPhaseChange }: CdDiscProps) => {
     if (phase === "entering") {
       const timer = setTimeout(
         () => setPhase("present"),
-        reduceMotion ? 0 : DISC_ENTER_MS,
+        reduceMotion ? 0 : DISC_TRAVEL_DELAY_MS + DISC_ENTER_MS,
       );
       return () => clearTimeout(timer);
     }
@@ -251,7 +256,7 @@ const CdDisc = ({ imageSrc, mode, onPhaseChange }: CdDiscProps) => {
     if (phase === "leaving") {
       const timer = setTimeout(
         () => setPhase("hidden"),
-        reduceMotion ? 0 : DISC_EXIT_MS,
+        reduceMotion ? 0 : DISC_TRAVEL_DELAY_MS + DISC_EXIT_MS,
       );
       return () => clearTimeout(timer);
     }
@@ -374,215 +379,233 @@ const CdDisc = ({ imageSrc, mode, onPhaseChange }: CdDiscProps) => {
 
   const rimHighlight = alpha(white, isDark ? 0.28 : 0.9);
   const isInTray = phase === "entering" || phase === "present";
+  /**
+   * The cap lifts off the screen as soon as either travel starts and only
+   * presses back down once the disc is fully in place (or fully gone), which
+   * reads as the spindle releasing/grabbing the disc.
+   */
+  const hubLifted = phase === "entering" || phase === "leaving";
   const discShadow = theme.shadows[8];
 
   return (
     <Box
       aria-hidden="true"
-      data-cd-disc=""
       sx={{
         position: "relative",
         width: "100%",
         aspectRatio: "1",
         pointerEvents: "none",
-        // Drop the disc from above the tray without rotating, and send it back
-        // up once the player stops. Opacity keeps it invisible while parked
-        // and hides the moment it crosses the header on its way out.
-        transform: isInTray ? DISC_RESTING_TRANSFORM : DISC_HIDDEN_TRANSFORM,
-        opacity: isInTray ? 1 : 0,
-        transition: isInTray
-          ? `transform ${DISC_ENTER_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 240ms ease-out`
-          : `transform ${DISC_EXIT_MS}ms cubic-bezier(0.55, 0, 0.85, 0.35), opacity 300ms ease-in 180ms`,
-        willChange: "transform, opacity",
-        "@media (prefers-reduced-motion: reduce)": {
-          transition: "none",
-        },
       }}
     >
-      {/* Ambient glow around the disc */}
+      {/* Moving layer: only the disc travels. The spindle cap is a sibling
+          below, pinned to the wrapper, so the disc slides down onto it. */}
       <Box
+        data-cd-disc=""
         sx={{
           position: "absolute",
           inset: 0,
-          borderRadius: "50%",
-          background: `radial-gradient(circle, ${alpha(
-            accent,
-            isDark ? 0.35 : 0.22,
-          )} 0%, ${alpha(accent, isDark ? 0.18 : 0.12)} 35%, ${alpha(
-            accent,
-            0.04,
-          )} 55%, transparent 75%)`,
-          opacity: 0.8,
           pointerEvents: "none",
-        }}
-      />
-
-      {/* Rim and metallic edge */}
-      <Box
-        sx={{
-          position: "relative",
-          width: "100%",
-          height: "100%",
-          borderRadius: "50%",
-          background: discRim,
-          border: `1px solid ${rimHighlight}`,
-          boxShadow: discShadow,
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            inset: "0.7%",
-            borderRadius: "50%",
-            border: `1px solid ${rimHighlight}`,
-            opacity: 0.55,
-            pointerEvents: "none",
+          // Drop the disc from above the tray without rotating, and send it back
+          // up once the player stops. Opacity keeps it invisible while parked
+          // and hides the moment it crosses the header on its way out.
+          transform: isInTray ? DISC_RESTING_TRANSFORM : DISC_HIDDEN_TRANSFORM,
+          opacity: isInTray ? 1 : 0,
+          transition: isInTray
+            ? `transform ${DISC_ENTER_MS}ms cubic-bezier(0.4, 0, 0.2, 1) ${DISC_TRAVEL_DELAY_MS}ms, opacity 240ms ease-out`
+            : `transform ${DISC_EXIT_MS}ms cubic-bezier(0.55, 0, 0.85, 0.35) ${DISC_TRAVEL_DELAY_MS}ms, opacity 300ms ease-in 180ms`,
+          willChange: "transform, opacity",
+          "@media (prefers-reduced-motion: reduce)": {
+            transition: "none",
           },
         }}
       >
-        {/* Static clipping frame. The rotating face is a square whose
-            transformed bounding box grows while it spins, so it must be
-            clipped here to keep it from extending the page's scrollable
-            area (which flickered a horizontal scrollbar). */}
+        {/* Ambient glow around the disc */}
         <Box
           sx={{
             position: "absolute",
-            inset: "2.2%",
+            inset: 0,
             borderRadius: "50%",
-            overflow: "hidden",
-            contain: "paint",
+            background: `radial-gradient(circle, ${alpha(
+              accent,
+              isDark ? 0.35 : 0.22,
+            )} 0%, ${alpha(accent, isDark ? 0.18 : 0.12)} 35%, ${alpha(
+              accent,
+              0.04,
+            )} 55%, transparent 75%)`,
+            opacity: 0.8,
             pointerEvents: "none",
           }}
+        />
+
+        {/* Rim and metallic edge */}
+        <Box
+          sx={{
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            borderRadius: "50%",
+            background: discRim,
+            border: `1px solid ${rimHighlight}`,
+            boxShadow: discShadow,
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              inset: "0.7%",
+              borderRadius: "50%",
+              border: `1px solid ${rimHighlight}`,
+              opacity: 0.55,
+              pointerEvents: "none",
+            },
+          }}
         >
-          {/* Rotating face: the album art and its iridescent treatment */}
+          {/* Static clipping frame. The rotating face is a square whose
+            transformed bounding box grows while it spins, so it must be
+            clipped here to keep it from extending the page's scrollable
+            area (which flickered a horizontal scrollbar). */}
           <Box
-            ref={faceRef}
             sx={{
               position: "absolute",
-              inset: 0,
-              transformOrigin: "50% 50%",
-              backfaceVisibility: "hidden",
-              isolation: "isolate",
-              animation: `${spin} ${DISC_SPIN_SECONDS}s linear infinite`,
-              animationPlayState: spinAnimationRunning ? "running" : "paused",
-              willChange: "transform",
-              "@media (prefers-reduced-motion: reduce)": {
-                animation: "none",
-              },
+              inset: "2.2%",
+              borderRadius: "50%",
+              overflow: "hidden",
+              contain: "paint",
+              pointerEvents: "none",
             }}
           >
-            {/* Sharp face, with the motion-blurred copy crossfading on top as
-                the disc spins up. Once the fade finishes only one layer is
-                mounted, so the rotating face paints a single texture. */}
+            {/* Rotating face: the album art and its iridescent treatment */}
             <Box
+              ref={faceRef}
               sx={{
                 position: "absolute",
-                inset: `-${DISC_IMAGE_EDGE_CROP_PX}px`,
-                pointerEvents: "none",
+                inset: 0,
+                transformOrigin: "50% 50%",
+                backfaceVisibility: "hidden",
+                isolation: "isolate",
+                animation: `${spin} ${DISC_SPIN_SECONDS}s linear infinite`,
+                animationPlayState: spinAnimationRunning ? "running" : "paused",
+                willChange: "transform",
+                "@media (prefers-reduced-motion: reduce)": {
+                  animation: "none",
+                },
               }}
             >
-              {faceTexture !== "blurred" && (
-                <img
-                  src={faceSrc}
-                  alt=""
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-              )}
-              {faceTexture !== "sharp" && (
-                <img
-                  ref={(node) => {
-                    blurredFaceRef.current = node;
-                    if (node) node.style.opacity = String(spinRateRef.current);
-                  }}
-                  src={blurredSrc ?? faceSrc}
-                  alt=""
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "block",
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-              )}
-            </Box>
+              {/* Sharp face, with the motion-blurred copy crossfading on top as
+                the disc spins up. Once the fade finishes only one layer is
+                mounted, so the rotating face paints a single texture. */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: `-${DISC_IMAGE_EDGE_CROP_PX}px`,
+                  pointerEvents: "none",
+                }}
+              >
+                {faceTexture !== "blurred" && (
+                  <img
+                    src={faceSrc}
+                    alt=""
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                )}
+                {faceTexture !== "sharp" && (
+                  <img
+                    ref={(node) => {
+                      blurredFaceRef.current = node;
+                      if (node)
+                        node.style.opacity = String(spinRateRef.current);
+                    }}
+                    src={blurredSrc ?? faceSrc}
+                    alt=""
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "block",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                )}
+              </Box>
 
-            {/* All face effects are baked into the rotating layer, so the
+              {/* All face effects are baked into the rotating layer, so the
               compositor rotates a single texture instead of blending several
               static layers over a moving backdrop. */}
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                background: `conic-gradient(from 215deg at 50% 50%, transparent 0deg, ${alpha(
-                  extra[1],
-                  0.32,
-                )} 32deg, ${alpha(white, 0.5)} 60deg, ${alpha(
-                  extra[4],
-                  0.26,
-                )} 92deg, transparent 132deg, transparent 206deg, ${alpha(
-                  extra[2],
-                  0.28,
-                )} 246deg, ${alpha(extra[3], 0.24)} 274deg, ${alpha(
-                  white,
-                  0.38,
-                )} 304deg, transparent 344deg)`,
-                opacity: isDark ? 0.72 : 0.6,
-                pointerEvents: "none",
-              }}
-            />
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                background: `radial-gradient(circle at 50% 42%, ${alpha(
-                  white,
-                  0.32,
-                )} 0%, ${alpha(white, 0.08)} 34%, transparent 62%)`,
-                opacity: 0.55,
-                pointerEvents: "none",
-              }}
-            />
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                background: `linear-gradient(118deg, transparent 16%, ${alpha(
-                  white,
-                  0.16,
-                )} 38%, ${alpha(white, 0.38)} 45%, ${alpha(
-                  white,
-                  0.05,
-                )} 51%, transparent 58%, transparent 72%, ${alpha(
-                  white,
-                  0.12,
-                )} 86%, transparent 94%)`,
-                opacity: isDark ? 0.75 : 0.6,
-                pointerEvents: "none",
-              }}
-            />
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: "50%",
-                boxShadow: `inset 0 0 26px ${alpha(
-                  black,
-                  0.35,
-                )}, inset 0 0 2px ${alpha(white, 0.35)}`,
-                pointerEvents: "none",
-              }}
-            />
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  background: `conic-gradient(from 215deg at 50% 50%, transparent 0deg, ${alpha(
+                    extra[1],
+                    0.32,
+                  )} 32deg, ${alpha(white, 0.5)} 60deg, ${alpha(
+                    extra[4],
+                    0.26,
+                  )} 92deg, transparent 132deg, transparent 206deg, ${alpha(
+                    extra[2],
+                    0.28,
+                  )} 246deg, ${alpha(extra[3], 0.24)} 274deg, ${alpha(
+                    white,
+                    0.38,
+                  )} 304deg, transparent 344deg)`,
+                  opacity: isDark ? 0.72 : 0.6,
+                  pointerEvents: "none",
+                }}
+              />
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  background: `radial-gradient(circle at 50% 42%, ${alpha(
+                    white,
+                    0.32,
+                  )} 0%, ${alpha(white, 0.08)} 34%, transparent 62%)`,
+                  opacity: 0.55,
+                  pointerEvents: "none",
+                }}
+              />
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  background: `linear-gradient(118deg, transparent 16%, ${alpha(
+                    white,
+                    0.16,
+                  )} 38%, ${alpha(white, 0.38)} 45%, ${alpha(
+                    white,
+                    0.05,
+                  )} 51%, transparent 58%, transparent 72%, ${alpha(
+                    white,
+                    0.12,
+                  )} 86%, transparent 94%)`,
+                  opacity: isDark ? 0.75 : 0.6,
+                  pointerEvents: "none",
+                }}
+              />
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "50%",
+                  boxShadow: `inset 0 0 26px ${alpha(
+                    black,
+                    0.35,
+                  )}, inset 0 0 2px ${alpha(white, 0.35)}`,
+                  pointerEvents: "none",
+                }}
+              />
+            </Box>
           </Box>
         </Box>
-
-        {/* Static spindle cap */}
-        <CdHub />
       </Box>
+
+      {/* Spindle cap: always in its slot, lifting off the screen while the
+          disc travels and pressing back down once it has landed. */}
+      <CdHub lifted={hubLifted} />
     </Box>
   );
 };
