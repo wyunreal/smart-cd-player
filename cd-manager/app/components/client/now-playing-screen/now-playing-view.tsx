@@ -15,7 +15,7 @@ import {
 import { alpha } from "@mui/material/styles";
 import { AlbumIcon, ListIcon } from "@/app/icons";
 import ResponsiveDialog from "../dialog/responsive-dialog";
-import CdDisc from "./cd-disc";
+import CdDisc, { type DiscPhase } from "./cd-disc";
 import PlaybackControls from "./playback-controls";
 import type {
   NowPlayingAlbumView,
@@ -302,10 +302,46 @@ const NowPlayingView = ({
     height: number;
   } | null>(null);
 
-  const { album, track, tracks, mode, volume, muted } = data;
+  const { hasDisc, album, track, tracks, mode, volume, muted } = data;
+
+  const isPresent = mode === "playing" || mode === "paused";
+  const [discPhase, setDiscPhase] = useState<DiscPhase>(
+    isPresent ? "present" : "hidden",
+  );
+
+  // Keep the outgoing disc's cover and metadata until its slow-down and exit
+  // animation finish, following the same phase as the disc itself.
+  const [displayedInfo, setDisplayedInfo] = useState({
+    hasDisc,
+    album,
+    track,
+    tracks,
+  });
+  const latestInfoRef = useRef({ hasDisc, album, track, tracks });
+  latestInfoRef.current = { hasDisc, album, track, tracks };
+  const infoSignature = JSON.stringify({ hasDisc, album, track, tracks });
+  const freezeInfo = !isPresent && discPhase !== "hidden";
+
+  // Never replace a real disc with the "No disc" placeholder. The new data is
+  // adopted when the next disc is in the tray/entry, or immediately if there
+  // was no previous disc info.
+  const canApplyInfo =
+    !freezeInfo &&
+    (hasDisc
+      ? !displayedInfo.hasDisc || isPresent || discPhase === "entering"
+      : !displayedInfo.hasDisc);
+
+  useEffect(() => {
+    if (!canApplyInfo) return;
+    setDisplayedInfo(latestInfoRef.current);
+  }, [infoSignature, canApplyInfo]);
+
+  const viewAlbum = displayedInfo.album;
+  const viewTrack = displayedInfo.track;
+  const viewTracks = displayedInfo.tracks;
 
   const discImage =
-    album.discArt || album.coverArt || "/cd-placeholder-big.png";
+    viewAlbum.discArt || viewAlbum.coverArt || "/cd-placeholder-big.png";
 
   // Wide layouts can clip the disc on the right to keep the album column at
   // 500px. Mark the cut with a thin vertical highlight only when it happens.
@@ -445,7 +481,11 @@ const NowPlayingView = ({
             justifyContent: "center",
           }}
         >
-          <CdDisc imageSrc={discImage} mode={mode} />
+          <CdDisc
+            imageSrc={discImage}
+            mode={mode}
+            onPhaseChange={setDiscPhase}
+          />
         </Box>
 
         <Box
@@ -459,8 +499,8 @@ const NowPlayingView = ({
           }}
         >
           <AlbumPanel
-            album={album}
-            track={track}
+            album={viewAlbum}
+            track={viewTrack}
             onOpenTracks={() => setTracksOpen(true)}
           />
         </Box>
@@ -468,7 +508,7 @@ const NowPlayingView = ({
 
       <Box sx={{ mt: { xs: 3, sm: 4, lg: 4, xl: 5 } }}>
         <PlaybackControls
-          track={track}
+          track={viewTrack}
           mode={mode}
           volume={volume}
           muted={muted}
@@ -481,13 +521,13 @@ const NowPlayingView = ({
       <ResponsiveDialog
         isOpen={tracksOpen}
         onClose={() => setTracksOpen(false)}
-        title={album.title}
+        title={viewAlbum.title}
       >
         <List disablePadding>
-          {tracks.map((item, index) => (
+          {viewTracks.map((item, index) => (
             <Box key={item.number}>
               <ListItemButton
-                selected={track?.number === item.number}
+                selected={viewTrack?.number === item.number}
                 onClick={() => {
                   actions.onSelectTrack(index);
                   setTracksOpen(false);
@@ -495,7 +535,7 @@ const NowPlayingView = ({
               >
                 <ListItemText primary={`${item.number}. ${item.title}`} />
               </ListItemButton>
-              {index < tracks.length - 1 && <Divider />}
+              {index < viewTracks.length - 1 && <Divider />}
             </Box>
           ))}
         </List>

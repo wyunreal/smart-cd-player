@@ -29,6 +29,8 @@ export type NowPlayingTrackListItem = {
 };
 
 export type NowPlayingViewData = {
+  /** True when the player currently has a disc loaded. */
+  hasDisc: boolean;
   album: NowPlayingAlbumView;
   track: NowPlayingTrackView | null;
   tracks: NowPlayingTrackListItem[];

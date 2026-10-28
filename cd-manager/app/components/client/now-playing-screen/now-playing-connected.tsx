@@ -240,6 +240,7 @@ const NowPlayingConnected = () => {
     cd?.art?.cd?.uri || cd?.art?.cd?.uri150 || albumArt;
 
   const data: NowPlayingViewData = {
+    hasDisc: cd != null,
     album: cd
       ? {
           title:

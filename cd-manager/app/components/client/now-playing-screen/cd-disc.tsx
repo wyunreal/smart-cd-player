@@ -24,7 +24,7 @@ const DISC_RESTING_TRANSFORM = "translate3d(0, 0, 0)";
  * The disc is only in the tray while the player is playing or paused. The
  * "stopped" and "off" states park it above the tray, out of view.
  */
-type DiscPhase = "hidden" | "entering" | "present" | "leaving";
+export type DiscPhase = "hidden" | "entering" | "present" | "leaving";
 
 /**
  * Which face textures are mounted. Both exist only while crossfading; once
@@ -64,9 +64,11 @@ type CdDiscProps = {
   imageSrc: string;
   /** Playback mode drives both the drop/exit cycle and the rotation. */
   mode: DisplayMode;
+  /** Reports the internal placement phase so the panel can follow it. */
+  onPhaseChange?: (phase: DiscPhase) => void;
 };
 
-const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
+const CdDisc = ({ imageSrc, mode, onPhaseChange }: CdDiscProps) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const accent = theme.palette.primary.main;
@@ -195,6 +197,10 @@ const CdDisc = ({ imageSrc, mode }: CdDiscProps) => {
       query.removeEventListener("change", update);
     };
   }, []);
+
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
 
   // Playback start drops the disc in; stopping lets it slow down in place and
   // only then sends it back up.
