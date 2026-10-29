@@ -25,7 +25,7 @@ const HUB_CONTACT_MS = 600;
 const HUB_TILT_MAX_DEG = 7;
 const HUB_TILT_INTERVAL_MS = 80;
 /** Smoothing applied to the pointer-driven rotation. */
-const HUB_TILT_MS = 140;
+export const HUB_TILT_MS = 140;
 
 const HUB_RESTING_SHADOW =
   "0 9px 18px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.35), inset 0 -1px 2px rgba(0,0,0,0.35)";
@@ -35,6 +35,8 @@ const HUB_LIFTED_SHADOW =
 type CdHubProps = {
   /** True while the disc is travelling, i.e. the cap is off the screen. */
   lifted?: boolean;
+  /** Reports the pointer-driven angle so the tray floor can follow it. */
+  onTilt?: (angle: number) => void;
 };
 
 /**
@@ -63,7 +65,7 @@ const visibleCircleRatio = (
   return (areaAt(y2) - areaAt(y1)) / (Math.PI * radius * radius);
 };
 
-const CdHub = ({ lifted = false }: CdHubProps) => {
+const CdHub = ({ lifted = false, onTilt }: CdHubProps) => {
   const hubRef = useRef<HTMLDivElement | null>(null);
   const logoRef = useRef<HTMLDivElement | null>(null);
   const [logoVisible, setLogoVisible] = useState(false);
@@ -135,6 +137,7 @@ const CdHub = ({ lifted = false }: CdHubProps) => {
       if (hubRef.current) hubRef.current.style.rotate = `${angle}deg`;
       // Counter-rotate the mark so only the metal texture turns.
       if (logoRef.current) logoRef.current.style.rotate = `${-angle}deg`;
+      onTilt?.(angle);
     };
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -159,7 +162,7 @@ const CdHub = ({ lifted = false }: CdHubProps) => {
       window.removeEventListener("pointermove", handlePointerMove);
       if (timer !== null) window.clearTimeout(timer);
     };
-  }, []);
+  }, [onTilt]);
 
   return (
     <Box

@@ -6,7 +6,7 @@ import { Box, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@emotion/react";
 import type { DisplayMode } from "@/api/types";
-import CdHub from "./cd-hub";
+import CdHub, { HUB_TILT_MS } from "./cd-hub";
 
 /** Seconds per revolution at full speed. */
 const DISC_SPIN_SECONDS = 0.2;
@@ -23,6 +23,46 @@ const DISC_IMAGE_EDGE_CROP_PX = 16;
 /** How long the disc takes to drop into the tray / rise back out of it. */
 const DISC_ENTER_MS = 560;
 const DISC_EXIT_MS = 480;
+/**
+ * Width of the static engraved groove around the disc. The groove's outer
+ * radius is this many pixels larger than the disc.
+ */
+const DISC_GROOVE_PX = 4;
+
+/**
+ * Tray floor and groove shading. The light theme uses a cool, polished
+ * silver-blue so the recess reads as a different plane without turning into
+ * a dark grey line; the dark theme keeps its deep metallic shadow.
+ */
+const LIGHT_FLOOR_BACKGROUND =
+  "radial-gradient(circle at 50% 38%, #f7f9fc 0%, #e9eef4 50%, #dbe2ea 100%)";
+const DARK_FLOOR_BACKGROUND =
+  "radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(0, 0, 0, 0.22) 100%)";
+
+const LIGHT_GROOVE_BACKGROUND = `
+  radial-gradient(circle closest-side,
+    rgba(55, 75, 110, 0.34) calc(100% - ${DISC_GROOVE_PX}px),
+    rgba(55, 75, 110, 0.06) calc(100% - 1px)),
+  conic-gradient(from 135deg,
+    rgba(255, 255, 255, 1) 0deg,
+    rgba(185, 200, 220, 0.3) 70deg,
+    rgba(55, 75, 110, 0.34) 180deg,
+    rgba(185, 200, 220, 0.3) 290deg,
+    rgba(255, 255, 255, 1) 360deg),
+  linear-gradient(145deg, #f1f4f8, #cbd4df)
+`;
+const DARK_GROOVE_BACKGROUND = `
+  radial-gradient(circle closest-side,
+    rgba(0, 0, 0, 0.65) calc(100% - ${DISC_GROOVE_PX}px),
+    rgba(0, 0, 0, 0.2) calc(100% - 1px)),
+  conic-gradient(from 135deg,
+    rgba(255, 255, 255, 0.34) 0deg,
+    rgba(255, 255, 255, 0.02) 70deg,
+    rgba(0, 0, 0, 0.7) 180deg,
+    rgba(255, 255, 255, 0.02) 290deg,
+    rgba(255, 255, 255, 0.34) 360deg),
+  linear-gradient(145deg, rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.9))
+`;
 /**
  * Short head start for the spindle cap: the disc only starts travelling once
  * the cap has begun lifting off, so the release reads before the disc moves.
@@ -110,9 +150,19 @@ const CdDisc = ({ imageSrc, mode, onPhaseChange }: CdDiscProps) => {
   );
   const blurredFaceRef = useRef<HTMLImageElement | null>(null);
   const faceRef = useRef<HTMLDivElement | null>(null);
+  const floorRef = useRef<HTMLDivElement | null>(null);
+  const grooveRef = useRef<HTMLDivElement | null>(null);
   /** Current playback rate of the CSS rotation (0 = rest, 1 = full speed). */
   const spinRateRef = useRef(isPresent ? 1 : 0);
   const spinRampFrameRef = useRef<number | null>(null);
+
+  // Let the tray floor and the groove light follow the same pointer-driven
+  // angle as the hub. Only the gradients turn: the ring geometry is circular,
+  // so the border itself stays exactly where it is.
+  const handleTilt = useCallback((angle: number) => {
+    if (floorRef.current) floorRef.current.style.rotate = `${angle}deg`;
+    if (grooveRef.current) grooveRef.current.style.rotate = `${angle}deg`;
+  }, []);
 
   const setSpinRate = useCallback((rate: number) => {
     spinRateRef.current = rate;
@@ -397,6 +447,66 @@ const CdDisc = ({ imageSrc, mode, onPhaseChange }: CdDiscProps) => {
         pointerEvents: "none",
       }}
     >
+      {/* Static engraved groove around the disc. It is 4 px wider in radius
+          than the disc: a dark metallic ring with a light bounce on the lower
+          right and a shadow on the upper left. The gradient turns inside a
+          static circular clip, so neither edge can shimmer. The opaque tray
+          floor below covers the ring's centre and leaves the 4 px ring. */}
+      <Box
+        sx={{
+          position: "absolute",
+          inset: `-${DISC_GROOVE_PX}px`,
+          borderRadius: "50%",
+          overflow: "hidden",
+          pointerEvents: "none",
+        }}
+      >
+        <Box
+          ref={grooveRef}
+          sx={{
+            position: "absolute",
+            inset: 0,
+            background: isDark
+              ? DARK_GROOVE_BACKGROUND
+              : LIGHT_GROOVE_BACKGROUND,
+            transition: `rotate ${HUB_TILT_MS}ms ease-out`,
+            willChange: "rotate",
+            "@media (prefers-reduced-motion: reduce)": {
+              transition: "none",
+            },
+          }}
+        />
+      </Box>
+
+      {/* Recessed floor inside the groove. It is opaque so it covers the
+          centre of the ring, and its own circular edge forms the smooth inner
+          boundary of the groove (a rounded clip, not a hard mask edge). */}
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "50%",
+          overflow: "hidden",
+          pointerEvents: "none",
+        }}
+      >
+        <Box
+          ref={floorRef}
+          sx={{
+            position: "absolute",
+            inset: 0,
+            background: isDark
+              ? `${DARK_FLOOR_BACKGROUND}, ${theme.palette.section.background}`
+              : LIGHT_FLOOR_BACKGROUND,
+            transition: `rotate ${HUB_TILT_MS}ms ease-out`,
+            willChange: "rotate",
+            "@media (prefers-reduced-motion: reduce)": {
+              transition: "none",
+            },
+          }}
+        />
+      </Box>
+
       {/* Moving layer: only the disc travels. The spindle cap is a sibling
           below, pinned to the wrapper, so the disc slides down onto it. */}
       <Box
@@ -406,13 +516,13 @@ const CdDisc = ({ imageSrc, mode, onPhaseChange }: CdDiscProps) => {
           inset: 0,
           pointerEvents: "none",
           // Drop the disc from above the tray without rotating, and send it back
-          // up once the player stops. Opacity keeps it invisible while parked
-          // and hides the moment it crosses the header on its way out.
+          // up once the player stops. Opacity only parks it out of view: while
+          // the disc is leaving it stays fully opaque and simply rides up.
           transform: isInTray ? DISC_RESTING_TRANSFORM : DISC_HIDDEN_TRANSFORM,
-          opacity: isInTray ? 1 : 0,
+          opacity: phase === "hidden" ? 0 : 1,
           transition: isInTray
             ? `transform ${DISC_ENTER_MS}ms cubic-bezier(0.4, 0, 0.2, 1) ${DISC_TRAVEL_DELAY_MS}ms, opacity 240ms ease-out`
-            : `transform ${DISC_EXIT_MS}ms cubic-bezier(0.55, 0, 0.85, 0.35) ${DISC_TRAVEL_DELAY_MS}ms, opacity 300ms ease-in 180ms`,
+            : `transform ${DISC_EXIT_MS}ms cubic-bezier(0.55, 0, 0.85, 0.35) ${DISC_TRAVEL_DELAY_MS}ms, opacity 0ms linear`,
           willChange: "transform, opacity",
           "@media (prefers-reduced-motion: reduce)": {
             transition: "none",
@@ -605,7 +715,7 @@ const CdDisc = ({ imageSrc, mode, onPhaseChange }: CdDiscProps) => {
 
       {/* Spindle cap: always in its slot, lifting off the screen while the
           disc travels and pressing back down once it has landed. */}
-      <CdHub lifted={hubLifted} />
+      <CdHub lifted={hubLifted} onTilt={handleTilt} />
     </Box>
   );
 };
