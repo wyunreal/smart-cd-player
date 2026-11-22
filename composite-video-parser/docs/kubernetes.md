@@ -44,12 +44,22 @@ Example:
 ./scripts/deploy-remote-k3s.sh pi 192.168.1.50
 ```
 
+To remove old `composite-video-parser` image tags after a successful rollout,
+keeping the current and previous versions:
+
+```bash
+./scripts/deploy-remote-k3s.sh --prune pi 192.168.1.50
+```
+
+The script never touches images from other applications.
+
 This script automatically:
 
 1. Bumps the package version (patch)
 2. Builds the Docker image locally
 3. Transfers and imports the image into K3s
 4. Deploys (or upgrades) with Helm
+5. Optionally prunes old `composite-video-parser` image tags with `--prune`
 
 ### Shared Service Configuration
 

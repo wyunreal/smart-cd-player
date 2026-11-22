@@ -97,17 +97,21 @@ The deploy script automatically includes this file via `-f ../../shared-services
 
 ### Helper Scripts
 
-We provide helper scripts in the `scripts/` directory to simplify deployment:
+We provide helper scripts in the `scripts/` directory to simplify deployment.
+Run them from the `cd-manager` directory:
 
--   `./scripts/deploy-k8s.sh`: Deploys (or upgrades) the application. It automatically detects if `secrets.yaml` exists and uses it.
+-   `./scripts/deploy-remote-k3s.sh [--prune] <REMOTE_USER> <REMOTE_HOST>`:
+    Builds the image, imports it into k3s and deploys (or upgrades) with Helm.
+    `--prune` removes old `cd-manager` image tags after a successful rollout,
+    keeping the current and previous versions. It never touches other images.
 -   `./scripts/uninstall-k8s.sh`: Uninstalls the application.
 
 ```bash
 # Deploy
-./scripts/deploy-k8s.sh
+./scripts/deploy-remote-k3s.sh pi 192.168.1.50
 
-# Deploy with extra args (e.g., set NodePort)
-./scripts/deploy-k8s.sh --set service.type=NodePort
+# Deploy and remove old cd-manager images after a successful rollout
+./scripts/deploy-remote-k3s.sh --prune pi 192.168.1.50
 ```
 
 ### Configuration
