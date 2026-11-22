@@ -36,7 +36,7 @@ export const isAllowedProxyUrl = (url: string): boolean => {
       return false;
     }
     // Allow .local mDNS hostnames (local network hardware devices)
-    if (parsed.hostname.endsWith(".local")) {
+    if (parsed.hostname.toLowerCase().endsWith(".local")) {
       return true;
     }
     const allowed = buildAllowedOrigins(

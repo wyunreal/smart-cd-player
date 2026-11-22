@@ -5,6 +5,13 @@ type CommandResponse = {
     commands: string[];
 };
 
+type CommandApiResponse = {
+    ok?: boolean;
+    requestId?: string;
+    code?: string;
+    error?: string;
+};
+
 export type IrCommandSequenceItem = {
     command: PlayerCommand;
     delayAfterMs: number;
@@ -21,13 +28,7 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
     const availableCommands: Set<number> = new Set();
 
     const handleNetworkError = (error: unknown, context: string) => {
-        let message = `IR Remote Client: Network error while ${context}.`;
-
-        if (error instanceof TypeError) {
-            message += " This might be due to Mixed Content (HTTPS calling HTTP) or CORS.";
-            message += " Please ensure your browser allows insecure content for this site.";
-        }
-
+        const message = `IR Remote Client: Network error while ${context}.`;
         console.error(message, error);
     };
 
@@ -51,9 +52,58 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
         }
     };
 
-    const getProxyUrl = (targetUrl: string): string => {
-        const params = new URLSearchParams({ url: targetUrl });
-        return `/api/proxy-remote?${params.toString()}`;
+    const createRequestId = (): string => {
+        if (
+            typeof crypto !== "undefined" &&
+            typeof crypto.randomUUID === "function"
+        ) {
+            return crypto.randomUUID();
+        }
+        return `cmd-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    };
+
+    const timeoutSignal = (ms: number): AbortSignal | undefined => {
+        if (typeof AbortSignal === "undefined") return undefined;
+        if (typeof AbortSignal.timeout === "function") {
+            return AbortSignal.timeout(ms);
+        }
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), ms);
+        return controller.signal;
+    };
+
+    const getCommandsApiUrl = (): string | null => {
+        if (!definition.irCommandsUrl) return null;
+        const params = new URLSearchParams();
+        if (definition.remoteDeviceId) {
+            params.set("deviceId", definition.remoteDeviceId);
+        }
+        params.set("url", definition.irCommandsUrl);
+        return `/api/remote/commands?${params.toString()}`;
+    };
+
+    const applyCommands = (commands: string[], deviceName: string) => {
+        availableCommands.clear();
+        commands.forEach((cmdString) => {
+            // Format expected: `${deviceName}${commandId}`
+            if (cmdString.startsWith(deviceName)) {
+                const idPart = cmdString.slice(deviceName.length);
+                const commandId = parseInt(idPart, 10);
+
+                if (!isNaN(commandId)) {
+                    availableCommands.add(commandId);
+                }
+            }
+        });
+    };
+
+    const parseCommandList = (data: unknown): string[] | null => {
+        if (!data || typeof data !== "object") return null;
+        const commands = (data as CommandResponse).commands;
+        if (!Array.isArray(commands)) return null;
+        return commands.filter(
+            (command): command is string => typeof command === "string",
+        );
     };
 
     const init = async (): Promise<boolean> => {
@@ -71,41 +121,33 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
             return false;
         }
 
+        const commandsUrl = getCommandsApiUrl();
+        if (!commandsUrl) return false;
+
         try {
-            // Use Proxy
-            const response = await fetch(getProxyUrl(definition.irCommandsUrl), {
+            const response = await fetch(commandsUrl, {
                 cache: "no-store",
+                signal: timeoutSignal(6000),
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to fetch commands: ${response.status} ${response.statusText}`);
+                throw new Error(
+                    `Failed to fetch commands: ${response.status} ${response.statusText}`,
+                );
             }
 
             const data: CommandResponse = await response.json();
-
-            // Check for success or missing status, but commands array must exist
-            if ((!data.status || data.status === "success") && Array.isArray(data.commands)) {
-                availableCommands.clear();
-
-                data.commands.forEach((cmdString) => {
-                    // Format expected: `${deviceName}${commandId}`
-                    if (cmdString.startsWith(deviceName)) {
-                        const idPart = cmdString.slice(deviceName.length);
-                        const commandId = parseInt(idPart, 10);
-
-                        if (!isNaN(commandId)) {
-                            availableCommands.add(commandId);
-                        }
-                    }
-                });
-                return true;
+            const commands = parseCommandList(data);
+            if (!commands) {
+                console.warn("IR Remote Client: Invalid command list response", data);
+                return false;
             }
 
-            console.warn("IR Remote Client: Invalid response format", data);
-            return false;
+            applyCommands(commands, deviceName);
+            return true;
         } catch (error) {
-             handleNetworkError(error, "fetching commands");
-             return false;
+            handleNetworkError(error, "fetching commands");
+            return false;
         }
     };
 
@@ -115,39 +157,59 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
         }
 
         const deviceName = getDeviceName();
-
-        for (const item of sequence) {
-            const commandId = item.command;
-
-            const url = new URL(definition.irSendCommandUrl);
-            if (deviceName) {
-                url.searchParams.set("device", deviceName);
-            }
-            url.searchParams.set("command", commandId.toString());
-
-            try {
-                // Use Proxy
-                const response = await fetch(getProxyUrl(url.toString()), {
-                    method: "GET",
-                    cache: "no-store",
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Failed to emit command: ${response.status} ${response.statusText}`);
-                }
-                
-                // Wait for the specified duration before next command (or finishing)
-                if (item.delayAfterMs > 0) {
-                     await new Promise(resolve => setTimeout(resolve, item.delayAfterMs));
-                }
-
-            } catch (error) {
-                handleNetworkError(error, "emitting command");
-                throw error;
-            }
+        if (!deviceName) {
+            throw new Error(
+                "IR Remote Client: Could not determine the device name.",
+            );
         }
 
-        return true;
+        const requestId = createRequestId();
+        const totalDelay = sequence.reduce(
+            (total, item) => total + Math.max(0, item.delayAfterMs),
+            0,
+        );
+        const timeoutMs = Math.min(120_000, totalDelay + 15_000);
+
+        try {
+            const response = await fetch("/api/remote/command", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    targetUrl: definition.irSendCommandUrl,
+                    deviceId: definition.remoteDeviceId,
+                    device: deviceName,
+                    sequence,
+                    requestId,
+                }),
+                cache: "no-store",
+                signal: timeoutSignal(timeoutMs),
+            });
+
+            const data = (await response.json().catch(() => null)) as
+                | CommandApiResponse
+                | null;
+
+            if (!data) {
+                throw new Error(
+                    "IR Remote Client: invalid response from the command endpoint.",
+                );
+            }
+
+            if (!response.ok || data.ok === false) {
+                const code = data?.code ? ` (${data.code})` : "";
+                const message = data?.error ?? response.statusText;
+                throw new Error(
+                    `IR Remote Client: command failed${code}: ${message}`,
+                );
+            }
+
+            return true;
+        } catch (error) {
+            handleNetworkError(error, "emitting command");
+            throw error;
+        }
     };
 
     const isCommandSupported = (command: PlayerCommand): boolean => {

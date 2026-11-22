@@ -1,90 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
-import { execFile } from "node:child_process";
-import { setDefaultResultOrder } from "node:dns";
-import { lookup } from "node:dns/promises";
-import { promisify } from "node:util";
+import { errorResponse, jsonNoStore } from "@/lib/api-response";
+import { runExclusive } from "@/lib/device-queue";
+import { resolveUrlToIp } from "@/lib/remote-resolver";
+import { getDeviceClientKey } from "@/lib/remote-device-client";
+import { RemoteError } from "@/lib/remote-errors";
 import { isAllowedProxyUrl } from "@/lib/security";
 
-const execFileAsync = promisify(execFile);
-const REMOTE_TIMEOUT_MS = 8000;
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
-// Prefer IPv4 for local devices. Some mDNS stacks return a link-local IPv6
-// address first, which is not routable from the container even though the
-// same .local name works from a browser.
-setDefaultResultOrder("ipv4first");
+const REMOTE_TIMEOUT_MS = 4_000;
 
 const getErrorCause = (error: unknown): unknown =>
   error instanceof Error
     ? (error as Error & { cause?: unknown }).cause
     : undefined;
 
-/**
- * Resolve a .local hostname to an IPv4 address. The container may not have a
- * working NSS/mDNS setup even though the device is on the same network, so
- * fall back to avahi-resolve (avahi-utils is installed in the image).
- */
-const resolveLocalHost = async (hostname: string): Promise<string | null> => {
-  try {
-    const { address } = await lookup(hostname, { family: 4 });
-    return address;
-  } catch (error) {
-    console.warn(
-      `proxy-remote: mDNS lookup failed for ${hostname}`,
-      error,
-      getErrorCause(error),
-    );
-  }
-
-  try {
-    const { stdout } = await execFileAsync(
-      "avahi-resolve",
-      ["-4", "-n", hostname],
-      { timeout: 4000 },
-    );
-    const address = stdout.trim().split(/\s+/)[1];
-    return address || null;
-  } catch (error) {
-    console.warn(
-      `proxy-remote: avahi-resolve failed for ${hostname}`,
-      error,
-      getErrorCause(error),
-    );
-    return null;
-  }
+type FetchedRemote = {
+  response: Response;
+  body: string;
 };
 
-const fetchRemote = async (targetUrl: string): Promise<Response> => {
-  try {
-    return await fetch(targetUrl, {
-      signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS),
-      cache: "no-store",
-    });
-  } catch (error) {
-    const target = new URL(targetUrl);
+/**
+ * Legacy proxy kept for old clients/firmware during the migration.
+ *
+ * The important change is that `.local` is resolved to an IPv4 address before
+ * the first fetch, using the cached self-contained resolver. The old code paid
+ * a cold NSS timeout on every first request and then tried `avahi-resolve`,
+ * which cannot use the host D-Bus from this container.
+ */
+const fetchRemote = async (targetUrl: string): Promise<FetchedRemote> => {
+  const original = new URL(targetUrl);
+  const queueKey = getDeviceClientKey({ url: targetUrl });
 
-    // Only HTTP .local devices can be retried by IP. HTTPS certificates are
-    // bound to the hostname, so rewriting the URL would break TLS.
-    if (target.protocol !== "http:" || !target.hostname.endsWith(".local")) {
+  return runExclusive(queueKey, async () => {
+    const resolvedUrl = await resolveUrlToIp(targetUrl);
+
+    const doFetch = async (url: string): Promise<FetchedRemote> => {
+      const response = await fetch(url, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS),
+      });
+      return { response, body: await response.text() };
+    };
+
+    try {
+      return await doFetch(resolvedUrl);
+    } catch (error) {
+      // Retry once with a fresh resolution; there is no IP cache, but the
+      // mDNS answer can still race with a device that just came online.
+      // Only HTTP is rewritten; HTTPS certificates are bound to the hostname.
+      if (original.protocol === "http:" && original.hostname.endsWith(".local")) {
+        const retryUrl = await resolveUrlToIp(targetUrl);
+        return doFetch(retryUrl);
+      }
       throw error;
     }
-
-    console.warn(
-      `proxy-remote: fetch failed for ${targetUrl}, retrying via IPv4`,
-      error,
-      getErrorCause(error),
-    );
-
-    const address = await resolveLocalHost(target.hostname);
-    if (!address) throw error;
-
-    const resolved = new URL(targetUrl);
-    resolved.hostname = address;
-
-    return fetch(resolved.toString(), {
-      signal: AbortSignal.timeout(REMOTE_TIMEOUT_MS),
-      cache: "no-store",
-    });
-  }
+  });
 };
 
 export async function GET(request: NextRequest) {
@@ -92,44 +65,57 @@ export async function GET(request: NextRequest) {
   const targetUrl = searchParams.get("url");
 
   if (!targetUrl) {
-    return NextResponse.json(
-      { error: "Missing url parameter" },
+    return jsonNoStore(
+      { error: "Missing url parameter", code: "INVALID_REQUEST" },
       { status: 400 },
     );
   }
 
   if (!isAllowedProxyUrl(targetUrl)) {
-    return NextResponse.json(
-      { error: "URL not allowed" },
+    return jsonNoStore(
+      { error: "URL not allowed", code: "INVALID_REQUEST" },
       { status: 403 },
     );
   }
 
   try {
-    const response = await fetchRemote(targetUrl);
+    const { response, body } = await fetchRemote(targetUrl);
 
     if (!response.ok) {
-      return NextResponse.json(
-        { error: `Remote error: ${response.status} ${response.statusText}` },
+      return jsonNoStore(
+        {
+          error: `Remote error: ${response.status} ${response.statusText}`,
+          code: "DEVICE_ERROR",
+        },
         { status: response.status },
       );
     }
 
     const contentType = response.headers.get("content-type");
-    const body = await response.text();
-
     return new NextResponse(body, {
       status: 200,
       headers: {
         "Content-Type": contentType || "application/json",
-        "Cache-Control": "no-store",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        Pragma: "no-cache",
+        Expires: "0",
       },
     });
   } catch (error) {
-    console.error("Proxy error:", error, getErrorCause(error));
-    return NextResponse.json(
-      { error: "Failed to fetch remote url" },
-      { status: 500 },
+    if (error instanceof RemoteError) {
+      return errorResponse(error);
+    }
+    console.error(
+      "Proxy error:",
+      error,
+      getErrorCause(error),
+    );
+    return errorResponse(
+      new RemoteError(
+        "DEVICE_UNREACHABLE",
+        "Failed to fetch remote url",
+        502,
+      ),
     );
   }
 }

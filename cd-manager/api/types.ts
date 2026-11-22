@@ -39,7 +39,15 @@ export type PlayerDefinition = {
   remoteIndex: number;
   capacity: number;
   playerApiBaseUrl?: string;
+  /**
+   * Stable remote-controller device id discovered through the device
+   * registry. When present, the command endpoints resolve the device address
+   * from the registry; the legacy URL fields are kept as a fallback.
+   */
+  remoteDeviceId?: string;
+  /** Legacy command-list URL (kept for backward compatibility). */
   irCommandsUrl?: string;
+  /** Legacy command-send URL (kept for backward compatibility). */
   irSendCommandUrl?: string;
   irDeviceName?: string;
   /**

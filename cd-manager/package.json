@@ -1,6 +1,6 @@
 {
   "name": "smart-cd",
-  "version": "1.0.160",
+  "version": "1.0.162",
   "scripts": {
     "dev": "next dev",
     "start": "next start",
@@ -23,6 +23,7 @@
     "dayjs": "^1",
     "disconnect": "^1.2.2",
     "dotenv": "^17.2.3",
+    "multicast-dns": "^7.2.5",
     "next": "^15.5.12",
     "next-auth": "^5.0.0-beta.25",
     "react": "^19.0.0",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/multicast-dns": "^7.2.4",
     "@types/node": "^20.17.12",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

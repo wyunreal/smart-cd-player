@@ -8,10 +8,13 @@ import { NextRequest } from "next/server";
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-jest.mock("node:dns/promises", () => ({
-  lookup: jest.fn().mockResolvedValue({ address: "192.168.1.50", family: 4 }),
-}));
+// The proxy now uses the self-contained resolver instead of NSS/Avahi.
+jest.mock("@/lib/remote-resolver");
+import { resolveUrlToIp } from "@/lib/remote-resolver";
 
+const mockResolveUrlToIp = resolveUrlToIp as jest.MockedFunction<
+  typeof resolveUrlToIp
+>;
 const ALLOWED_ORIGIN = "http://192.168.1.100:4000";
 
 const createRequest = (url: string): NextRequest => {
@@ -23,6 +26,14 @@ beforeAll(() => {
   process.env.ALLOWED_PROXY_ORIGINS = ALLOWED_ORIGIN;
 });
 
+beforeEach(() => {
+  mockFetch.mockReset();
+  mockResolveUrlToIp.mockReset();
+  mockResolveUrlToIp.mockImplementation(async (url: string) =>
+    url.replace("smartcdplayer.local", "192.168.1.50"),
+  );
+});
+
 // Lazy import so env is set before module loads
 let GET: typeof import("../route").GET;
 beforeAll(async () => {
@@ -30,26 +41,34 @@ beforeAll(async () => {
   GET = mod.GET;
 });
 
-describe("proxy-remote route", () => {
-  beforeEach(() => {
-    mockFetch.mockClear();
-  });
+const jsonResponse = (
+  body: unknown,
+  init: { ok?: boolean; status?: number; statusText?: string; contentType?: string } = {},
+) => ({
+  ok: init.ok ?? true,
+  status: init.status ?? 200,
+  statusText: init.statusText ?? "",
+  headers: new Headers({
+    "content-type": init.contentType ?? "application/json",
+  }),
+  text: async () => JSON.stringify(body),
+});
 
+describe("proxy-remote route", () => {
   it("returns 400 when url parameter is missing", async () => {
     const req = createRequest("/api/proxy-remote");
     const res = await GET(req);
 
     expect(res.status).toBe(400);
+    expect(res.headers.get("Cache-Control")).toContain("no-store");
     const body = await res.json();
     expect(body.error).toBe("Missing url parameter");
   });
 
   it("proxies a successful request to an allowed origin", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      headers: new Headers({ "content-type": "application/json" }),
-      text: async () => JSON.stringify({ status: "success", commands: [] }),
-    });
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ status: "success", commands: [] }),
+    );
 
     const targetUrl = `${ALLOWED_ORIGIN}/commands`;
     const req = createRequest(
@@ -62,16 +81,15 @@ describe("proxy-remote route", () => {
       targetUrl,
       expect.objectContaining({ signal: expect.anything() }),
     );
+    expect(res.headers.get("Cache-Control")).toContain("no-store");
     const body = await res.json();
     expect(body.status).toBe("success");
   });
 
-  it("proxies .local hostnames", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      headers: new Headers({ "content-type": "application/json" }),
-      text: async () => JSON.stringify({ commands: ["Sony0"] }),
-    });
+  it("resolves .local hostnames before the first fetch", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ commands: ["Sony0"] }),
+    );
 
     const targetUrl = "http://smartcdplayer.local/commands";
     const req = createRequest(
@@ -80,20 +98,21 @@ describe("proxy-remote route", () => {
     const res = await GET(req);
 
     expect(res.status).toBe(200);
+    expect(mockResolveUrlToIp).toHaveBeenCalledWith(targetUrl);
+    expect(mockFetch).toHaveBeenCalledWith(
+      "http://192.168.1.50/commands",
+      expect.objectContaining({ signal: expect.anything() }),
+    );
     const body = await res.json();
     expect(body.commands).toEqual(["Sony0"]);
   });
 
-  it("retries a failing .local request against its IPv4 address", async () => {
+  it("retries a failing .local request with a fresh resolution", async () => {
     mockFetch
       .mockRejectedValueOnce(new TypeError("fetch failed"))
-      .mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ "content-type": "application/json" }),
-        text: async () => JSON.stringify({ commands: [] }),
-      });
+      .mockResolvedValueOnce(jsonResponse({ commands: [] }));
 
-    const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
     const targetUrl = "http://smartcdplayer.local/commands";
     const req = createRequest(
       `/api/proxy-remote?url=${encodeURIComponent(targetUrl)}`,
@@ -101,6 +120,8 @@ describe("proxy-remote route", () => {
     const res = await GET(req);
 
     expect(res.status).toBe(200);
+    expect(mockResolveUrlToIp).toHaveBeenCalledTimes(2);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(mockFetch).toHaveBeenNthCalledWith(
       2,
       "http://192.168.1.50/commands",
@@ -109,8 +130,6 @@ describe("proxy-remote route", () => {
 
     consoleSpy.mockRestore();
   });
-
-  // --- NEW: SSRF protection tests ---
 
   it("returns 403 for a URL whose origin is not in the allowlist", async () => {
     const targetUrl = "http://evil.com/steal-data";
@@ -121,6 +140,7 @@ describe("proxy-remote route", () => {
 
     expect(res.status).toBe(403);
     expect(mockFetch).not.toHaveBeenCalled();
+    expect(res.headers.get("Cache-Control")).toContain("no-store");
     const body = await res.json();
     expect(body.error).toContain("not allowed");
   });
@@ -148,14 +168,10 @@ describe("proxy-remote route", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  // --- END SSRF tests ---
-
   it("forwards error status from remote server", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-      statusText: "Not Found",
-    });
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ error: "Not Found" }, { ok: false, status: 404, statusText: "Not Found" }),
+    );
 
     const targetUrl = `${ALLOWED_ORIGIN}/nonexistent`;
     const req = createRequest(
@@ -166,9 +182,10 @@ describe("proxy-remote route", () => {
     expect(res.status).toBe(404);
     const body = await res.json();
     expect(body.error).toContain("Remote error");
+    expect(res.headers.get("Cache-Control")).toContain("no-store");
   });
 
-  it("returns 500 without leaking error details when fetch throws", async () => {
+  it("returns 502 without leaking error details when fetch throws", async () => {
     mockFetch.mockRejectedValueOnce(new Error("ECONNREFUSED"));
 
     const consoleSpy = jest.spyOn(console, "error").mockImplementation();
@@ -178,22 +195,18 @@ describe("proxy-remote route", () => {
     );
     const res = await GET(req);
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.error).toBeDefined();
-    // Should NOT contain internal error details
     expect(body.details).toBeUndefined();
     expect(body.debug).toBeUndefined();
+    expect(res.headers.get("Cache-Control")).toContain("no-store");
 
     consoleSpy.mockRestore();
   });
 
   it("does not include Access-Control-Allow-Origin wildcard", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      headers: new Headers({ "content-type": "application/json" }),
-      text: async () => JSON.stringify({ ok: true }),
-    });
+    mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
 
     const targetUrl = `${ALLOWED_ORIGIN}/emit`;
     const req = createRequest(
@@ -206,11 +219,9 @@ describe("proxy-remote route", () => {
   });
 
   it("returns the correct content-type from remote", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      headers: new Headers({ "content-type": "text/plain" }),
-      text: async () => "OK",
-    });
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse("OK", { contentType: "text/plain" }),
+    );
 
     const targetUrl = `${ALLOWED_ORIGIN}/emit`;
     const req = createRequest(

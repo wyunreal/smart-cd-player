@@ -1,62 +1,91 @@
 # IR Remote Client
 
-The `IrRemoteClient` is a utility designed to interact with an IR remote hardware device via HTTP. It enables the Smart CD Player application to discover available commands and send them to the device.
+The `IrRemoteClient` interacts with the IR remote hardware (ESP32) through the
+cd-manager server. The browser never talks to the device directly: the server
+resolves the device, serializes requests and proxies them.
 
 ## Features
 
--   **Command Discovery**: Fetches available commands from the configured `irCommandsUrl`.
--   **Command Filtering**: Automatically filters commands based on the device name derived from the `irSendCommandUrl`.
--   **Command Emission**: Sends commands to the `irSendCommandUrl`.
--   **Mixed Content Handling**: Provides guidance when HTTPS applications attempt to access local HTTP devices.
--   **Auto-Initialization**: Clients are initialized automatically when the application starts (via `DataRepositoryProvider`).
+-   **Live command discovery**: `GET /api/remote/commands` reads the device
+    command list on every request. There is no command cache and no stale
+    fallback.
+-   **Non-cacheable command emission**: `POST /api/remote/command` sends a
+    sequence with a `requestId`. Commands have side effects and are never
+    served from a cache.
+-   **Per-device serialization**: all operations against one device run one at
+    a time, with short timeouts. This is a queue, not a cache.
+-   **No legacy fallback**: the current client always uses the live endpoints.
+    The old `/api/proxy-remote` route remains only for old clients during
+    migration.
 
 ## Configuration
 
-The client is configured via the `PlayerDefinition` object (typically found in `cd-player-definitions.ts` or managed via the UI).
+The client is configured via `PlayerDefinition`:
 
-### Key Properties
+-   `irCommandsUrl`: URL of the device command list.
+    Example: `http://smartcdplayer.local/commands`
+-   `irSendCommandUrl`: URL used to emit commands.
+    Example: `http://smartcdplayer.local/remote`
+-   `irDeviceName`: name of the IR device inside the remote controller
+    (e.g. `SonyChanger`). If omitted, it is derived from the `device` query
+    parameter of `irSendCommandUrl`.
+-   `remoteDeviceId` (optional): stable id from the device registry. When set,
+    the server can resolve the current address without relying on the hostname.
 
--   `irCommandsUrl`: The URL to fetch the list of available commands.
-    -   Example: `http://192.168.1.100/commands`
-    -   Expected JSON Response:
-        ```json
-        {
-          "status": "success",
-          "commands": ["Device1Play", "Device1Stop", "Device2Play"]
-        }
-        ```
--   `irSendCommandUrl`: The URL to send commands to. **Must include the `device` query parameter.**
-    -   Example: `http://192.168.1.100/emit?device=Device1`
-    -   The client extracts `Device1` from this URL and uses it to filter the commands (e.g., only commands starting with `Device1` will be considered valid for this player).
+The device returns commands in the form `<deviceName><commandId>`:
 
-## Usage
-
-The client is initialized and exposed via the `DataRepositoryContext`.
-
-```typescript
-// Accessing the client in a component
-const { irRemoteClients } = useContext(DataRepositoryContext);
-const client = irRemoteClients[playerIndex];
-
-// Checking if a command is supported
-if (client && client.isCommandSupported(PlayerCommand.Play)) {
-    // ...
-}
-
-// Emitting a complex order
-if (client) {
-    await client.sendOrder([
-        { command: PlayerCommand.Play, delayAfterMs: 1000 },
-        { command: PlayerCommand.NextTrack, delayAfterMs: 0 }
-    ]);
+```json
+{
+  "status": "success",
+  "commands": ["SonyChanger0", "SonyChanger1", "SonyChanger7"]
 }
 ```
 
+The client filters by `irDeviceName` and parses the numeric command id.
+
+## Usage
+
+```typescript
+const client = createIrRemoteClient(definition);
+await client.init();
+
+if (client.isCommandSupported(PlayerCommand.Play)) {
+  await client.sendOrder([
+    { command: PlayerCommand.Play, delayAfterMs: 0 },
+    { command: PlayerCommand.NextTrack, delayAfterMs: 1000 },
+  ]);
+}
+```
+
+`sendOrder` sends the whole sequence in one `POST`. The server applies the
+delays and sends each command to the device sequentially.
+
 ## Troubleshooting
 
-### "Could not determine device name" Warning
-If you see this warning, it means the `irSendCommandUrl` is missing the `?device=NAME` query parameter. The client requires this to know which commands belong to this player.
+### The command buttons stay disabled
 
-### Mixed Content Errors
-If the app is running on HTTPS (e.g., Vercel) and the device is on HTTP (local network), the browser will block requests.
--   **Solution**: Use a local proxy or properly configure the browser/device to support secure connections.
+`init()` returns false until the device responds with a live command list.
+Check:
+
+-   `GET /api/remote/commands?url=...` from the browser/server.
+-   The device `/commands` endpoint.
+-   `irDeviceName` exactly matches the prefix stored on the device.
+-   The device is online. There is no cached list to fall back to.
+
+### Commands fail with `DEVICE_UNREACHABLE` / `DEVICE_TIMEOUT`
+
+The manager could not reach the device. Check that the device is powered and on
+the same network. There is no circuit breaker: the next command will try again
+immediately.
+
+### The old `.local` hostname does not resolve
+
+The server sends a fresh mDNS query on every request. Avahi/D-Bus are no longer
+required for the command path. If mDNS is blocked, use the device registry
+(Phase 1) or configure a reachable address.
+
+### Mixed content
+
+The browser always calls same-origin `/api/remote/*` routes over HTTPS; the
+server performs the HTTP request to the local device. There is no browser
+mixed-content request.

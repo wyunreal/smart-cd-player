@@ -10,6 +10,16 @@ global.fetch = mockFetch;
 const COMMANDS_URL = "http://localhost:4000/commands";
 const SEND_COMMAND_URL = "http://localhost:4000/remote";
 
+const jsonResponse = (
+    body: unknown,
+    init: { ok?: boolean; status?: number; statusText?: string } = {},
+) => ({
+    ok: init.ok ?? true,
+    status: init.status ?? 200,
+    statusText: init.statusText ?? "",
+    json: async () => body,
+});
+
 describe("IrRemoteClient", () => {
     const mockDefinition: PlayerDefinition = {
         active: true,
@@ -21,33 +31,51 @@ describe("IrRemoteClient", () => {
     };
 
     beforeEach(() => {
-        mockFetch.mockClear();
+        mockFetch.mockReset();
     });
 
-    it("should fetch commands on init and filter by deviceName from URL", async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                status: "success",
-                // 5 is Play, 7 is Stop
+    it("fetches commands from the live endpoint and filters by device name", async () => {
+        mockFetch.mockResolvedValueOnce(
+            jsonResponse({
                 commands: [
                     `MyDevice${PlayerCommand.Play}`,
                     `OtherDevice${PlayerCommand.Stop}`,
-                    `MyDevice${PlayerCommand.Pause}`
-                ]
+                    `MyDevice${PlayerCommand.Pause}`,
+                ],
             }),
-        });
+        );
 
         const client = createIrRemoteClient(mockDefinition);
         await client.init();
 
-        const expectedUrl = `/api/proxy-remote?url=${encodeURIComponent(COMMANDS_URL)}`;
-        expect(mockFetch).toHaveBeenCalledWith(expectedUrl, {
-            cache: "no-store",
-        });
+        const expectedUrl = `/api/remote/commands?url=${encodeURIComponent(COMMANDS_URL)}`;
+        expect(mockFetch).toHaveBeenCalledWith(
+            expectedUrl,
+            expect.objectContaining({ cache: "no-store" }),
+        );
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(true);
         expect(client.isCommandSupported(PlayerCommand.Pause)).toBe(true);
         expect(client.isCommandSupported(PlayerCommand.Stop)).toBe(false); // OtherDevice
+    });
+
+    it("uses the remote device id in the command-list request when configured", async () => {
+        mockFetch.mockResolvedValueOnce(
+            jsonResponse({ commands: [`MyDevice${PlayerCommand.Play}`] }),
+        );
+
+        const client = createIrRemoteClient({
+            ...mockDefinition,
+            remoteDeviceId: "device-123",
+        });
+        await client.init();
+
+        const expectedUrl =
+            `/api/remote/commands?deviceId=device-123` +
+            `&url=${encodeURIComponent(COMMANDS_URL)}`;
+        expect(mockFetch).toHaveBeenCalledWith(
+            expectedUrl,
+            expect.objectContaining({ cache: "no-store" }),
+        );
     });
 
     it("should handle missing configuration gracefully", async () => {
@@ -65,16 +93,14 @@ describe("IrRemoteClient", () => {
     });
 
     it("derives the device name from the send URL when irDeviceName is missing", async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                status: "success",
+        mockFetch.mockResolvedValueOnce(
+            jsonResponse({
                 commands: [
                     `DeviceA${PlayerCommand.PowerSwitch}`,
                     `DeviceA${PlayerCommand.Play}`,
                 ],
             }),
-        });
+        );
 
         const client = createIrRemoteClient({
             ...mockDefinition,
@@ -99,55 +125,50 @@ describe("IrRemoteClient", () => {
         consoleSpy.mockRestore();
     });
 
-
     it("should handle empty commands list", async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                status: "success",
-                commands: []
-            }),
-        });
+        mockFetch.mockResolvedValueOnce(jsonResponse({ commands: [] }));
 
         const client = createIrRemoteClient(mockDefinition);
         await client.init();
 
-        const expectedUrl = `/api/proxy-remote?url=${encodeURIComponent(COMMANDS_URL)}`;
-        expect(mockFetch).toHaveBeenCalledWith(expectedUrl, {
-            cache: "no-store",
-        });
+        const expectedUrl = `/api/remote/commands?url=${encodeURIComponent(COMMANDS_URL)}`;
+        expect(mockFetch).toHaveBeenCalledWith(
+            expectedUrl,
+            expect.objectContaining({ cache: "no-store" }),
+        );
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(false);
     });
 
-    it("should emit command sequence with correct URL and delays", async () => {
-        mockFetch.mockResolvedValue({
-            ok: true,
-        });
+    it("sends the whole sequence in one POST command request", async () => {
+        mockFetch.mockResolvedValueOnce(
+            jsonResponse({ ok: true, requestId: "request-1" }),
+        );
 
         const client = createIrRemoteClient(mockDefinition);
         const sequence = [
             { command: PlayerCommand.Play, delayAfterMs: 10 },
-            { command: PlayerCommand.Stop, delayAfterMs: 0 }
+            { command: PlayerCommand.Stop, delayAfterMs: 0 },
         ];
 
         await client.sendOrder(sequence);
 
-        expect(mockFetch).toHaveBeenCalledTimes(2);
-        
-        // First call - URL should contain device and command params
-        const firstCall = mockFetch.mock.calls[0][0];
-        expect(firstCall).toContain("/api/proxy-remote");
-        expect(firstCall).toContain(encodeURIComponent("device=MyDevice"));
-        expect(firstCall).toContain(encodeURIComponent(`command=${PlayerCommand.Play}`));
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        const [url, init] = mockFetch.mock.calls[0];
+        expect(url).toBe("/api/remote/command");
+        expect(init.method).toBe("POST");
+        expect(init.cache).toBe("no-store");
 
-        // Second call
-        const secondCall = mockFetch.mock.calls[1][0];
-        expect(secondCall).toContain("/api/proxy-remote");
-        expect(secondCall).toContain(encodeURIComponent(`command=${PlayerCommand.Stop}`));
+        const body = JSON.parse(init.body);
+        expect(body.targetUrl).toBe(SEND_COMMAND_URL);
+        expect(body.device).toBe("MyDevice");
+        expect(body.sequence).toEqual(sequence);
+        expect(body.requestId).toEqual(expect.any(String));
     });
 
     it("emits the power command (id 0) and keeps a single device param", async () => {
-        mockFetch.mockResolvedValue({ ok: true });
+        mockFetch.mockResolvedValueOnce(
+            jsonResponse({ ok: true, requestId: "request-1" }),
+        );
 
         const client = createIrRemoteClient({
             ...mockDefinition,
@@ -159,79 +180,92 @@ describe("IrRemoteClient", () => {
             { command: PlayerCommand.PowerSwitch, delayAfterMs: 0 },
         ]);
 
-        const proxyUrl = new URL(
-            mockFetch.mock.calls[0][0],
-            "http://localhost",
-        );
-        const targetUrl = new URL(proxyUrl.searchParams.get("url")!);
+        const [, init] = mockFetch.mock.calls[0];
+        const body = JSON.parse(init.body);
+        const targetUrl = new URL(body.targetUrl);
 
         expect(targetUrl.searchParams.getAll("device")).toEqual(["MyDevice"]);
-        expect(targetUrl.searchParams.get("command")).toBe("0");
+        expect(body.device).toBe("MyDevice");
+        expect(body.sequence).toEqual([
+            { command: PlayerCommand.PowerSwitch, delayAfterMs: 0 },
+        ]);
+    });
+
+    it("throws when the server rejects the command", async () => {
+        mockFetch.mockResolvedValueOnce(
+            jsonResponse(
+                {
+                    ok: false,
+                    code: "DEVICE_OFFLINE",
+                    error: "The remote device is temporarily unavailable.",
+                },
+                { status: 503 },
+            ),
+        );
+
+        const client = createIrRemoteClient(mockDefinition);
+        const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+
+        await expect(
+            client.sendOrder([
+                { command: PlayerCommand.Play, delayAfterMs: 0 },
+            ]),
+        ).rejects.toThrow(/DEVICE_OFFLINE/);
+
+        consoleSpy.mockRestore();
     });
 
     it("should initialize with empty commands on fetch error", async () => {
         mockFetch.mockRejectedValue(new Error("Network error"));
-        
+
         const client = createIrRemoteClient(mockDefinition);
-        
+
         const consoleSpy = jest.spyOn(console, "error").mockImplementation();
-        
+
         await expect(client.init()).resolves.not.toThrow();
-        
+
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(false);
-        
+
         consoleSpy.mockRestore();
     });
 
     describe("canExecuteSequence", () => {
         it("should return true if all commands in sequence are supported", async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    status: "success",
-                    commands: [`MyDevice${PlayerCommand.Play}`, `MyDevice${PlayerCommand.Stop}`]
+            mockFetch.mockResolvedValueOnce(
+                jsonResponse({
+                    commands: [`MyDevice${PlayerCommand.Play}`, `MyDevice${PlayerCommand.Stop}`],
                 }),
-            });
+            );
 
             const client = createIrRemoteClient(mockDefinition);
             await client.init();
 
             const sequence = [
                 { command: PlayerCommand.Play, delayAfterMs: 0 },
-                { command: PlayerCommand.Stop, delayAfterMs: 0 }
+                { command: PlayerCommand.Stop, delayAfterMs: 0 },
             ];
 
             expect(client.canExecuteSequence(sequence)).toBe(true);
         });
 
         it("should return false if any command in sequence is not supported", async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    status: "success",
-                    commands: [`MyDevice${PlayerCommand.Play}`]
-                }),
-            });
+            mockFetch.mockResolvedValueOnce(
+                jsonResponse({ commands: [`MyDevice${PlayerCommand.Play}`] }),
+            );
 
             const client = createIrRemoteClient(mockDefinition);
             await client.init();
 
             const sequence = [
                 { command: PlayerCommand.Play, delayAfterMs: 0 },
-                { command: PlayerCommand.Stop, delayAfterMs: 0 }
+                { command: PlayerCommand.Stop, delayAfterMs: 0 },
             ];
 
             expect(client.canExecuteSequence(sequence)).toBe(false);
         });
 
         it("should return true for empty sequence", async () => {
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    status: "success",
-                    commands: []
-                }),
-            });
+            mockFetch.mockResolvedValueOnce(jsonResponse({ commands: [] }));
 
             const client = createIrRemoteClient(mockDefinition);
             await client.init();
@@ -239,28 +273,26 @@ describe("IrRemoteClient", () => {
             expect(client.canExecuteSequence([])).toBe(true);
         });
     });
+
     it("should handle relative URLs correctly", async () => {
         const relativeDefinition = {
             ...mockDefinition,
             irCommandsUrl: "/api/commands",
             irSendCommandUrl: "/api/remote",
         };
-        
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                status: "success",
-                commands: [`MyDevice${PlayerCommand.Play}`]
-            }),
-        });
+
+        mockFetch.mockResolvedValueOnce(
+            jsonResponse({ commands: [`MyDevice${PlayerCommand.Play}`] }),
+        );
 
         const client = createIrRemoteClient(relativeDefinition);
         await client.init();
 
-        const expectedUrl = `/api/proxy-remote?url=${encodeURIComponent("/api/commands")}`;
-        expect(mockFetch).toHaveBeenCalledWith(expectedUrl, {
-            cache: "no-store",
-        });
+        const expectedUrl = `/api/remote/commands?url=${encodeURIComponent("/api/commands")}`;
+        expect(mockFetch).toHaveBeenCalledWith(
+            expectedUrl,
+            expect.objectContaining({ cache: "no-store" }),
+        );
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(true);
     });
 });

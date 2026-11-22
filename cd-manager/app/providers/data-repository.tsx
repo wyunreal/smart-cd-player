@@ -207,8 +207,12 @@ export const DataRepositoryProvider = ({
 
   useEffect(() => {
     const clients: (IrRemoteClient | null)[] = [];
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
+
+    const activeClients: { index: number; client: IrRemoteClient }[] = [];
+    const retryTimers = new Map<number, ReturnType<typeof setTimeout>>();
+    const attempts = new Map<number, number>();
+    const inFlight = new Set<number>();
 
     playerDefinitions.forEach((def) => {
       // Skip initialization if player is not active or missing URL
@@ -218,7 +222,10 @@ export const DataRepositoryProvider = ({
 
       // Keep the remote index as the slot; otherwise disabling one player
       // shifts every later client and commands go to the wrong device.
-      clients[def.remoteIndex - 1] = createIrRemoteClient(def);
+      const index = def.remoteIndex - 1;
+      const client = createIrRemoteClient(def);
+      clients[index] = client;
+      activeClients.push({ index, client });
     });
 
     for (let index = 0; index < clients.length; index++) {
@@ -227,35 +234,101 @@ export const DataRepositoryProvider = ({
 
     setIrRemoteClients(clients);
 
-    const initAll = async () => {
-      if (cancelled) return;
+    const clearRetry = (index: number) => {
+      const timer = retryTimers.get(index);
+      if (timer) clearTimeout(timer);
+      retryTimers.delete(index);
+    };
 
-      const activeClients = clients.filter(
-        (client): client is IrRemoteClient => client !== null,
+    const scheduleRetry = (index: number, client: IrRemoteClient) => {
+      // `attempts` is incremented before scheduling, so the first retry is
+      // 1 s, then 2 s, 4 s, and 5 s thereafter. The remote must reconnect
+      // quickly when it returns; there is no cached list to fall back to.
+      const attempt = Math.max(0, (attempts.get(index) ?? 0) - 1);
+      const delay = Math.min(5_000, 1_000 * 2 ** attempt);
+      const jitter = Math.floor(Math.random() * 250);
+      clearRetry(index);
+      retryTimers.set(
+        index,
+        setTimeout(() => {
+          retryTimers.delete(index);
+          void initClient(index, client);
+        }, delay + jitter),
       );
-      const results = await Promise.all(
-        activeClients.map((client) => client.init()),
-      );
+    };
+
+    const initClient = async (
+      index: number,
+      client: IrRemoteClient,
+    ): Promise<void> => {
+      if (cancelled || inFlight.has(index)) return;
+      inFlight.add(index);
+      clearRetry(index);
+
+      let success = false;
+      try {
+        success = await client.init();
+      } catch (error) {
+        console.error("IR Remote Client: init failed", error);
+      } finally {
+        inFlight.delete(index);
+      }
 
       if (cancelled) return;
 
       // Force update after every attempt so the UI reflects new commands.
       setIrClientsVersion((v) => v + 1);
 
-      // After a redeploy the first request can race with mDNS/D-Bus startup;
-      // keep retrying instead of requiring a hard refresh.
-      if (results.some((success) => !success)) {
-        retryTimer = setTimeout(() => {
-          void initAll();
-        }, 10000);
+      if (success) {
+        attempts.delete(index);
+        return;
+      }
+
+      const attempt = (attempts.get(index) ?? 0) + 1;
+      attempts.set(index, attempt);
+      scheduleRetry(index, client);
+    };
+
+    const retryFailed = () => {
+      if (cancelled) return;
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "hidden"
+      ) {
+        return;
+      }
+      for (const { index, client } of activeClients) {
+        if (inFlight.has(index) || retryTimers.has(index)) continue;
+        // If this client was already initialized successfully, a focus event
+        // should not trigger another command-list request.
+        if (!attempts.has(index)) continue;
+        void initClient(index, client);
       }
     };
 
-    void initAll();
+    for (const { index, client } of activeClients) {
+      void initClient(index, client);
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", retryFailed);
+      window.addEventListener("focus", retryFailed);
+    }
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", retryFailed);
+    }
 
     return () => {
       cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
+      for (const timer of retryTimers.values()) clearTimeout(timer);
+      retryTimers.clear();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("online", retryFailed);
+        window.removeEventListener("focus", retryFailed);
+      }
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", retryFailed);
+      }
     };
   }, [playerDefinitions]);
 

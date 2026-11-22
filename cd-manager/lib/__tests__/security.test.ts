@@ -82,6 +82,7 @@ describe("isAllowedProxyUrl", () => {
     expect(isAllowedProxyUrl("http://cd-player.local:4000/commands")).toBe(true);
     expect(isAllowedProxyUrl("http://my-device.local:8080/remote?device=Sony&command=5")).toBe(true);
     expect(isAllowedProxyUrl("http://raspberrypi.local/api")).toBe(true);
+    expect(isAllowedProxyUrl("http://SmartCDPlayer.LOCAL/commands")).toBe(true);
   });
 
   it("rejects .local URLs with non-http schemes", async () => {
