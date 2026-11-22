@@ -1,5 +1,6 @@
 import { auth } from "./auth";
 import { NextResponse } from "next/server";
+import { NO_STORE_HEADERS } from "./lib/api-response";
 
 export default auth((req) => {
   const { nextUrl } = req;
@@ -24,9 +25,24 @@ export default auth((req) => {
       pathname.startsWith("/api/auth/signout") ||
       pathname.startsWith("/api/auth/error");
 
+    // Only the remote-controller API must be uncacheable. Everything else
+    // keeps its normal web/API caching behaviour.
+    const isRemoteControlApi =
+      pathname === "/api/remote" ||
+      pathname.startsWith("/api/remote/") ||
+      pathname === "/api/proxy-remote";
+
     // If it's an API route, NOT in the whitelist, and user is NOT logged in:
     if (!isPublicApi && !isLoggedIn) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      // Never let an unauthenticated remote-control 401 be cached and then
+      // served to a logged-in user: that would make the remote look offline.
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        {
+          status: 401,
+          ...(isRemoteControlApi ? { headers: NO_STORE_HEADERS } : {}),
+        },
+      );
     }
     // Allow API request to continue
     return;

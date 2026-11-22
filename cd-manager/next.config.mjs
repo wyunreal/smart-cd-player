@@ -1,3 +1,12 @@
+const noStoreHeaders = [
+  {
+    key: "Cache-Control",
+    value: "no-store, no-cache, must-revalidate, max-age=0",
+  },
+  { key: "Pragma", value: "no-cache" },
+  { key: "Expires", value: "0" },
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
@@ -23,6 +32,10 @@ const nextConfig = {
           },
         ],
       },
+      // Belt and braces: even a framework-generated 401/404/500 for the
+      // remote-control API must never be cached.
+      { source: "/api/remote/:path*", headers: noStoreHeaders },
+      { source: "/api/proxy-remote", headers: noStoreHeaders },
     ];
   },
   images: {

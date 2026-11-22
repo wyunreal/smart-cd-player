@@ -20,6 +20,14 @@ const jsonResponse = (
     json: async () => body,
 });
 
+const requestUrl = (callIndex = 0): URL => {
+    const [url] = mockFetch.mock.calls[callIndex];
+    return new URL(url, "http://localhost");
+};
+
+const requestInit = (callIndex = 0): RequestInit =>
+    mockFetch.mock.calls[callIndex][1] as RequestInit;
+
 describe("IrRemoteClient", () => {
     const mockDefinition: PlayerDefinition = {
         active: true,
@@ -48,14 +56,33 @@ describe("IrRemoteClient", () => {
         const client = createIrRemoteClient(mockDefinition);
         await client.init();
 
-        const expectedUrl = `/api/remote/commands?url=${encodeURIComponent(COMMANDS_URL)}`;
-        expect(mockFetch).toHaveBeenCalledWith(
-            expectedUrl,
+        const url = requestUrl();
+        expect(url.pathname).toBe("/api/remote/commands");
+        expect(url.searchParams.get("url")).toBe(COMMANDS_URL);
+        expect(url.searchParams.get("deviceId")).toBeNull();
+        expect(url.searchParams.get("_")).toBeTruthy();
+        expect(requestInit()).toEqual(
             expect.objectContaining({ cache: "no-store" }),
         );
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(true);
         expect(client.isCommandSupported(PlayerCommand.Pause)).toBe(true);
         expect(client.isCommandSupported(PlayerCommand.Stop)).toBe(false); // OtherDevice
+    });
+
+    it("uses a unique anti-cache nonce on every remote request", async () => {
+        mockFetch
+            .mockResolvedValueOnce(jsonResponse({ commands: [] }))
+            .mockResolvedValueOnce(jsonResponse({ commands: [] }));
+
+        const client = createIrRemoteClient(mockDefinition);
+        await client.init();
+        await client.init();
+
+        const first = requestUrl(0).searchParams.get("_");
+        const second = requestUrl(1).searchParams.get("_");
+        expect(first).toBeTruthy();
+        expect(second).toBeTruthy();
+        expect(first).not.toBe(second);
     });
 
     it("uses the remote device id in the command-list request when configured", async () => {
@@ -69,11 +96,12 @@ describe("IrRemoteClient", () => {
         });
         await client.init();
 
-        const expectedUrl =
-            `/api/remote/commands?deviceId=device-123` +
-            `&url=${encodeURIComponent(COMMANDS_URL)}`;
-        expect(mockFetch).toHaveBeenCalledWith(
-            expectedUrl,
+        const url = requestUrl();
+        expect(url.pathname).toBe("/api/remote/commands");
+        expect(url.searchParams.get("deviceId")).toBe("device-123");
+        expect(url.searchParams.get("url")).toBe(COMMANDS_URL);
+        expect(url.searchParams.get("_")).toBeTruthy();
+        expect(requestInit()).toEqual(
             expect.objectContaining({ cache: "no-store" }),
         );
     });
@@ -131,9 +159,11 @@ describe("IrRemoteClient", () => {
         const client = createIrRemoteClient(mockDefinition);
         await client.init();
 
-        const expectedUrl = `/api/remote/commands?url=${encodeURIComponent(COMMANDS_URL)}`;
-        expect(mockFetch).toHaveBeenCalledWith(
-            expectedUrl,
+        const url = requestUrl();
+        expect(url.pathname).toBe("/api/remote/commands");
+        expect(url.searchParams.get("url")).toBe(COMMANDS_URL);
+        expect(url.searchParams.get("_")).toBeTruthy();
+        expect(requestInit()).toEqual(
             expect.objectContaining({ cache: "no-store" }),
         );
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(false);
@@ -153,16 +183,20 @@ describe("IrRemoteClient", () => {
         await client.sendOrder(sequence);
 
         expect(mockFetch).toHaveBeenCalledTimes(1);
-        const [url, init] = mockFetch.mock.calls[0];
-        expect(url).toBe("/api/remote/command");
+        const init = requestInit();
         expect(init.method).toBe("POST");
         expect(init.cache).toBe("no-store");
 
-        const body = JSON.parse(init.body);
+        const body = JSON.parse(init.body as string);
         expect(body.targetUrl).toBe(SEND_COMMAND_URL);
         expect(body.device).toBe("MyDevice");
         expect(body.sequence).toEqual(sequence);
         expect(body.requestId).toEqual(expect.any(String));
+
+        const url = requestUrl();
+        expect(url.pathname).toBe("/api/remote/command");
+        // The URL nonce also defeats intermediaries that cache POST by path.
+        expect(url.searchParams.get("_")).toBe(body.requestId);
     });
 
     it("emits the power command (id 0) and keeps a single device param", async () => {
@@ -288,9 +322,11 @@ describe("IrRemoteClient", () => {
         const client = createIrRemoteClient(relativeDefinition);
         await client.init();
 
-        const expectedUrl = `/api/remote/commands?url=${encodeURIComponent("/api/commands")}`;
-        expect(mockFetch).toHaveBeenCalledWith(
-            expectedUrl,
+        const url = requestUrl();
+        expect(url.pathname).toBe("/api/remote/commands");
+        expect(url.searchParams.get("url")).toBe("/api/commands");
+        expect(url.searchParams.get("_")).toBeTruthy();
+        expect(requestInit()).toEqual(
             expect.objectContaining({ cache: "no-store" }),
         );
         expect(client.isCommandSupported(PlayerCommand.Play)).toBe(true);

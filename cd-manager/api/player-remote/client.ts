@@ -79,6 +79,10 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
             params.set("deviceId", definition.remoteDeviceId);
         }
         params.set("url", definition.irCommandsUrl);
+        // Unique URL per read. `no-store` is the primary defence, but a
+        // misconfigured CDN cannot serve a cached body for a URL it has never
+        // seen before.
+        params.set("_", createRequestId());
         return `/api/remote/commands?${params.toString()}`;
     };
 
@@ -169,9 +173,13 @@ export const createIrRemoteClient = (definition: PlayerDefinition): IrRemoteClie
             0,
         );
         const timeoutMs = Math.min(120_000, totalDelay + 15_000);
+        // The body already carries a unique requestId; the query nonce also
+        // makes the URL unique so no intermediary can cache a POST response
+        // keyed by path.
+        const commandUrl = `/api/remote/command?_=${encodeURIComponent(requestId)}`;
 
         try {
-            const response = await fetch("/api/remote/command", {
+            const response = await fetch(commandUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

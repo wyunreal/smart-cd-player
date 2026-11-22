@@ -76,13 +76,18 @@ Request:
   - `503` queue timeout.
   - `504` device timeout.
 
-Every response, including errors, carries:
+Every response, including errors and unauthenticated `401`s, carries:
 
 ```text
 Cache-Control: no-store, no-cache, must-revalidate, max-age=0
 Pragma: no-cache
 Expires: 0
 ```
+
+The browser also adds a unique anti-cache nonce (`_`) to every remote-control
+request URL, so even a proxy that ignores the headers cannot reuse a response
+for a URL it has never seen. This hardening is scoped to `/api/remote/*` and
+`/api/proxy-remote`; the rest of the web app keeps normal HTTP caching.
 
 ### Legacy `GET /api/proxy-remote`
 

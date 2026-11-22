@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { errorResponse, jsonNoStore } from "@/lib/api-response";
+import {
+  errorResponse,
+  jsonNoStore,
+  NO_STORE_HEADERS,
+} from "@/lib/api-response";
 import { runExclusive } from "@/lib/device-queue";
 import { resolveUrlToIp } from "@/lib/remote-resolver";
 import { getDeviceClientKey } from "@/lib/remote-device-client";
@@ -9,6 +13,7 @@ import { isAllowedProxyUrl } from "@/lib/security";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 const REMOTE_TIMEOUT_MS = 4_000;
 
@@ -26,9 +31,9 @@ type FetchedRemote = {
  * Legacy proxy kept for old clients/firmware during the migration.
  *
  * The important change is that `.local` is resolved to an IPv4 address before
- * the first fetch, using the cached self-contained resolver. The old code paid
- * a cold NSS timeout on every first request and then tried `avahi-resolve`,
- * which cannot use the host D-Bus from this container.
+ * the first fetch, using the self-contained resolver (no cache). The old code
+ * paid a cold NSS timeout on every first request and then tried
+ * `avahi-resolve`, which cannot use the host D-Bus from this container.
  */
 const fetchRemote = async (targetUrl: string): Promise<FetchedRemote> => {
   const original = new URL(targetUrl);
@@ -96,9 +101,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": contentType || "application/json",
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-        Pragma: "no-cache",
-        Expires: "0",
+        ...NO_STORE_HEADERS,
       },
     });
   } catch (error) {

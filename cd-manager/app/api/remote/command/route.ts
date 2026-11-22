@@ -10,6 +10,7 @@ import { isAllowedProxyUrl } from "@/lib/security";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 const MAX_SEQUENCE_ITEMS = 20;
 const MAX_SEQUENCE_DELAY_MS = 15_000;

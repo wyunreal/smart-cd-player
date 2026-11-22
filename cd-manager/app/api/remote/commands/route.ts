@@ -7,6 +7,7 @@ import { isAllowedProxyUrl } from "@/lib/security";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 /**
  * Read the device command list **live**. No server-side cache and no stale

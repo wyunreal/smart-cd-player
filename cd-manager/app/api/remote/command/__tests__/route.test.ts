@@ -75,6 +75,8 @@ describe("POST /api/remote/command", () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get("Cache-Control")).toContain("no-store");
+    expect(res.headers.get("Pragma")).toBe("no-cache");
+    expect(res.headers.get("Expires")).toBe("0");
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(mockSendDeviceSequence).toHaveBeenCalledWith(

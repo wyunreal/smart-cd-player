@@ -36,4 +36,35 @@ describe("middleware configuration", () => {
     const middleware = await import("../../middleware");
     expect(typeof middleware.default).toBe("function");
   });
+
+  it("marks only remote-control API 401 responses as no-store", async () => {
+    jest.mock("../../auth", () => ({
+      auth: (handler: Function) => handler,
+    }));
+
+    jest.resetModules();
+    const middleware = await import("../../middleware");
+    const handler = middleware.default as unknown as (
+      request: unknown,
+    ) => Promise<Response>;
+
+    const remoteRequest = {
+      auth: null,
+      nextUrl: new URL("http://localhost/api/remote/commands?url=x"),
+    };
+    const remoteResponse = await handler(remoteRequest);
+
+    expect(remoteResponse.status).toBe(401);
+    expect(remoteResponse.headers.get("Cache-Control")).toContain("no-store");
+
+    // Other APIs keep their normal caching behaviour.
+    const otherRequest = {
+      auth: null,
+      nextUrl: new URL("http://localhost/api/cds"),
+    };
+    const otherResponse = await handler(otherRequest);
+
+    expect(otherResponse.status).toBe(401);
+    expect(otherResponse.headers.get("Cache-Control")).toBeNull();
+  });
 });

@@ -44,6 +44,8 @@ describe("GET /api/remote/commands", () => {
     const res = await GET(createRequest(""));
     expect(res.status).toBe(400);
     expect(res.headers.get("Cache-Control")).toContain("no-store");
+    expect(res.headers.get("Pragma")).toBe("no-cache");
+    expect(res.headers.get("Expires")).toBe("0");
   });
 
   it("fetches the command list live on every request", async () => {
