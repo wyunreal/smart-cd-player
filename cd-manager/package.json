@@ -1,6 +1,6 @@
 {
   "name": "smart-cd",
-  "version": "1.0.172",
+  "version": "1.0.177",
   "scripts": {
     "dev": "next dev",
     "start": "next start",

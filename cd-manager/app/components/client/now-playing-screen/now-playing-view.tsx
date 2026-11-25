@@ -22,6 +22,10 @@ import type {
   NowPlayingTrackView,
   NowPlayingViewProps,
 } from "./types";
+import {
+  NOW_PLAYING_CD_LIST_GAP,
+  NOW_PLAYING_CD_LIST_WIDTH,
+} from "./constants";
 
 const overlineSx = {
   display: "block",
@@ -423,7 +427,14 @@ const NowPlayingView = ({
         width: "100%",
         maxWidth: { xs: 1440, xxl: "none" },
         mx: "auto",
-        px: { xs: 2.5, sm: 4, lg: 4, xl: 6 },
+        pl: { xs: 2.5, sm: 4, lg: 4, xl: 6 },
+        pr: {
+          xs: 2.5,
+          sm: 4,
+          lg: 4,
+          xl: 6,
+          xxl: `${NOW_PLAYING_CD_LIST_WIDTH + NOW_PLAYING_CD_LIST_GAP}px`,
+        },
         py: { xs: 3, sm: 4, lg: 4, xl: 5 },
         // In the wide layout a shifted disc must be clipped instead of adding
         // a horizontal scrollbar.

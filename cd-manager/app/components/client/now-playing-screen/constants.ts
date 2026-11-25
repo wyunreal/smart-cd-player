@@ -1,0 +1,2 @@
+export const NOW_PLAYING_CD_LIST_WIDTH = 360;
+export const NOW_PLAYING_CD_LIST_GAP = 48;
