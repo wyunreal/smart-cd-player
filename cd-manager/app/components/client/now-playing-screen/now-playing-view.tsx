@@ -83,6 +83,14 @@ const VERTICAL_LIFT = {
 /** How far the cut-line highlight sticks out above and below the disc. */
 const CUT_LINE_OVERHANG = 24;
 
+/**
+ * Eased fade for the blurred album backdrop. It stays opaque on the right,
+ * accelerates its falloff in the middle and reaches full transparency before
+ * the left edge, so the image boundary is not visible.
+ */
+const NOW_PLAYING_BACKDROP_MASK =
+  "linear-gradient(270deg, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 16%, rgba(0,0,0,0.97) 28%, rgba(0,0,0,0.9) 40%, rgba(0,0,0,0.76) 52%, rgba(0,0,0,0.56) 64%, rgba(0,0,0,0.34) 76%, rgba(0,0,0,0.14) 86%, rgba(0,0,0,0.03) 92%, rgba(0,0,0,0) 96%, rgba(0,0,0,0) 100%)";
+
 type AlbumPanelProps = {
   album: NowPlayingAlbumView;
   track: NowPlayingTrackView | null;
@@ -413,7 +421,7 @@ const NowPlayingView = ({
           lg: "auto",
         },
         width: "100%",
-        maxWidth: 1440,
+        maxWidth: { xs: 1440, xxl: "none" },
         mx: "auto",
         px: { xs: 2.5, sm: 4, lg: 4, xl: 6 },
         py: { xs: 3, sm: 4, lg: 4, xl: 5 },
@@ -424,7 +432,83 @@ const NowPlayingView = ({
         mt: VERTICAL_LIFT,
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+      {displayedInfo.hasDisc && viewAlbum.coverArt && (
+        <Box
+          aria-hidden="true"
+          sx={{
+            display: { xs: "none", xxl: "block" },
+            position: "absolute",
+            inset: 0,
+            zIndex: 0,
+            pointerEvents: "none",
+            overflow: "hidden",
+          }}
+        >
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: "58%",
+              overflow: "hidden",
+              maskImage: NOW_PLAYING_BACKDROP_MASK,
+              WebkitMaskImage: NOW_PLAYING_BACKDROP_MASK,
+            }}
+          >
+            <Box
+              component="img"
+              src={viewAlbum.coverArt}
+              alt=""
+              sx={{
+                display: "block",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                filter: "blur(48px) saturate(1.15)",
+                transform: "scale(1.18)",
+                opacity: 0.9,
+              }}
+            />
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                background: `linear-gradient(270deg, ${alpha(
+                  theme.palette.background.default,
+                  0.12,
+                )} 0%, ${alpha(
+                  theme.palette.background.default,
+                  0.3,
+                )} 55%, transparent 100%)`,
+              }}
+            />
+          </Box>
+        </Box>
+      )}
+
+      <Box
+        sx={{
+          position: "relative",
+          zIndex: 1,
+          width: "100%",
+          maxWidth: 2400,
+          mx: "auto",
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
+        }}
+      >
+        <Box
+          sx={{
+            position: "relative",
+            zIndex: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 1.25,
+          }}
+        >
         <Box
           sx={{
             display: "grid",
@@ -454,6 +538,8 @@ const NowPlayingView = ({
 
       <Box
         sx={{
+          position: "relative",
+          zIndex: 1,
           flex: 1,
           display: "flex",
           flexDirection: { xs: "column", lg: "row" },
@@ -506,7 +592,13 @@ const NowPlayingView = ({
         </Box>
       </Box>
 
-      <Box sx={{ mt: { xs: 3, sm: 4, lg: 4, xl: 5 } }}>
+      <Box
+        sx={{
+          position: "relative",
+          zIndex: 1,
+          mt: { xs: 3, sm: 4, lg: 4, xl: 5 },
+        }}
+      >
         <PlaybackControls
           track={viewTrack}
           mode={mode}
@@ -516,6 +608,7 @@ const NowPlayingView = ({
           capabilities={capabilities}
           onSearch={() => setTracksOpen(true)}
         />
+      </Box>
       </Box>
 
       <ResponsiveDialog

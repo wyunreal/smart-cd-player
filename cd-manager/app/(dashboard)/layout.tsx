@@ -95,7 +95,10 @@ export default function Layout(props: { children: React.ReactNode }) {
               maxWidth={false}
               sx={
                 isHome
-                  ? undefined
+                  ? {
+                      px: { xxl: 0 },
+                      "& > .MuiStack-root": { my: { xxl: 0 } },
+                    }
                   : {
                       maxWidth: {
                         lg: 1440,
