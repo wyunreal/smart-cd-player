@@ -54,11 +54,17 @@ const CdDetails = ({
   return isMobile ? (
     <CdDetailsDialog cdId={cdId} onDialogClosed={onDialogClosed} />
   ) : (
-    <Collapse timeout={500} orientation="horizontal" in={animationDriver}>
+    <Collapse
+      timeout={500}
+      orientation="horizontal"
+      in={animationDriver}
+      sx={{ flexShrink: 0 }}
+    >
       {displayedCd && (
         <Box
           sx={{
             width: `${DETAILS_PANEL_WIDTH + 16}px`,
+            flexShrink: 0,
           }}
         >
           <Box

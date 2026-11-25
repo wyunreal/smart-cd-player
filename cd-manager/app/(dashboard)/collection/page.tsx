@@ -15,7 +15,14 @@ const CollectionPage = () => {
   return (
     <>
       {cds !== null ? (
-        <Box sx={{ display: "flex", flexDirection: "row", height: "100%" }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            height: "100%",
+            minWidth: 0,
+          }}
+        >
           <CdCollection cds={cds} />
           <CdDetails
             cdId={selectedCdId}

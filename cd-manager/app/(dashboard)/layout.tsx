@@ -33,6 +33,8 @@ export default function Layout(props: { children: React.ReactNode }) {
     [activePage],
   );
 
+  const isHome = pathname === ROUTES.HOME;
+
   return (
     <AudioStreamProvider>
       <CdSelectionProvider>
@@ -90,7 +92,18 @@ export default function Layout(props: { children: React.ReactNode }) {
           }}
         >
             <PageContainer
-              maxWidth={pathname === ROUTES.HOME ? false : "lg"}
+              maxWidth={false}
+              sx={
+                isHome
+                  ? undefined
+                  : {
+                      maxWidth: {
+                        lg: 1440,
+                        xl: 1800,
+                        xxl: 2400,
+                      },
+                    }
+              }
               breadcrumbs={breadcrumbs}
               slots={
                 pathname === ROUTES.HOME ? { header: NoPageHeader } : undefined

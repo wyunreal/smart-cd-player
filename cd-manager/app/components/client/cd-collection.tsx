@@ -9,13 +9,17 @@ import {
   PlaylistAddOutlinedIcon,
   PlaylistRemoveOutlinedIcon,
 } from "@/app/icons";
-import { Avatar, Box, Paper } from "@mui/material";
+import { Avatar, Box, Paper, useMediaQuery, useTheme } from "@mui/material";
 import {
   DataGrid,
   gridClasses,
   GridColDef,
+  GridFilterModel,
+  GridFilterOperator,
+  GridPaginationModel,
   GridRenderCellParams,
   GridRowSelectionModel,
+  GridSortModel,
 } from "@mui/x-data-grid";
 import Image from "next/image";
 import React, {
@@ -26,7 +30,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { GridFilterModel } from "@mui/x-data-grid";
 import Menu, { MenuOption } from "./menu";
 import useEditCdForm from "@/app/hooks/use-edit-cd-form";
 import useConfirmDialog from "@/app/hooks/use-confirm-dialog";
@@ -45,14 +48,180 @@ const GRID_ROW_HEIGHT = 52;
 
 const getPageSize = (height: number): number => {
   return height > 0
-    ? Math.floor(
-        (height - GRID_HEADER_HEIGHT - GRID_ROW_HEIGHT) / GRID_ROW_HEIGHT,
+    ? Math.min(
+        100,
+        Math.max(
+          1,
+          Math.floor(
+            (height - GRID_HEADER_HEIGHT - GRID_ROW_HEIGHT) / GRID_ROW_HEIGHT,
+          ),
+        ),
       )
     : 12;
 };
 
+type CdGridRow = Cd & {
+  albumArt?: string;
+  tracksNumber: number;
+};
+
+const sortRows = (
+  rows: CdGridRow[],
+  sortModel: GridSortModel,
+): CdGridRow[] => {
+  if (sortModel.length === 0) return rows;
+
+  return [...rows].sort((a, b) => {
+    for (const { field, sort } of sortModel) {
+      const aValue = (a as unknown as Record<string, unknown>)[field];
+      const bValue = (b as unknown as Record<string, unknown>)[field];
+
+      if (aValue === bValue) continue;
+
+      let comparison: number;
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        comparison = aValue - bValue;
+      } else {
+        comparison = String(aValue ?? "").localeCompare(String(bValue ?? ""));
+      }
+
+      if (comparison !== 0) {
+        return sort === "asc" ? comparison : -comparison;
+      }
+    }
+    return 0;
+  });
+};
+
+// Filtering is applied by this component because the grids use server-side
+// pagination. Keeping the operators here also limits the filter panel to the
+// operations we support.
+const stringFilterOperators: GridFilterOperator[] = [
+  { value: "contains", label: "contains", getApplyFilterFn: () => null },
+  {
+    value: "doesNotContain",
+    label: "does not contain",
+    getApplyFilterFn: () => null,
+  },
+  { value: "equals", label: "equals", getApplyFilterFn: () => null },
+  {
+    value: "doesNotEqual",
+    label: "does not equal",
+    getApplyFilterFn: () => null,
+  },
+  { value: "startsWith", label: "starts with", getApplyFilterFn: () => null },
+  { value: "endsWith", label: "ends with", getApplyFilterFn: () => null },
+  {
+    value: "isEmpty",
+    label: "is empty",
+    requiresFilterValue: false,
+    getApplyFilterFn: () => null,
+  },
+  {
+    value: "isNotEmpty",
+    label: "is not empty",
+    requiresFilterValue: false,
+    getApplyFilterFn: () => null,
+  },
+];
+
+const numberFilterOperators: GridFilterOperator[] = [
+  { value: "=", label: "=", getApplyFilterFn: () => null },
+  { value: "!=", label: "!=", getApplyFilterFn: () => null },
+  { value: ">", label: ">", getApplyFilterFn: () => null },
+  { value: ">=", label: ">=", getApplyFilterFn: () => null },
+  { value: "<", label: "<", getApplyFilterFn: () => null },
+  { value: "<=", label: "<=", getApplyFilterFn: () => null },
+  {
+    value: "isEmpty",
+    label: "is empty",
+    requiresFilterValue: false,
+    getApplyFilterFn: () => null,
+  },
+  {
+    value: "isNotEmpty",
+    label: "is not empty",
+    requiresFilterValue: false,
+    getApplyFilterFn: () => null,
+  },
+];
+
+const applyFilter = (
+  rows: CdGridRow[],
+  filterModel: GridFilterModel,
+): CdGridRow[] => {
+  const items = filterModel.items.filter((item) => !!item.field);
+  const quickValues = (filterModel.quickFilterValues ?? [])
+    .map((value) => String(value).toLowerCase())
+    .filter(Boolean);
+
+  if (items.length === 0 && quickValues.length === 0) return rows;
+
+  return rows.filter((row) => {
+    const itemResults = items.map((item) => {
+      const rawValue = (row as unknown as Record<string, unknown>)[item.field];
+      const rowValue = String(rawValue ?? "").toLowerCase();
+      const filterValue = String(item.value ?? "").toLowerCase();
+      const operator =
+        item.operator ??
+        (typeof rawValue === "number" ? "=" : "contains");
+
+      switch (operator) {
+        case "contains":
+          return rowValue.includes(filterValue);
+        case "doesNotContain":
+          return !rowValue.includes(filterValue);
+        case "equals":
+          return rowValue === filterValue;
+        case "doesNotEqual":
+          return rowValue !== filterValue;
+        case "startsWith":
+          return rowValue.startsWith(filterValue);
+        case "endsWith":
+          return rowValue.endsWith(filterValue);
+        case "isEmpty":
+          return rowValue.trim() === "";
+        case "isNotEmpty":
+          return rowValue.trim() !== "";
+        case "=":
+          return Number(rawValue) === Number(item.value);
+        case "!=":
+          return Number(rawValue) !== Number(item.value);
+        case ">":
+          return Number(rawValue) > Number(item.value);
+        case ">=":
+          return Number(rawValue) >= Number(item.value);
+        case "<":
+          return Number(rawValue) < Number(item.value);
+        case "<=":
+          return Number(rawValue) <= Number(item.value);
+        default:
+          return true;
+      }
+    });
+
+    const matchesItems =
+      filterModel.logicOperator === "or"
+        ? itemResults.some(Boolean)
+        : itemResults.every(Boolean);
+    if (!matchesItems) return false;
+
+    if (quickValues.length === 0) return true;
+
+    return quickValues.every((needle) =>
+      [row.title, row.artist, row.genre, row.tracksNumber].some((value) =>
+        String(value ?? "")
+          .toLowerCase()
+          .includes(needle),
+      ),
+    );
+  });
+};
+
 const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
   const { height, width, resizeRef } = useResizeObserver();
+  const theme = useTheme();
+  const isUltraWide = useMediaQuery(theme.breakpoints.up("xxl"));
 
   const { openEditCdForm, editCdFormInstance } = useEditCdForm();
   const { confirmDialog, confirmDialogInstance } = useConfirmDialog();
@@ -70,8 +239,10 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
   const router = useRouter();
   const { selectedCdId, selectCdById, clearSelection } = useCdSelection();
 
-  // Solo cambiar cuando width cruza el umbral de 600px
-  const isWide = width > 600;
+  // Width available to each grid. When two grids are shown the details panel
+  // and the gap reduce the per-grid width.
+  const gridWidth = isUltraWide ? Math.max(0, (width - 16) / 2) : width;
+  const isWide = gridWidth > 600;
 
   // Pre-calculate used CD IDs for O(1) access
   const usedCdIds = useMemo(() => {
@@ -225,6 +396,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
         hideable: false,
         disableColumnMenu: true,
         sortable: false,
+        filterable: false,
         renderCell: renderAlbumArt,
       },
       {
@@ -232,6 +404,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
         headerName: "Album",
         flex: 2,
         hideable: false,
+        filterOperators: stringFilterOperators,
       },
       ...(isWide
         ? [
@@ -240,6 +413,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
               headerName: "Artist",
               flex: 2,
               hideable: false,
+              filterOperators: stringFilterOperators,
             },
           ]
         : []),
@@ -250,6 +424,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
               headerName: "Genre",
               flex: 1,
               hideable: false,
+              filterOperators: stringFilterOperators,
             },
           ]
         : []),
@@ -259,6 +434,7 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
         type: "number",
         width: 80,
         hideable: false,
+        filterOperators: numberFilterOperators,
       },
       {
         field: "id",
@@ -267,13 +443,14 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
         hideable: false,
         disableColumnMenu: true,
         sortable: false,
+        filterable: false,
         renderCell: renderMenu,
       },
     ],
     [isWide, renderAlbumArt, renderMenu],
   );
 
-  const rows = useMemo(
+  const rows = useMemo<CdGridRow[]>(
     () =>
       Object.values(cds).map((cd) => ({
         ...cd,
@@ -284,13 +461,52 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     [cds],
   );
 
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: getPageSize(height),
-  });
-
+  const [sortModel, setSortModel] = useState<GridSortModel>([]);
   const [filterModel, setFilterModel] = useState<GridFilterModel>({ items: [] });
-  const hasActiveFilter = filterModel.items.length > 0 || !!filterModel.quickFilterValues?.length;
+  const hasActiveFilter =
+    filterModel.items.length > 0 || !!filterModel.quickFilterValues?.length;
+  const pageSize = getPageSize(height);
+  // MUI DataGrid MIT caps pageSize at 100. In two-column mode the paging
+  // control represents both grids, so each grid can use at most 50 rows.
+  const gridPageSize = isUltraWide ? Math.min(pageSize, 50) : pageSize;
+  const uiPageSize = isUltraWide ? gridPageSize * 2 : gridPageSize;
+
+  const filteredRows = useMemo(
+    () => applyFilter(rows, filterModel),
+    [rows, filterModel],
+  );
+
+  const sortedRows = useMemo(
+    () => sortRows(filteredRows, sortModel),
+    [filteredRows, sortModel],
+  );
+
+  const [pageGroup, setPageGroup] = useState(0);
+
+  const paginationModel = useMemo<GridPaginationModel>(
+    () => ({ page: pageGroup, pageSize: uiPageSize }),
+    [pageGroup, uiPageSize],
+  );
+
+  const columnRows = useMemo(() => {
+    if (!isUltraWide) {
+      const start = pageGroup * gridPageSize;
+      return {
+        left: sortedRows.slice(start, start + gridPageSize),
+        right: [] as CdGridRow[],
+      };
+    }
+
+    const start = pageGroup * gridPageSize * 2;
+    return {
+      left: sortedRows.slice(start, start + gridPageSize),
+      right: sortedRows.slice(
+        start + gridPageSize,
+        start + gridPageSize * 2,
+      ),
+    };
+  }, [sortedRows, isUltraWide, pageGroup, gridPageSize]);
+
   const isNavigatingToSelection = useRef(false);
   const lastAutoNavigatedCdId = useRef<number | null>(null);
 
@@ -301,46 +517,61 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     }, 300);
   }, []);
 
-  useEffect(() => {
-    const newPageSize = getPageSize(height);
-    setPaginationModel((prev) =>
-      prev.pageSize === newPageSize ? prev : { ...prev, pageSize: newPageSize },
-    );
-  }, [height]);
-
-  // Reset navigation tracking when filter or pageSize changes so we re-navigate correctly
+  // Reset navigation tracking when the visible data layout changes so the
+  // selected row can be located again.
   useEffect(() => {
     lastAutoNavigatedCdId.current = null;
-  }, [hasActiveFilter, paginationModel.pageSize]);
+  }, [hasActiveFilter, gridPageSize, sortModel, filterModel, isUltraWide]);
 
-  const cdIds = useMemo(() => Object.keys(cds).map(Number), [cds]);
+  // Layout, filter, sort or page-size changes start from the first page.
   useEffect(() => {
-    if (
-      !hasActiveFilter &&
-      selectedCdId !== null &&
-      selectedCdId !== lastAutoNavigatedCdId.current &&
-      cdIds.includes(selectedCdId)
-    ) {
-      lastAutoNavigatedCdId.current = selectedCdId;
-      // Use functional update to read current page without adding paginationModel.page
-      // as a dependency (which would cause re-runs on every user page change)
-      setPaginationModel((prev) => {
-        const targetPage = Math.floor(cdIds.indexOf(selectedCdId) / prev.pageSize);
-        if (targetPage !== prev.page) {
-          isNavigatingToSelection.current = true;
-          return { ...prev, page: targetPage };
-        }
-        return prev;
-      });
-    } else if (selectedCdId === null) {
-      lastAutoNavigatedCdId.current = null;
-    }
-  }, [selectedCdId, cdIds, hasActiveFilter, paginationModel.pageSize]);
+    setPageGroup(0);
+  }, [hasActiveFilter, isUltraWide, sortModel, gridPageSize, filterModel]);
 
-  const rowSelectionModel: GridRowSelectionModel = useMemo(
-    () => (selectedCdId !== null ? [selectedCdId] : []),
-    [selectedCdId],
+  // Deleting rows can leave the current page out of range.
+  const maxPage = Math.max(
+    0,
+    Math.ceil(sortedRows.length / uiPageSize) - 1,
   );
+  useEffect(() => {
+    setPageGroup((prev) => Math.min(prev, maxPage));
+  }, [maxPage]);
+
+  useEffect(() => {
+    if (selectedCdId === null || hasActiveFilter) {
+      if (selectedCdId === null) {
+        lastAutoNavigatedCdId.current = null;
+      }
+      return;
+    }
+
+    if (selectedCdId === lastAutoNavigatedCdId.current) return;
+
+    const selectedIndex = sortedRows.findIndex(
+      (row) => row.id === selectedCdId,
+    );
+    if (selectedIndex === -1) return;
+
+    lastAutoNavigatedCdId.current = selectedCdId;
+
+    const targetPage = isUltraWide
+      ? Math.floor(selectedIndex / (gridPageSize * 2))
+      : Math.floor(selectedIndex / gridPageSize);
+
+    setPageGroup((prev) => {
+      if (targetPage !== prev) {
+        isNavigatingToSelection.current = true;
+        return targetPage;
+      }
+      return prev;
+    });
+  }, [
+    selectedCdId,
+    hasActiveFilter,
+    sortedRows,
+    isUltraWide,
+    gridPageSize,
+  ]);
 
   const gridSx = useMemo(
     () => ({
@@ -370,23 +601,70 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
   );
 
   const onPaginationModelChange = useCallback(
-    (model: typeof paginationModel) => {
+    (model: GridPaginationModel) => {
       if (selectedCdId !== null && !isNavigatingToSelection.current) {
         clearSelection();
       }
       isNavigatingToSelection.current = false;
-      setPaginationModel(model);
+      setPageGroup(model.page);
     },
     [selectedCdId, clearSelection],
   );
 
-  const pageSizeOptions = useMemo(() => [getPageSize(height)], [height]);
+  const pageSizeOptions = useMemo(() => [uiPageSize], [uiPageSize]);
   const isCellEditable = useCallback(() => false, []);
+
+  const renderGrid = (gridRows: CdGridRow[], key: string) => {
+    const gridSelectionModel: GridRowSelectionModel =
+      selectedCdId !== null &&
+      gridRows.some((row) => row.id === selectedCdId)
+        ? [selectedCdId]
+        : [];
+
+    return (
+      <Box
+        key={key}
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          height: "100%",
+        }}
+      >
+        <Paper sx={{ height: "100%" }}>
+          <div style={{ height: "100%" }}>
+            <DataGrid
+              disableColumnResize
+              rows={gridRows}
+              columns={columns}
+              paginationMode="server"
+              rowCount={sortedRows.length}
+              paginationModel={paginationModel}
+              onPaginationModelChange={onPaginationModelChange}
+              pageSizeOptions={pageSizeOptions}
+              rowSelection
+              rowSelectionModel={gridSelectionModel}
+              isCellEditable={isCellEditable}
+              autoPageSize={false}
+              sx={gridSx}
+              onRowSelectionModelChange={onRowSelectionModelChange}
+              filterMode="server"
+              filterModel={filterModel}
+              onFilterModelChange={setFilterModel}
+              sortingMode="server"
+              sortModel={sortModel}
+              onSortModelChange={setSortModel}
+            />
+          </div>
+        </Paper>
+      </Box>
+    );
+  };
 
   return (
     <Box
       sx={{
         flex: 1,
+        minWidth: 0,
         position: "relative",
         height: "100%",
         ...(visible
@@ -405,26 +683,19 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
       }}
     >
       <Box sx={{ position: "absolute", inset: 0, height: "100%" }}>
-        <Paper sx={{ flex: 1, height: "100%" }}>
-          <div ref={resizeRef} style={{ height: "100%" }}>
-            <DataGrid
-              disableColumnResize
-              rows={rows}
-              columns={columns}
-              paginationModel={paginationModel}
-              onPaginationModelChange={onPaginationModelChange}
-              pageSizeOptions={pageSizeOptions}
-              rowSelection
-              rowSelectionModel={rowSelectionModel}
-              isCellEditable={isCellEditable}
-              autoPageSize={false}
-              sx={gridSx}
-              onRowSelectionModelChange={onRowSelectionModelChange}
-              filterModel={filterModel}
-              onFilterModelChange={setFilterModel}
-            />
-          </div>
-        </Paper>
+        <Box
+          ref={resizeRef}
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            gap: isUltraWide ? 2 : 0,
+            height: "100%",
+            minWidth: 0,
+          }}
+        >
+          {renderGrid(columnRows.left, "left-grid")}
+          {isUltraWide && renderGrid(columnRows.right, "right-grid")}
+        </Box>
       </Box>
       {editCdFormInstance}
       {confirmDialogInstance}

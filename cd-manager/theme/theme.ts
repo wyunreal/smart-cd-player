@@ -22,6 +22,12 @@ import { fontSize, typography } from "./typography";
 import { createTheme, responsiveFontSizes } from "@mui/material/styles";
 import getComponentsOverrides from "./components";
 
+declare module "@mui/material/styles" {
+  interface BreakpointOverrides {
+    xxl: true;
+  }
+}
+
 declare module "@mui/material/styles/createPalette" {
   export interface Palette {
     section: {
@@ -94,6 +100,7 @@ export const theme = getComponentsOverrides(
             md: 960,
             lg: 1200,
             xl: 1536,
+            xxl: 1920,
           },
         },
       },

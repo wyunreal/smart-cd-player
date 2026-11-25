@@ -3,10 +3,23 @@
 
 import { VirtualSlot } from "@/lib/virtual-slots";
 import { alpha, Box, IconButton, Typography, useTheme } from "@mui/material";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Carousel from "./carousel";
 import { PlayArrowRounded } from "@mui/icons-material";
 import useMediaQuery from "@mui/material/useMediaQuery";
+
+const useViewportHeight = () => {
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    const update = () => setHeight(window.innerHeight);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return height;
+};
 
 const PlayerSlots = ({
   items,
@@ -25,15 +38,33 @@ const PlayerSlots = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const viewportHeight = useViewportHeight();
 
-  const slotsDimension =
+  const widthBasedDimension =
     containerWidth < 420
-      ? "140px"
+      ? 140
       : containerWidth < 630
-        ? "220px"
+        ? 220
         : containerWidth < 820
-          ? "280px"
-          : "340px";
+          ? 280
+          : containerWidth < 1200
+            ? 340
+            : containerWidth < 1600
+              ? 420
+              : containerWidth < 2000
+                ? 520
+                : 620;
+
+  // Keep room for the spectrum title and the slot details panel below.
+  const heightCap =
+    viewportHeight > 0
+      ? Math.round(viewportHeight * 0.55)
+      : Number.POSITIVE_INFINITY;
+  const slotsDimensionPx = Math.max(
+    140,
+    Math.min(widthBasedDimension, heightCap),
+  );
+  const slotsDimension = `${slotsDimensionPx}px`;
 
   return (
     <Carousel<VirtualSlot>

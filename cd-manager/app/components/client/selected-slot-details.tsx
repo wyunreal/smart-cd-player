@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
 import { VirtualSlot } from "@/lib/virtual-slots";
+import type { Track } from "@/api/types";
 import {
   ArrowForwardIcon,
   ListIcon,
@@ -24,6 +25,66 @@ import useResizeObserver from "@/app/hooks/use-resize-observer";
 import CdDetailsDialog from "./cd-details-dialog";
 import { useState } from "react";
 
+const TrackColumn = ({
+  tracks,
+  startIndex,
+  isMobile,
+  onTrackPlay,
+  isTrackPlaySupported,
+}: {
+  tracks: Track[];
+  startIndex: number;
+  isMobile: boolean;
+  onTrackPlay: (trackNumber: number) => void;
+  isTrackPlaySupported: (trackNumber: number) => boolean;
+}) => (
+  <div style={{ maxHeight: 0, minWidth: 0 }}>
+    <List>
+      <Divider />
+      {tracks.map((track, index) => {
+        const trackNumber = startIndex + index + 1;
+        const supported = isTrackPlaySupported(trackNumber);
+
+        return (
+          <div key={trackNumber}>
+            <ListItem
+              sx={{
+                paddingX: 0,
+                paddingY: "4px",
+                alignItems: "flex-start",
+              }}
+            >
+              <Collapse in={supported} orientation="horizontal">
+                <IconButton
+                  sx={{
+                    mr: isMobile ? 0 : 1,
+                  }}
+                  onClick={() => supported && onTrackPlay(trackNumber)}
+                  disabled={!supported}
+                >
+                  <PlayCircleOutlineOutlinedIcon
+                    fontSize="small"
+                    color="primary"
+                  />
+                </IconButton>
+              </Collapse>
+              <ListItemText sx={{ my: "8px", minWidth: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "start" }}>
+                  <Typography variant="body2" sx={{ minWidth: "32px" }}>
+                    {`${trackNumber}.`}
+                  </Typography>
+                  <Typography variant="body2">{track.title}</Typography>
+                </Box>
+              </ListItemText>
+            </ListItem>
+            <Divider />
+          </div>
+        );
+      })}
+    </List>
+  </div>
+);
+
 const SelectedSlotDetails = ({
   slot,
   width,
@@ -47,6 +108,14 @@ const SelectedSlotDetails = ({
   );
 
   const isHorizontalLayout = width >= 617;
+  const cdTracks = slot.cd?.tracks ?? [];
+  const isTwoColumnTracks = isHorizontalLayout && width >= 1400;
+  const tracksPerColumn = isTwoColumnTracks
+    ? Math.ceil(cdTracks.length / 2)
+    : cdTracks.length;
+  const trackColumns = isTwoColumnTracks
+    ? [cdTracks.slice(0, tracksPerColumn), cdTracks.slice(tracksPerColumn)]
+    : [cdTracks];
   const { height, resizeRef } = useResizeObserver();
 
   return (
@@ -194,53 +263,27 @@ const SelectedSlotDetails = ({
                     overflowStyle: "none",
                   }}
                 >
-                  <div style={{ maxHeight: 0 }}>
-                    <List>
-                      <Divider />
-                      {slot.cd.tracks.map((track, i) => (
-                        <div key={i}>
-                          <ListItem sx={{ paddingX: 0, paddingY: "4px", alignItems: "flex-start" }}>
-                            <Collapse
-                              in={isTrackPlaySupported(i + 1)}
-                              orientation="horizontal"
-                            >
-                              <IconButton
-                                sx={{
-                                  mr: isMobile ? 0 : 1,
-                                }}
-                                onClick={() =>
-                                  isTrackPlaySupported(i + 1) &&
-                                  onTrackPlay(i + 1)
-                                }
-                                disabled={!isTrackPlaySupported(i + 1)}
-                              >
-                                <PlayCircleOutlineOutlinedIcon
-                                  fontSize="small"
-                                  color="primary"
-                                />
-                              </IconButton>
-                            </Collapse>
-                            <ListItemText sx={{ my: "8px" }}>
-                              <Box
-                                sx={{ display: "flex", alignItems: "start" }}
-                              >
-                                <Typography
-                                  variant="body2"
-                                  sx={{ minWidth: "32px" }}
-                                >
-                                  {i + 1}.
-                                </Typography>
-                                <Typography variant="body2">
-                                  {track.title}
-                                </Typography>
-                              </Box>
-                            </ListItemText>
-                          </ListItem>
-                          <Divider />
-                        </div>
-                      ))}
-                    </List>
-                  </div>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: isTwoColumnTracks
+                        ? "minmax(0, 1fr) minmax(0, 1fr)"
+                        : "minmax(0, 1fr)",
+                      columnGap: isTwoColumnTracks ? 3 : 0,
+                      alignItems: "start",
+                    }}
+                  >
+                    {trackColumns.map((tracks, columnIndex) => (
+                      <TrackColumn
+                        key={columnIndex}
+                        tracks={tracks}
+                        startIndex={columnIndex * tracksPerColumn}
+                        isMobile={isMobile}
+                        onTrackPlay={onTrackPlay}
+                        isTrackPlaySupported={isTrackPlaySupported}
+                      />
+                    ))}
+                  </Box>
                 </Box>
               </Box>
             ) : height > 40 && isHorizontalLayout ? (
