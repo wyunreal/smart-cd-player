@@ -1,11 +1,19 @@
 import { getCdCollection } from "@/api/cd-collection";
 import { getPlayerContent } from "@/api/cd-player-content";
 import { getPlayerDefinitions } from "@/api/cd-player-definitions";
+import { DEFINITIONS_COUNT } from "@/api/constants";
 import {
   createIrRemoteClient,
   IrRemoteClient,
 } from "@/api/player-remote/client";
 import { Cd, CdSlot, DisplayState, PlayerDefinition } from "@/api/types";
+import {
+  buildVirtualLayouts,
+  buildVisibleSlots,
+  groupVisibleSlotsByArtist,
+  type VirtualPlayerLayout,
+  type VirtualSlot,
+} from "@/lib/virtual-slots";
 import {
   buildMissingStreamsError,
   createDisplayDebounceState,
@@ -31,8 +39,6 @@ import React, {
 export type PlayerDefinitionsProps = {
   playerDefinitions: PlayerDefinition[] | null;
   getPlayerDefinitionsByStatus: (isActive: boolean) => PlayerDefinition[];
-  selectedPlayer: number | null;
-  setSelectedPlayer: (player: number) => void;
   refreshPlayerDefinitions: () => void;
   /**
    * Indexed by `remoteIndex - 1`. Players without an active IR client keep a
@@ -52,19 +58,31 @@ export type PlayerSlot = {
   cd: Cd | null;
 };
 
-export type PlayerContentByArtist = {
-  [artist: string]: PlayerSlot[];
-};
-
 export type PlayerContentProps = {
   playerContent: PlayerSlot[][];
-  playerContentByArtist: PlayerContentByArtist[];
   refreshPlayerContent: () => void;
 };
 
-export type PlayerStateProps = {
-  selectedPlayerSlots: number[];
-  setSelectedPlayerSlots: (slots: number[]) => void;
+export type UnifiedPlayerViewProps = {
+  /** Capacity-based layout used to translate physical slots to virtual numbers. */
+  virtualLayouts: VirtualPlayerLayout[];
+  /**
+   * Slots rendered by the unified player view. It only contains slots with a
+   * CD; empty slots are omitted from the UI.
+   */
+  visibleSlots: VirtualSlot[];
+  /** Visible slots grouped by artist across every player. */
+  visibleSlotsByArtist: Record<string, VirtualSlot[]>;
+  /** Canonical 1-based virtual slot number, not an array index. */
+  selectedVirtualNumber: number | null;
+  setSelectedVirtualNumber: (virtualNumber: number) => void;
+  /** Visible slot selected by the user. */
+  selectedVirtualSlot: VirtualSlot | null;
+  /**
+   * `remoteIndex` of the player that owns the selected virtual slot. Falls back
+   * to the now-playing player when no slot is visible.
+   */
+  focusedPlayer: number | null;
 };
 
 export type LastPlayedStateProps = {
@@ -75,7 +93,7 @@ export type LastPlayedStateProps = {
 export type DisplayStateProps = {
   /** True once the first /display response has been processed. */
   displayLoaded: boolean;
-  /** Display reading of the player selected in the main view. */
+  /** Display reading of the focused player. */
   displayState: DisplayState | null;
   /** Player picked for the "currently playing" view. */
   nowPlayingPlayer: number | null;
@@ -84,7 +102,7 @@ export type DisplayStateProps = {
   nowPlayingDisplayState: DisplayState | null;
   /**
    * Player that transport/power commands target: the "currently playing" player
-   * when there is one, otherwise the player selected in the main view.
+   * when there is one, otherwise the focused player.
    */
   commandPlayer: number | null;
   commandDisplayState: DisplayState | null;
@@ -93,24 +111,9 @@ export type DisplayStateProps = {
 type DataRepositoryContextProps = CdCollectionProps &
   PlayerDefinitionsProps &
   PlayerContentProps &
-  PlayerStateProps &
+  UnifiedPlayerViewProps &
   LastPlayedStateProps &
   DisplayStateProps;
-
-const calculateContentByArtist = (
-  slots: PlayerSlot[],
-): PlayerContentByArtist => {
-  const contentByArtist: PlayerContentByArtist = {};
-  for (const slot of slots) {
-    if (slot.cd) {
-      if (contentByArtist[slot.cd.artist] === undefined) {
-        contentByArtist[slot.cd.artist] = [];
-      }
-      contentByArtist[slot.cd.artist].push(slot);
-    }
-  }
-  return contentByArtist;
-};
 
 export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   cds: null,
@@ -118,15 +121,17 @@ export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   getCdById: () => null,
   playerDefinitions: null,
   getPlayerDefinitionsByStatus: () => [],
-  selectedPlayer: null,
-  setSelectedPlayer: () => {},
   refreshPlayerDefinitions: () => {},
   irRemoteClients: [],
   playerContent: [[], [], []],
-  playerContentByArtist: [{}, {}, {}],
   refreshPlayerContent: () => {},
-  selectedPlayerSlots: [0, 0, 0],
-  setSelectedPlayerSlots: () => {},
+  virtualLayouts: [],
+  visibleSlots: [],
+  visibleSlotsByArtist: {},
+  selectedVirtualNumber: null,
+  setSelectedVirtualNumber: () => {},
+  selectedVirtualSlot: null,
+  focusedPlayer: null,
   lastPlayedSlots: [null, null, null],
   setLastPlayedSlots: () => {},
   displayLoaded: false,
@@ -169,7 +174,6 @@ export const DataRepositoryProvider = ({
   const [playerDefinitions, setPlayerDefinitions] = useState<
     PlayerDefinition[]
   >([]);
-  const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
   const refreshPlayerDefinitions = useCallback(() => {
     setDefinitionsCacheVersion((v) => v + 1);
   }, []);
@@ -179,18 +183,6 @@ export const DataRepositoryProvider = ({
     });
   }, [definititionsCacheVersion]);
 
-  useEffect(() => {
-    const selectedPlayerDefinition = playerDefinitions.find(
-      (def) => def.remoteIndex === selectedPlayer,
-    );
-    if (!selectedPlayerDefinition) {
-      if (playerDefinitions.length > 0) {
-        setSelectedPlayer(playerDefinitions[0].remoteIndex);
-      } else {
-        setSelectedPlayer(null);
-      }
-    }
-  }, [playerDefinitions, selectedPlayer]);
   const getPlayerDefinitionsByStatus = useCallback(
     (isActive: boolean) =>
       playerDefinitions.filter((def) => def.active === isActive),
@@ -336,62 +328,124 @@ export const DataRepositoryProvider = ({
    * Player Content data
    */
   const [contentCacheVersion, setContentCacheVersion] = useState(0);
-  const [playerContent, setPlayerContent] = useState<PlayerSlot[][]>([
-    [],
-    [],
-    [],
-  ]);
-  const [playerContentByArtist, setPlayerContentByArtist] = useState<
-    PlayerContentByArtist[]
-  >([{}, {}, {}]);
   const refreshPlayerContent = useCallback(() => {
     setContentCacheVersion((v) => v + 1);
   }, []);
   const [rawContent, setRawContent] = useState<CdSlot[][]>([[], [], []]);
+  const [playerContentLoaded, setPlayerContentLoaded] = useState(false);
   useEffect(() => {
+    let cancelled = false;
+
     Promise.all([
       getPlayerContent(0),
       getPlayerContent(1),
       getPlayerContent(2),
-    ]).then(setRawContent);
+    ])
+      .then((content) => {
+        if (!cancelled) setRawContent(content);
+      })
+      .catch(() => {
+        if (!cancelled) setRawContent([[], [], []]);
+      })
+      .finally(() => {
+        if (!cancelled) setPlayerContentLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [contentCacheVersion]);
 
-  useEffect(() => {
-    setPlayerContent(
-      playerDefinitions !== null &&
-        playerDefinitions.length !== 0 &&
-        cds !== null
-        ? Array.from({ length: 3 }).map((_, index: number) => {
-            let slots: PlayerSlot[] = Array.from(
-              { length: playerDefinitions[index].capacity },
-              (_, slotIndex: number) => ({ slot: slotIndex + 1, cd: null }),
-            );
-            let minSlot = playerDefinitions[index].capacity;
-            let maxSlot = 1;
-            for (const slot of rawContent[index]) {
-              const cd = slot.cdId ? cds[slot.cdId] : null;
-              slots[slot.slot - 1].cd = cd;
-              if (slot.slot < minSlot) {
-                minSlot = slot.slot;
-              }
-              if (slot.slot > maxSlot) {
-                maxSlot = slot.slot;
-              }
-            }
-            slots = slots.slice(minSlot - 1, maxSlot);
-            return slots.length > 0 ? slots : [{ slot: 0, cd: null }];
-          })
-        : [[], [], []],
-    );
-  }, [playerDefinitions, rawContent, cds]);
+  // Only occupied slots are exposed to the UI. This removes the `slot: 0`
+  // placeholder and the index-vs-physical-slot mismatch of the previous shape.
+  const playerContent = useMemo<PlayerSlot[][]>(
+    () =>
+      Array.from({ length: DEFINITIONS_COUNT }, (_, playerIndex) => {
+        const slots = rawContent[playerIndex] ?? [];
+        const bySlot = new Map<number, Cd>();
+
+        for (const slot of slots) {
+          if (slot.slot < 1 || slot.cdId == null) continue;
+          const cd = cds[slot.cdId];
+          if (cd) bySlot.set(slot.slot, cd);
+        }
+
+        return [...bySlot.entries()]
+          .sort(([slotA], [slotB]) => slotA - slotB)
+          .map(([slot, cd]) => ({ slot, cd }));
+      }),
+    [rawContent, cds],
+  );
+
+  const virtualLayouts = useMemo(
+    () => buildVirtualLayouts(playerDefinitions ?? []),
+    [playerDefinitions],
+  );
+  const visibleSlots = useMemo(
+    () => buildVisibleSlots(playerContent, virtualLayouts),
+    [playerContent, virtualLayouts],
+  );
+  const visibleSlotsByArtist = useMemo(
+    () => groupVisibleSlotsByArtist(visibleSlots),
+    [visibleSlots],
+  );
+
+  /**
+   * Unified player selection
+   */
+  const [selectedVirtualNumber, setSelectedVirtualNumberState] = useState<
+    number | null
+  >(null);
+  const selectionInitializedRef = useRef(false);
+
+  const setSelectedVirtualNumber = useCallback((virtualNumber: number) => {
+    selectionInitializedRef.current = true;
+    setSelectedVirtualNumberState(virtualNumber);
+  }, []);
+
+  const selectedVirtualSlot = useMemo(() => {
+    if (visibleSlots.length === 0) return null;
+
+    if (selectedVirtualNumber !== null) {
+      const exact = visibleSlots.find(
+        (slot) => slot.number === selectedVirtualNumber,
+      );
+      if (exact) return exact;
+    }
+
+    if (selectedVirtualNumber === null) return visibleSlots[0];
+
+    let nearest = visibleSlots[0];
+    let nearestDistance = Math.abs(nearest.number - selectedVirtualNumber);
+    for (const slot of visibleSlots.slice(1)) {
+      const distance = Math.abs(slot.number - selectedVirtualNumber);
+      if (distance < nearestDistance) {
+        nearest = slot;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  }, [visibleSlots, selectedVirtualNumber]);
 
   useEffect(() => {
-    setPlayerContentByArtist([
-      calculateContentByArtist(playerContent[0]),
-      calculateContentByArtist(playerContent[1]),
-      calculateContentByArtist(playerContent[2]),
-    ]);
-  }, [playerContent]);
+    if (
+      selectionInitializedRef.current ||
+      !playerContentLoaded ||
+      visibleSlots.length === 0
+    ) {
+      return;
+    }
+
+    selectionInitializedRef.current = true;
+    setSelectedVirtualNumberState(visibleSlots[0].number);
+  }, [playerContentLoaded, visibleSlots]);
+
+  useEffect(() => {
+    if (!selectedVirtualSlot) return;
+    if (selectedVirtualNumber !== selectedVirtualSlot.number) {
+      setSelectedVirtualNumberState(selectedVirtualSlot.number);
+    }
+  }, [selectedVirtualSlot, selectedVirtualNumber]);
 
   const [lastPlayedSlots, setLastPlayedSlots] = useState<(number | null)[]>([
     null,
@@ -488,14 +542,6 @@ export const DataRepositoryProvider = ({
     return () => clearInterval(timer);
   }, [isMockDisplay, applyDisplayStreams]);
 
-  const selectedPlayerDefinition = playerDefinitions.find(
-    (definition) => definition.remoteIndex === selectedPlayer,
-  );
-  const selectedStreamId = getPlayerStreamId(selectedPlayerDefinition);
-  const displayState = displayLoaded
-    ? getPlayerDisplayState(selectedStreamId, displayStreams, selectedPlayer)
-    : null;
-
   // "Currently playing" view: one player at a time, playing > paused > none.
   const nowPlayingSelection = displayLoaded
     ? selectNowPlaying(playerDefinitions, displayStreams)
@@ -519,35 +565,24 @@ export const DataRepositoryProvider = ({
   const nowPlayingPlayer = nowPlayingDetail?.player ?? null;
   const nowPlayingStreamId = nowPlayingDetail?.streamId ?? null;
 
+  // Focus follows the selected virtual slot. When no CD is assigned anywhere,
+  // fall back to the player that is currently playing so transport stays useful.
+  const focusedPlayer =
+    selectedVirtualSlot?.playerRemoteIndex ?? nowPlayingPlayer ?? null;
+
+  const focusedPlayerDefinition = playerDefinitions.find(
+    (definition) => definition.remoteIndex === focusedPlayer,
+  );
+  const focusedStreamId = getPlayerStreamId(focusedPlayerDefinition);
+  const displayState = displayLoaded
+    ? getPlayerDisplayState(focusedStreamId, displayStreams, focusedPlayer)
+    : null;
+
   // Transport/power buttons follow the same precedence. With no playing/paused
-  // player they fall back to the player selected in the main view.
-  const commandPlayer = nowPlayingPlayer ?? selectedPlayer;
+  // player they fall back to the focused player.
+  const commandPlayer = nowPlayingPlayer ?? focusedPlayer;
   const commandDisplayState =
     nowPlayingPlayer !== null ? nowPlayingDisplayState : displayState;
-
-  /**
-   * Player State
-   */
-  const [selectedPlayerSlots, setSelectedPlayerSlots] = useState<number[]>([
-    0, 0, 0,
-  ]);
-
-  // Validate selected slots against content
-  useEffect(() => {
-    if (playerContent.some((content) => content.length > 0)) {
-      setSelectedPlayerSlots((prev) => {
-        return prev.map((slot, index) => {
-          const content = playerContent[index];
-          if (content.length === 0) return 0;
-          // available slots are 0 to content.length - 1
-          if (slot >= content.length) {
-            return 0;
-          }
-          return slot;
-        });
-      });
-    }
-  }, [playerContent]);
 
   return (
     <DataRepositoryContext.Provider
@@ -557,15 +592,17 @@ export const DataRepositoryProvider = ({
         getCdById,
         playerDefinitions,
         getPlayerDefinitionsByStatus,
-        selectedPlayer,
-        setSelectedPlayer,
         refreshPlayerDefinitions,
         irRemoteClients,
         playerContent,
-        playerContentByArtist,
         refreshPlayerContent,
-        selectedPlayerSlots,
-        setSelectedPlayerSlots,
+        virtualLayouts,
+        visibleSlots,
+        visibleSlotsByArtist,
+        selectedVirtualNumber,
+        setSelectedVirtualNumber,
+        selectedVirtualSlot,
+        focusedPlayer,
         lastPlayedSlots,
         setLastPlayedSlots,
         displayLoaded,

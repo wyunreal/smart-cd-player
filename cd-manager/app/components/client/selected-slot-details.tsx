@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
-import { PlayerSlot } from "@/app/providers/data-repository";
+import { VirtualSlot } from "@/lib/virtual-slots";
 import {
   ArrowForwardIcon,
   ListIcon,
@@ -32,10 +32,10 @@ const SelectedSlotDetails = ({
   onTrackPlay,
   isTrackPlaySupported = () => true,
 }: {
-  slot: PlayerSlot;
+  slot: VirtualSlot;
   width: number;
-  relatedSlots: PlayerSlot[];
-  onRelatedAlbumClick: (slot: PlayerSlot) => void;
+  relatedSlots: VirtualSlot[];
+  onRelatedAlbumClick: (slot: VirtualSlot) => void;
   onTrackPlay: (trackNumber: number) => void;
   isTrackPlaySupported?: (trackNumber: number) => boolean;
 }) => {
@@ -97,6 +97,9 @@ const SelectedSlotDetails = ({
                 {relatedSlots.length > 0
                   ? `All from ${relatedSlots[0].cd?.artist}`
                   : slot.cd.artist}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {`Player ${slot.playerRemoteIndex} · slot ${slot.slot}`}
               </Typography>
             </Box>
             <Box

@@ -17,88 +17,73 @@ import SpectrumBackground from "../../components/client/spectrum-background";
 
 const Page = () => {
   const {
-    playerContent,
-    playerContentByArtist,
     playerDefinitions,
-    selectedPlayer,
     irRemoteClients,
-    selectedPlayerSlots,
-    setSelectedPlayerSlots,
+    visibleSlots,
+    visibleSlotsByArtist,
+    selectedVirtualSlot,
+    setSelectedVirtualNumber,
     lastPlayedSlots,
     setLastPlayedSlots,
     displayState,
+    focusedPlayer,
   } = useContext(DataRepositoryContext);
 
   const isOff = displayState?.mode === "off";
-  const [selectedPlayerRemoteIndex, setSelectedPlayerRemoteIndex] =
-    useState<number>(1);
-  useEffect(() => {
-    if (selectedPlayer !== null) {
-      setPageShown(false);
-      setTimeout(() => {
-        setSelectedPlayerRemoteIndex(selectedPlayer);
-        setTimeout(() => {
-          setPageShown(true);
-        }, 500);
-      }, 500);
-    }
-  }, [selectedPlayer]);
-
-  const currentSlot =
-    selectedPlayerRemoteIndex !== null
-      ? playerContent[selectedPlayerRemoteIndex - 1][
-          selectedPlayerSlots[selectedPlayerRemoteIndex - 1]
-        ]
-      : null;
-  const currentSlotNumber = currentSlot?.slot || 0;
-  const [pageShown, setPageShown] = useState(true);
+  const currentSlot = selectedVirtualSlot;
+  const currentSlotNumber = currentSlot?.number ?? 0;
   const { width, resizeRef } = useResizeObserver();
-
-  const buildSelectedSlot = useCallback(
-    (slot: number, selectedPlayer: 0 | 1 | 2) => {
-      if (selectedPlayer === 0) {
-        return [slot, selectedPlayerSlots[1], selectedPlayerSlots[2]];
-      } else if (selectedPlayer === 1) {
-        return [selectedPlayerSlots[0], slot, selectedPlayerSlots[2]];
-      } else {
-        return [selectedPlayerSlots[0], selectedPlayerSlots[1], slot];
-      }
-    },
-    [selectedPlayerSlots],
-  );
-
   const theme = useTheme();
-  const getPlayerIndex = (remoteIndex: number): 0 | 1 | 2 => {
-    const index = remoteIndex - 1;
-    if (index === 0 || index === 1 || index === 2) {
-      return index;
-    }
-    return 0;
-  };
 
-  const currentRemoteClientIndex = getPlayerIndex(selectedPlayerRemoteIndex);
-  const currentRemoteClient = irRemoteClients[currentRemoteClientIndex];
+  const focusedPlayerIndex = focusedPlayer !== null ? focusedPlayer - 1 : -1;
+  const currentRemoteClient =
+    focusedPlayerIndex >= 0 ? irRemoteClients[focusedPlayerIndex] : null;
+
+  const selectedVisibleIndex = currentSlot?.index ?? 0;
+  const [sliderIndex, setSliderIndex] = useState(selectedVisibleIndex);
+
+  // Keep the thumb in sync when the selection changes from the carousel,
+  // search, related albums or the collection.
+  useEffect(() => {
+    setSliderIndex(selectedVisibleIndex);
+  }, [selectedVisibleIndex]);
+
+  // Commit the slider after a short pause. Updating the global selection on
+  // every drag event fights with the carousel's smooth scrolling.
+  useEffect(() => {
+    if (sliderIndex === selectedVisibleIndex) return;
+    const item = visibleSlots[sliderIndex];
+    if (!item) return;
+
+    const timer = setTimeout(() => {
+      setSelectedVirtualNumber(item.number);
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [
+    sliderIndex,
+    selectedVisibleIndex,
+    visibleSlots,
+    setSelectedVirtualNumber,
+  ]);
 
   const handleTrackPlay = useCallback(
     async (trackNumber: number) => {
-      if (!currentRemoteClient) return;
-      if (!currentSlot) return;
+      if (!currentRemoteClient || !currentSlot || focusedPlayerIndex < 0) {
+        return;
+      }
 
       const isSameSlot =
-        lastPlayedSlots[currentRemoteClientIndex] === currentSlot.slot;
-      let sequence;
-
-      if (isSameSlot) {
-        sequence = getPlayTrackOrder(trackNumber);
-      } else {
-        sequence = getPlayTrackOnDiskOrder(currentSlot.slot, trackNumber);
-      }
+        lastPlayedSlots[focusedPlayerIndex] === currentSlot.slot;
+      const sequence = isSameSlot
+        ? getPlayTrackOrder(trackNumber)
+        : getPlayTrackOnDiskOrder(currentSlot.slot, trackNumber);
 
       try {
         await currentRemoteClient.sendOrder(sequence);
         if (!isSameSlot) {
           const newLastPlayed = [...lastPlayedSlots];
-          newLastPlayed[currentRemoteClientIndex] = currentSlot.slot;
+          newLastPlayed[focusedPlayerIndex] = currentSlot.slot;
           setLastPlayedSlots(newLastPlayed);
         }
       } catch (e) {
@@ -108,22 +93,21 @@ const Page = () => {
     [
       currentRemoteClient,
       currentSlot,
+      focusedPlayerIndex,
       lastPlayedSlots,
-      currentRemoteClientIndex,
       setLastPlayedSlots,
     ],
   );
 
   const handleAlbumPlay = useCallback(async () => {
-    if (!currentRemoteClient) return;
-    if (!currentSlot) return;
+    if (!currentRemoteClient || !currentSlot || focusedPlayerIndex < 0) return;
 
     const sequence = getPlayDiscOrder(currentSlot.slot);
 
     try {
       await currentRemoteClient.sendOrder(sequence);
       const newLastPlayed = [...lastPlayedSlots];
-      newLastPlayed[currentRemoteClientIndex] = currentSlot.slot;
+      newLastPlayed[focusedPlayerIndex] = currentSlot.slot;
       setLastPlayedSlots(newLastPlayed);
     } catch (e) {
       console.error("Failed to sequence commands", e);
@@ -131,8 +115,8 @@ const Page = () => {
   }, [
     currentRemoteClient,
     currentSlot,
+    focusedPlayerIndex,
     lastPlayedSlots,
-    currentRemoteClientIndex,
     setLastPlayedSlots,
   ]);
 
@@ -141,14 +125,10 @@ const Page = () => {
       if (isOff || !currentRemoteClient || !currentSlot) return false;
 
       const isSameSlot =
-        lastPlayedSlots[currentRemoteClientIndex] === currentSlot.slot;
-      let sequence;
-
-      if (isSameSlot) {
-        sequence = getPlayTrackOrder(trackNumber);
-      } else {
-        sequence = getPlayTrackOnDiskOrder(currentSlot.slot, trackNumber);
-      }
+        lastPlayedSlots[focusedPlayerIndex] === currentSlot.slot;
+      const sequence = isSameSlot
+        ? getPlayTrackOrder(trackNumber)
+        : getPlayTrackOnDiskOrder(currentSlot.slot, trackNumber);
 
       return currentRemoteClient.canExecuteSequence(sequence);
     },
@@ -156,10 +136,17 @@ const Page = () => {
       isOff,
       currentRemoteClient,
       currentSlot,
+      focusedPlayerIndex,
       lastPlayedSlots,
-      currentRemoteClientIndex,
     ],
   );
+
+  const isPlayDiskButtonVisible =
+    !isOff && currentSlot?.cd && currentRemoteClient
+      ? currentRemoteClient.canExecuteSequence(
+          getPlayDiscOrder(currentSlot.slot),
+        )
+      : false;
 
   return (
     <Box
@@ -171,7 +158,7 @@ const Page = () => {
         backgroundColor: theme.vars.palette.section.background,
       }}
     >
-      {playerDefinitions !== null && playerDefinitions?.length > 0 && (
+      {playerDefinitions !== null && playerDefinitions.length > 0 && (
         <Box
           sx={{
             display: "flex",
@@ -179,7 +166,7 @@ const Page = () => {
             flexGrow: 1,
           }}
         >
-          <Fade timeout={250} in={width > 0 && pageShown}>
+          <Fade timeout={250} in={width > 0}>
             <Box
               sx={{
                 mt: 2,
@@ -207,32 +194,19 @@ const Page = () => {
                   <PlayerControlButtons />
                 </Box>
                 <Box ref={resizeRef}>
-                  <PlayerSlots
-                    selectedPlayer={getPlayerIndex(selectedPlayerRemoteIndex)}
-                    selectedSlot={
-                      selectedPlayerSlots[selectedPlayerRemoteIndex - 1]
-                    }
-                    isPlayDiskButtonVisible={
-                      !isOff && currentSlot && currentRemoteClient
-                        ? (() => {
-                            const sequence = getPlayDiscOrder(currentSlot.slot);
-                            const canExecute =
-                              currentRemoteClient.canExecuteSequence(sequence);
-                            return canExecute;
-                          })()
-                        : false
-                    }
-                    handleSelectedSlotChange={(slot) => {
-                      setSelectedPlayerSlots(
-                        buildSelectedSlot(
-                          slot,
-                          getPlayerIndex(selectedPlayerRemoteIndex),
-                        ),
-                      );
-                    }}
-                    handleAlbumPlay={handleAlbumPlay}
-                    containerWidth={width}
-                  />
+                  {visibleSlots.length > 0 && (
+                    <PlayerSlots
+                      items={visibleSlots}
+                      selectedIndex={currentSlot?.index ?? 0}
+                      isPlayDiskButtonVisible={isPlayDiskButtonVisible}
+                      handleSelectedSlotChange={(index) => {
+                        const item = visibleSlots[index];
+                        if (item) setSelectedVirtualNumber(item.number);
+                      }}
+                      handleAlbumPlay={handleAlbumPlay}
+                      containerWidth={width}
+                    />
+                  )}
                 </Box>
                 <Box
                   sx={{
@@ -243,26 +217,44 @@ const Page = () => {
                   }}
                 >
                   <SpectrumBackground>
-                    <Box sx={{ mb: 1 }}>
-                      <Typography
-                        variant="h3"
-                        sx={{
-                          textAlign: "center",
-                          visibility:
-                            currentSlotNumber === 0 ? "hidden" : "visible",
-                        }}
-                      >
-                        {currentSlotNumber}
-                      </Typography>
-                      <Typography variant="h5" sx={{ textAlign: "center" }}>
-                        {(currentSlot?.cd?.diskAmount || 1) > 1
-                          ? `${currentSlot?.cd?.title}, Disc ${currentSlot?.cd?.diskNumber}`
-                          : currentSlot?.cd?.title || "No disk"}
-                      </Typography>
-                      <Typography variant="body1" sx={{ textAlign: "center" }}>
-                        {currentSlot?.cd?.artist || "No artist"}
-                      </Typography>
-                    </Box>
+                    {currentSlot ? (
+                      <Box sx={{ mb: 1 }}>
+                        <Typography
+                          variant="h3"
+                          sx={{
+                            textAlign: "center",
+                          }}
+                        >
+                          {currentSlotNumber}
+                        </Typography>
+                        <Typography variant="h5" sx={{ textAlign: "center" }}>
+                          {(currentSlot.cd?.diskAmount || 1) > 1
+                            ? `${currentSlot.cd?.title}, Disc ${currentSlot.cd?.diskNumber}`
+                            : currentSlot.cd?.title}
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{ textAlign: "center" }}
+                        >
+                          {currentSlot.cd?.artist}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", textAlign: "center" }}
+                        >
+                          {`Player ${currentSlot.playerRemoteIndex} · slot ${currentSlot.slot}`}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Box sx={{ mb: 1, textAlign: "center" }}>
+                        <Typography variant="h5">No discs assigned</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Add CDs from the collection and choose a player and
+                          slot.
+                        </Typography>
+                      </Box>
+                    )}
                   </SpectrumBackground>
                 </Box>
                 {currentSlot && (
@@ -272,21 +264,11 @@ const Page = () => {
                       slot={currentSlot}
                       relatedSlots={
                         currentSlot.cd
-                          ? playerContentByArtist[
-                              selectedPlayerRemoteIndex - 1
-                            ][currentSlot.cd.artist] || []
+                          ? visibleSlotsByArtist[currentSlot.cd.artist] || []
                           : []
                       }
                       onRelatedAlbumClick={(slot) => {
-                        const slotIndex = playerContent[
-                          selectedPlayerRemoteIndex - 1
-                        ].findIndex((s) => s.slot === slot.slot);
-                        setSelectedPlayerSlots(
-                          buildSelectedSlot(
-                            slotIndex,
-                            getPlayerIndex(selectedPlayerRemoteIndex),
-                          ),
-                        );
+                        setSelectedVirtualNumber(slot.number);
                       }}
                       onTrackPlay={handleTrackPlay}
                       isTrackPlaySupported={checkTrackPlaySupport}
@@ -294,31 +276,26 @@ const Page = () => {
                   </BottomSheet>
                 )}
               </Box>
-              <Box mt={2} mb={1} mx={1}>
-                <Slider
-                  valueLabelDisplay="auto"
-                  valueLabelFormat={() => currentSlotNumber.toString()}
-                  value={selectedPlayerSlots[selectedPlayerRemoteIndex - 1]}
-                  step={1}
-                  min={0}
-                  max={
-                    playerContent[selectedPlayerRemoteIndex - 1].length > 0
-                      ? playerContent[selectedPlayerRemoteIndex - 1].length - 1
-                      : 0
-                  }
-                  onChange={(e, v) => {
-                    setSelectedPlayerSlots(
-                      buildSelectedSlot(
-                        typeof v === "number" ? v : 0,
-                        getPlayerIndex(selectedPlayerRemoteIndex),
-                      ),
-                    );
-                  }}
-                  sx={{
-                    visibility: currentSlotNumber === 0 ? "hidden" : "visible",
-                  }}
-                />
-              </Box>
+              {visibleSlots.length > 1 && (
+                <Box mt={2} mb={1} mx={1}>
+                  <Slider
+                    aria-label="Virtual slot"
+                    value={sliderIndex}
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(value) =>
+                      String(visibleSlots[Number(value)]?.number ?? "")
+                    }
+                    step={1}
+                    min={0}
+                    max={visibleSlots.length - 1}
+                    onChange={(e, value) => {
+                      setSliderIndex(
+                        typeof value === "number" ? value : 0,
+                      );
+                    }}
+                  />
+                </Box>
+              )}
             </Box>
           </Fade>
         </Box>

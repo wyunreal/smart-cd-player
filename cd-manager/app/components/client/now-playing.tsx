@@ -43,8 +43,8 @@ const NowPlaying = ({ displayState, player, streamId }: NowPlayingProps) => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [visible, setVisible] = useState(isMobile);
 
-  const { selectedPlayer, playerContent } = useContext(DataRepositoryContext);
-  const playerIndex = player !== undefined ? player : selectedPlayer;
+  const { focusedPlayer, playerContent } = useContext(DataRepositoryContext);
+  const playerIndex = player !== undefined ? player : focusedPlayer;
 
   const currentSlot = useMemo(() => {
     if (playerIndex === null || displayState?.disc === null) return null;

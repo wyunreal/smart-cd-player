@@ -18,11 +18,10 @@ import TransportButtons from "./transport-buttons";
 
 const PlayerControlButtons = () => {
   const {
-    selectedPlayer,
+    focusedPlayer,
     irRemoteClients,
-    playerContent,
-    selectedPlayerSlots,
-    setSelectedPlayerSlots,
+    visibleSlots,
+    setSelectedVirtualNumber,
     nowPlayingPlayer,
     nowPlayingStreamId,
     nowPlayingDisplayState,
@@ -34,13 +33,8 @@ const PlayerControlButtons = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
 
-  // The players page controls the player currently selected in the page, not
-  // whichever player happens to be playing elsewhere.
-  const currentPlayerSlots =
-    selectedPlayer !== null ? playerContent[selectedPlayer - 1] : [];
-
   // Power is a master switch: it is sent to every player that has an IR
-  // client supporting the toggle, not only the selected one.
+  // client supporting the toggle, not only the focused one.
   const canTogglePower = irRemoteClients.some(
     (client) => client?.isCommandSupported(PlayerCommand.PowerSwitch) ?? false,
   );
@@ -49,27 +43,23 @@ const PlayerControlButtons = () => {
   }, [irRemoteClients]);
 
   const handleSlotSelect = useCallback(
-    (slotIndex: number) => {
-      if (selectedPlayer === null) return;
-      const playerIndex = selectedPlayer - 1;
-      const newSlots = [...selectedPlayerSlots];
-      newSlots[playerIndex] = slotIndex;
-      setSelectedPlayerSlots(newSlots);
+    (virtualNumber: number) => {
+      setSelectedVirtualNumber(virtualNumber);
       setSearchOpen(false);
     },
-    [selectedPlayer, selectedPlayerSlots, setSelectedPlayerSlots],
+    [setSelectedVirtualNumber],
   );
 
   return (
     <>
       <IconButton
         onClick={() => setSearchOpen(true)}
-        disabled={selectedPlayer === null}
+        disabled={visibleSlots.length === 0}
       >
         <SearchOutlinedIcon />
       </IconButton>
       <TransportButtons
-        player={selectedPlayer}
+        player={focusedPlayer}
         displayState={displayState}
       />
       <IconButton
@@ -90,7 +80,7 @@ const PlayerControlButtons = () => {
         noPadding
       >
         <SearchSlotForm
-          slots={currentPlayerSlots}
+          slots={visibleSlots}
           onSlotSelect={handleSlotSelect}
           isOpen={searchOpen}
         />

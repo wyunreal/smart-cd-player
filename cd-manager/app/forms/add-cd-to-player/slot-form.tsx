@@ -16,7 +16,7 @@ const SlotForm = ({ data, onDataChanged }: StepProps<AddCdToPlayerData>) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const { playerContent, playerDefinitions, selectedPlayer } = useContext(
+  const { playerContent, playerDefinitions, focusedPlayer } = useContext(
     DataRepositoryContext,
   );
   const getSlotCount = (playerRemote: number) => {
@@ -39,9 +39,11 @@ const SlotForm = ({ data, onDataChanged }: StepProps<AddCdToPlayerData>) => {
   const [selectedplayerRemote, setSelectedPlayerRemote] = useState<number>(
     data.player !== undefined
       ? data.player
-      : selectedPlayer !== null
-        ? selectedPlayer
-        : 1,
+      : focusedPlayer !== null
+        ? focusedPlayer
+        : playerDefinitions?.find((player) => player.active)?.remoteIndex ??
+          playerDefinitions?.[0]?.remoteIndex ??
+          1,
   );
   const [slot, setSlot] = useState<number>(
     data.slot ?? getFirstFreeSlot(selectedplayerRemote),

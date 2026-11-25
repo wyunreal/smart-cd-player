@@ -4,11 +4,13 @@ A modern web application to manage multiple CD players and your disc collection.
 
 ## 🎵 Features
 
-- **Multiple Player Management**: Manage up to 3 CD players simultaneously
+- **Unified Player View**: All configured CD players are presented as one virtual changer
+- **Capacity-Based Slot Numbering**: Player 1 uses slots 1..capacity, Player 2 continues after it, and so on
+- **Multiple Player Management**: Manage up to 3 CD players with different capacities
 - **CD Collection**: Organize and search through your complete disc collection
 - **Album Information**: Automatic fetching of album information, including cover art
 - **Responsive Interface**: Optimized experience for mobile and desktop devices
-- **Slot Management**: Assign CDs to specific slots in each player
+- **Slot Management**: Assign CDs to specific players and physical slots
 - **Authentication**: Integrated authentication system with NextAuth
 - **Customizable Themes**: Support for light and dark themes
 
@@ -108,9 +110,25 @@ smart-cd-player/
 
 ### Player Management
 
-- Define CD players with different capacities
+- Define up to 3 CD players with different capacities
 - Activate/deactivate players as needed
-- Navigate between multiple players
+- Browse all players in one continuous, unified slot view
+- Configure players from the toolbar menu on the Players page
+
+### Unified Player View
+
+- The UI behaves like a single large CD changer:
+  - Player 1 owns virtual slots `1..capacity1`
+  - Player 2 continues from `capacity1 + 1`
+  - Player 3 continues after Player 2
+- Only slots that contain a CD are shown in the carousel. Empty slots do not create
+  visual gaps; they are managed from the collection when adding a CD.
+- The large slot number is the **virtual slot number**. The smaller caption shows
+  which physical player and slot the disc belongs to.
+- The bottom slider navigates the visible discs and shows the virtual slot number
+  in its label. Carousel and slider stay synchronized in both directions.
+- Playback commands always use the physical player and physical slot, even when the
+  UI shows a virtual slot number.
 
 ### CD Collection
 
@@ -118,12 +136,14 @@ smart-cd-player/
 - Complete information: artist, album, year, genre, tracks
 - Automatic download of album cover art
 - Search and filter your collection
+- Slot search and “All from artist” results span every configured player
 
 ### Slot Assignment
 
-- Assign CDs to specific slots in each player
-- Intuitive visualization of all slots
-- Complete CD details in each slot
+- Assign CDs to a specific player and physical slot
+- Visualize all occupied slots across players as one unified player
+- Complete CD details for each slot
+- “See on player” jumps directly to the correct virtual slot
 
 ## 🎛️ Composite Video Parser
 
@@ -208,6 +228,7 @@ yarn dev      # Start the development server
 yarn build    # Build the application for production
 yarn start    # Start the production server
 yarn lint     # Run the linter
+yarn test     # Run the Jest test suite
 ```
 
 ## 📝 Configuration

@@ -14,11 +14,10 @@ import {
   Typography,
 } from "@mui/material";
 import { SearchOutlinedIcon } from "@/app/icons";
-import { PlayerSlot } from "@/app/providers/data-repository";
+import { VirtualSlot } from "@/lib/virtual-slots";
 
 type SearchResult = {
-  slotIndex: number;
-  slot: PlayerSlot;
+  slot: VirtualSlot;
   matchType: "album" | "track";
   trackName?: string;
 };
@@ -28,8 +27,8 @@ const SearchSlotForm = ({
   onSlotSelect,
   isOpen,
 }: {
-  slots: PlayerSlot[];
-  onSlotSelect: (slotIndex: number) => void;
+  slots: VirtualSlot[];
+  onSlotSelect: (virtualNumber: number) => void;
   isOpen: boolean;
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,20 +47,18 @@ const SearchSlotForm = ({
 
     const matches: SearchResult[] = [];
 
-    for (let i = 0; i < slots.length; i++) {
-      const slot = slots[i];
+    for (const slot of slots) {
       if (!slot.cd) continue;
 
       const artistMatch = slot.cd.artist.toLowerCase().includes(term);
       const titleMatch = slot.cd.title.toLowerCase().includes(term);
 
       if (artistMatch || titleMatch) {
-        matches.push({ slotIndex: i, slot, matchType: "album" });
+        matches.push({ slot, matchType: "album" });
       } else {
         for (const track of slot.cd.tracks) {
           if (track.title.toLowerCase().includes(term)) {
             matches.push({
-              slotIndex: i,
               slot,
               matchType: "track",
               trackName: track.title,
@@ -120,11 +117,16 @@ const SearchSlotForm = ({
         <List>
           {results.map((result, index) => (
             <React.Fragment
-              key={`${result.slotIndex}-${result.trackName || "album"}-${index}`}
+              key={`${result.slot.number}-${result.trackName || "album"}-${index}`}
             >
               <ListItemButton
-                onClick={() => onSlotSelect(result.slotIndex)}
-                sx={{ px: 1, pl: { xs: "16px", sm: 1 }, pr: "16px", alignItems: "center" }}
+                onClick={() => onSlotSelect(result.slot.number)}
+                sx={{
+                  px: 1,
+                  pl: { xs: "16px", sm: 1 },
+                  pr: "16px",
+                  alignItems: "center",
+                }}
               >
                 <ListItemAvatar>
                   <Avatar
@@ -150,13 +152,22 @@ const SearchSlotForm = ({
                       : result.slot.cd?.title
                   }
                 />
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ ml: 1, whiteSpace: "nowrap" }}
-                >
-                  {`Slot ${result.slot.slot}`}
-                </Typography>
+                <Box sx={{ ml: 1, textAlign: "right" }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ whiteSpace: "nowrap" }}
+                  >
+                    {`Slot ${result.slot.number}`}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ whiteSpace: "nowrap" }}
+                  >
+                    {`Player ${result.slot.playerRemoteIndex} · slot ${result.slot.slot}`}
+                  </Typography>
+                </Box>
               </ListItemButton>
               <Divider />
             </React.Fragment>

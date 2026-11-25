@@ -64,9 +64,8 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     refreshCds,
     refreshPlayerContent,
     playerContent,
-    setSelectedPlayer,
-    selectedPlayerSlots,
-    setSelectedPlayerSlots,
+    visibleSlots,
+    setSelectedVirtualNumber,
   } = useContext(DataRepositoryContext);
   const router = useRouter();
   const { selectedCdId, selectCdById, clearSelection } = useCdSelection();
@@ -134,26 +133,19 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
 
       const seeOnPlayerMenuItem: MenuOption | null = isUsed
         ? (() => {
-            for (let pi = 0; pi < playerContent.length; pi++) {
-              const slotIndex = playerContent[pi].findIndex(
-                (s) => s.cd?.id === cdId,
-              );
-              if (slotIndex !== -1) {
-                return {
-                  type: "action" as const,
-                  icon: <PlayArrowOutlinedIcon />,
-                  caption: "See on player",
-                  handler: () => {
-                    const newSlots = [...selectedPlayerSlots];
-                    newSlots[pi] = slotIndex;
-                    setSelectedPlayerSlots(newSlots);
-                    setSelectedPlayer(pi + 1);
-                    router.push(ROUTES.PLAYER);
-                  },
-                };
-              }
-            }
-            return null;
+            const visibleSlot = visibleSlots.find(
+              (slot) => slot.cd?.id === cdId,
+            );
+            if (!visibleSlot) return null;
+            return {
+              type: "action" as const,
+              icon: <PlayArrowOutlinedIcon />,
+              caption: "See on player",
+              handler: () => {
+                setSelectedVirtualNumber(visibleSlot.number);
+                router.push(ROUTES.PLAYER);
+              },
+            };
           })()
         : null;
 
@@ -212,10 +204,8 @@ const CdCollection = ({ cds }: { cds: { [id: number]: Cd } }) => {
     },
     [
       usedCdIds, // Dependent on playerContent, but faster check
-      playerContent,
-      selectedPlayerSlots,
-      setSelectedPlayerSlots,
-      setSelectedPlayer,
+      visibleSlots,
+      setSelectedVirtualNumber,
       router,
       openEditCdForm,
       confirmDialog,
