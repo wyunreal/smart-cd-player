@@ -1,7 +1,8 @@
-import { Box, Button, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Button, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import { usePathname } from "next/navigation";
 import { useContext, useEffect, useRef, useState } from "react";
 import { DataRepositoryContext } from "@/app/providers/data-repository";
+import QueueMusicIcon from "@mui/icons-material/QueueMusic";
 
 import useEditPlayerDefinitionForm from "@/app/hooks/use-edit-player-definition-form";
 import useAddCdFlow from "@/app/hooks/use-add-cd-flow";
@@ -9,6 +10,7 @@ import { ROUTES } from "@/app/util/routes";
 import PlayerControlButtons from "./player-control-buttons";
 import Menu from "./menu";
 import { MoreVertIcon, SettingsOutlinedIcon } from "@/app/icons";
+import { useCdListDrawer } from "./now-playing-screen/now-playing-cd-list-context";
 
 const MainActions = () => {
   const path = usePathname();
@@ -44,11 +46,21 @@ const MainActions = () => {
   }, [path, isMobile]);
 
   const { playerDefinitions } = useContext(DataRepositoryContext);
+  const { open: cdListOpen, setOpen: setCdListOpen } = useCdListDrawer();
+  const isWide = useMediaQuery(theme.breakpoints.up("xxl"));
   const { editPlayerDefinitionFormInstance, openEditPlayerDefinitionForm } =
     useEditPlayerDefinitionForm();
 
   return (
     <>
+      {path === ROUTES.HOME && !isWide && (
+        <IconButton
+          onClick={() => setCdListOpen(!cdListOpen)}
+          aria-label={cdListOpen ? "Close CD list" : "Open CD list"}
+        >
+          <QueueMusicIcon />
+        </IconButton>
+      )}
       {path === ROUTES.PLAYER && (
         <>
           <Box

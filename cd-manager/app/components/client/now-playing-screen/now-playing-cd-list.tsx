@@ -8,24 +8,21 @@ import {
   alpha,
   Box,
   Drawer,
-  Fab,
   IconButton,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { PlayArrowRounded, QueueMusic } from "@mui/icons-material";
+import { PlayArrowRounded } from "@mui/icons-material";
 import {
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
-import {
-  NOW_PLAYING_CD_LIST_WIDTH,
-} from "./constants";
+import { NOW_PLAYING_CD_LIST_WIDTH } from "./constants";
+import { useCdListDrawer } from "./now-playing-cd-list-context";
 
 const getCdTitle = (slot: VirtualSlot): string => {
   const cd = slot.cd;
@@ -42,6 +39,7 @@ const CdListContent = ({ onClose }: { onClose?: () => void }) => {
     irRemoteClients,
     commandPlayer,
     commandDisplayState,
+    playerDisplayStates,
     lastPlayedSlots,
     setLastPlayedSlots,
     setSelectedVirtualNumber,
@@ -192,8 +190,11 @@ const CdListContent = ({ onClose }: { onClose?: () => void }) => {
           if (!cd) return null;
 
           const client = irRemoteClients[slot.playerIndex] ?? null;
+          const isPlayerOff =
+            playerDisplayStates[slot.playerRemoteIndex]?.mode === "off";
           const canPlay =
-            client?.canExecuteSequence(getPlayDiscOrder(slot.slot)) ?? false;
+            !isPlayerOff &&
+            (client?.canExecuteSequence(getPlayDiscOrder(slot.slot)) ?? false);
           const isCurrent = currentSlot?.number === slot.number;
 
           const meta = [
@@ -341,7 +342,7 @@ const CdListContent = ({ onClose }: { onClose?: () => void }) => {
 const NowPlayingCdList = () => {
   const theme = useTheme();
   const isWide = useMediaQuery(theme.breakpoints.up("xxl"));
-  const [open, setOpen] = useState(false);
+  const { open, setOpen } = useCdListDrawer();
 
   if (isWide) {
     return (
@@ -370,37 +371,25 @@ const NowPlayingCdList = () => {
   }
 
   return (
-    <>
-      <Fab
-        aria-label="Open CD list"
-        color="primary"
-        onClick={() => setOpen(true)}
-        sx={{
-          position: "fixed",
-          top: 80,
-          right: 16,
-          zIndex: theme.zIndex.speedDial,
-        }}
-      >
-        <QueueMusic />
-      </Fab>
-      <Drawer
-        anchor="right"
-        open={open}
-        onClose={() => setOpen(false)}
-        ModalProps={{ keepMounted: true }}
-        PaperProps={{
-          sx: {
-            width: { xs: "min(88vw, 380px)", sm: 380 },
-            display: "flex",
-            flexDirection: "column",
-            pt: "env(safe-area-inset-top)",
+    <Drawer
+      anchor="right"
+      open={open}
+      onClose={() => setOpen(false)}
+      ModalProps={{ keepMounted: true }}
+      PaperProps={{
+        sx: {
+          width: { xs: "min(88vw, 380px)", sm: 380 },
+          display: "flex",
+          flexDirection: "column",
+          pt: {
+            xs: "calc(56px + env(safe-area-inset-top))",
+            sm: "calc(64px + env(safe-area-inset-top))",
           },
-        }}
-      >
-        <CdListContent onClose={() => setOpen(false)} />
-      </Drawer>
-    </>
+        },
+      }}
+    >
+      <CdListContent onClose={() => setOpen(false)} />
+    </Drawer>
   );
 };
 

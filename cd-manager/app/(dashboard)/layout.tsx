@@ -15,6 +15,7 @@ import { DataRepositoryProvider } from "@/app/providers/data-repository";
 import { CdSelectionProvider } from "@/app/providers/cd-selection-context";
 import { AudioStreamProvider } from "@/app/providers/audio-stream-provider";
 import MediaSessionBridge from "@/app/components/client/media-session-bridge";
+import { CdListDrawerProvider } from "@/app/components/client/now-playing-screen/now-playing-cd-list-context";
 
 const NoPageHeader = () => null;
 
@@ -39,8 +40,9 @@ export default function Layout(props: { children: React.ReactNode }) {
     <AudioStreamProvider>
       <CdSelectionProvider>
         <DataRepositoryProvider>
-          <MediaSessionBridge />
-          <DashboardLayout
+          <CdListDrawerProvider>
+            <MediaSessionBridge />
+            <DashboardLayout
           slots={{
             toolbarAccount: ToolbarAccountOverride,
             sidebarFooter: SidebarFooterAccount,
@@ -115,6 +117,7 @@ export default function Layout(props: { children: React.ReactNode }) {
               {props.children}
             </PageContainer>
           </DashboardLayout>
+          </CdListDrawerProvider>
         </DataRepositoryProvider>
       </CdSelectionProvider>
     </AudioStreamProvider>

@@ -95,6 +95,8 @@ export type DisplayStateProps = {
   displayLoaded: boolean;
   /** Display reading of the focused player. */
   displayState: DisplayState | null;
+  /** Display readings indexed by player remoteIndex. */
+  playerDisplayStates: Record<number, DisplayState | null>;
   /** Player picked for the "currently playing" view. */
   nowPlayingPlayer: number | null;
   /** Stream id of the player picked for the "currently playing" view. */
@@ -136,6 +138,7 @@ export const DataRepositoryContext = createContext<DataRepositoryContextProps>({
   setLastPlayedSlots: () => {},
   displayLoaded: false,
   displayState: null,
+  playerDisplayStates: {},
   nowPlayingPlayer: null,
   nowPlayingStreamId: null,
   nowPlayingDisplayState: null,
@@ -578,6 +581,20 @@ export const DataRepositoryProvider = ({
     ? getPlayerDisplayState(focusedStreamId, displayStreams, focusedPlayer)
     : null;
 
+  const playerDisplayStates = useMemo(() => {
+    if (!displayLoaded) return {};
+
+    const states: Record<number, DisplayState | null> = {};
+    for (const definition of playerDefinitions) {
+      states[definition.remoteIndex] = getPlayerDisplayState(
+        getPlayerStreamId(definition),
+        displayStreams,
+        definition.remoteIndex,
+      );
+    }
+    return states;
+  }, [displayLoaded, playerDefinitions, displayStreams]);
+
   // Transport/power buttons follow the same precedence. With no playing/paused
   // player they fall back to the focused player.
   const commandPlayer = nowPlayingPlayer ?? focusedPlayer;
@@ -607,6 +624,7 @@ export const DataRepositoryProvider = ({
         setLastPlayedSlots,
         displayLoaded,
         displayState,
+        playerDisplayStates,
         nowPlayingPlayer,
         nowPlayingStreamId,
         nowPlayingDisplayState,
